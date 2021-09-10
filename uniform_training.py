@@ -13,8 +13,8 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     return kspace
 
 train_data = mri_data.SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
-    root = pathlib.Path('/project/jhaldar_118/fastMRI_dataset/Brain/MultiCoil/multicoil_val/T2'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
+    #root = pathlib.Path('/project/jhaldar_118/fastMRI_dataset/Brain/MultiCoil/multicoil_val/T2'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -122,7 +122,7 @@ for epoch in range(max_epochs):
         loss = NRMSE_loss(recon,ground_truth)
         if batch_count%10 == 0:
             print("batch:",batch_count,"train loss:",loss.item(),"Original NRMSE:", NRMSE_loss(image_noise,ground_truth))
-        loss.backward
+        loss.backward()
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
