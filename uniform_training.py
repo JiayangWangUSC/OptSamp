@@ -19,7 +19,8 @@ train_data = mri_data.SliceDataset(
     challenge='multicoil'
 )
 
-
+for data in train_data:
+    print data.size()
 
 # %% noise generator and transform to image
 class Sample(torch.nn.Module): 
