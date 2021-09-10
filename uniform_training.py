@@ -99,15 +99,16 @@ recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
 
 def NRMSE_loss(recon,ground_truth):
     return torch.norm(recon-ground_truth)/torch.norm(ground_truth)
-
-
+# %%
+for train_batch in train_dataloader:
+    print(train_batch.size())
 # %% training
 max_epochs = 10
 for epoch in range(max_epochs):
     print("epoch:",epoch)
     batch_count = 0
     for train_batch in train_dataloader:
-        print(train_batch.size())
+        #print(train_batch.size())
         batch_count = batch_count + 1
         #print("batch:",batch_count)
         train_batch.to(device)
