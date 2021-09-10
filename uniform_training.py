@@ -19,8 +19,7 @@ train_data = mri_data.SliceDataset(
     challenge='multicoil'
 )
 
-for data in train_data:
-    print data.size()
+
 
 # %% noise generator and transform to image
 class Sample(torch.nn.Module): 
@@ -108,6 +107,7 @@ for epoch in range(max_epochs):
     print("epoch:",epoch)
     batch_count = 0
     for train_batch in train_dataloader:
+        print(train_batch.size())
         batch_count = batch_count + 1
         #print("batch:",batch_count)
         train_batch.to(device)
