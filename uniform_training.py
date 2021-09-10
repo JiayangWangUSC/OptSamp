@@ -108,8 +108,7 @@ for epoch in range(max_epochs):
         batch_count = batch_count + 1
         #print("batch:",batch_count)
         train_batch.to(device)
-        image_noise = sample_model(train_batch)
-        image_noise.to(device)
+        image_noise = sample_model(train_batch).to(device)
         recon = recon_model(image_noise)
         ground_truth = toIm(train_batch)
         loss = NRMSE_loss(recon,ground_truth)
