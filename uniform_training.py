@@ -19,22 +19,23 @@ train_data = mri_data.SliceDataset(
     challenge='multicoil'
 )
 
-# %% unet loader
-model = Unet(
-  in_chans = 1
-  out_chans = 1
-  chans = 32
-  num_pool_layer = 4
-  drop_prob = 0.0
-)
+
 
 # %% noise generator and transform to image
-def noise_generator(kspace,sigma,mask):
-    noise = sigma*torch.randn_like(kspace)
-    kspace_noise = kspace + torch.div(noise,mask)  # need to reshape mask
-    image = fastmri.ifft2c(kspace_noise)
-    image = fastmri.complex_abs(image)
-    image = transforms.normalize_instance(image,1e-11)
+class Sample(torch.nn.Module): 
+
+    def __init__(self,sigma,mask):
+        super().__init__()
+        self.mask = mask
+        self.sigma = sigma
+
+    def forward(self,kspace):
+        noise = sigma*torch.randn_like(kspace)
+        kspace_noise = kspace + torch.div(noise,self.mask)  # need to reshape mask
+        image = fastmri.ifft2c(kspace_noise)
+        image = fastmri.complex_abs(image)
+        image = transforms.normalize_instance(image,1e-11)
+        return image
 
 # %% GPU set up
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -43,13 +44,22 @@ print("Let's use", torch.cuda.device_count(), "GPUs!")
 
 batch_size = torch.cuda.device_count()
 train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
-
-model = torch.nn.DataParallel(model)
-model.to(device)
-
+# %% unet loader
+recon_model = Unet(
+  in_chans = 1
+  out_chans = 1
+  chans = 32
+  num_pool_layer = 4
+  drop_prob = 0.0
+)
+recon_model = torch.nn.DataParallel(recon_model)
+recon_model.to(device)
+# %% sampling
 mask = torch.ones() 
-mask = torch.nn.DataParallel(mask)
-mask.to(device)
+sigma = 1
+sample_model = Sample(sigma,mask)
+sample_model = torch.nn.DataParallel(sample_model)
+sample_model.to(device)
 
 # %% training
 max_epochs = 10
