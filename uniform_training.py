@@ -21,6 +21,7 @@ train_data = mri_data.SliceDataset(
 
 
 
+
 # %% noise generator and transform to image
 class Sample(torch.nn.Module): 
 
@@ -99,9 +100,7 @@ recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
 
 def NRMSE_loss(recon,ground_truth):
     return torch.norm(recon-ground_truth)/torch.norm(ground_truth)
-# %%
-for train_batch in train_dataloader:
-    print(train_batch.size())
+
 # %% training
 max_epochs = 10
 for epoch in range(max_epochs):
@@ -109,6 +108,9 @@ for epoch in range(max_epochs):
     batch_count = 0
     for train_batch in train_dataloader:
         #print(train_batch.size())
+        if train_batch.size(2)!=768:
+            continue
+    
         batch_count = batch_count + 1
         #print("batch:",batch_count)
         train_batch.to(device)
