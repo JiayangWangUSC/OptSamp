@@ -76,17 +76,19 @@ recon_model = Unet(
 
 
 # %% GPU 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-if torch.cuda.is_available() == False:
-    batch_size = 1
-    print("Let's use",device)
-else:
-    print("Let's use", torch.cuda.device_count(), "GPUs!")
-    batch_size = torch.cuda.device_count()
+#if torch.cuda.is_available() == False:
+#    batch_size = 1
+#    print("Let's use",device)
+#else:
+#    print("Let's use", torch.cuda.device_count(), "GPUs!")
+#    batch_size = torch.cuda.device_count()
     #sample_model = torch.nn.DataParallel(sample_model)
     #recon_model = torch.nn.DataParallel(recon_model)
     #toIm = torch.nn.DataParallel(toIm)
+device = torch.device("cpu")
+batch_size = 1
 train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
 sample_model.to(device)
 recon_model.to(device)
@@ -109,7 +111,7 @@ for epoch in range(max_epochs):
         #print("batch:",batch_count)
         train_batch.to(device)
         image_noise = sample_model(train_batch).to(device)
-        print(image_noise.device())
+        #print(image_noise.device())
         recon = recon_model(image_noise)
         #recon = recon_model(sample_model(train_batch))
         ground_truth = toIm(train_batch)
