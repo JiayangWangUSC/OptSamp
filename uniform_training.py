@@ -14,7 +14,7 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
 
 train_data = mri_data.SliceDataset(
     #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
-    root = pathlib.Path('/project/jhaldar_118/fastMRI_dataset/Brain/MultiCoil/multicoil_val/T2'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -108,7 +108,7 @@ for epoch in range(max_epochs):
     batch_count = 0
     for train_batch in train_dataloader:
         #print(train_batch.size())
-        if train_batch.size(2)!=768:
+        if train_batch.size(0)!=16 or train_batch.size(1)!=640 or train_batch.size(2)!=320:
             continue
     
         batch_count = batch_count + 1
