@@ -102,12 +102,12 @@ def NRMSE_loss(recon,ground_truth):
     return torch.norm(recon-ground_truth)/torch.norm(ground_truth)
 
 # %% training
-max_epochs = 10
+max_epochs = 1
 for epoch in range(max_epochs):
     print("epoch:",epoch)
     batch_count = 0
     for train_batch in train_dataloader:
-        #print(train_batch.size())
+        print(train_batch.size())
         if train_batch.size(0)!=16 or train_batch.size(1)!=640 or train_batch.size(2)!=320:
             continue
     
