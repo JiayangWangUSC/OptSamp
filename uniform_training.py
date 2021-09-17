@@ -108,7 +108,7 @@ for epoch in range(max_epochs):
     batch_count = 0
     for train_batch in train_dataloader:
         print(train_batch.size())
-        if train_batch.size(0)!=16 or train_batch.size(1)!=640 or train_batch.size(2)!=320:
+        if train_batch.size(1)!=16 or train_batch.size(2)!=640 or train_batch.size(3)!=320:
             continue
     
         batch_count = batch_count + 1
