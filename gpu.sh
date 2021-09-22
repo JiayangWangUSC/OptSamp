@@ -6,6 +6,8 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=16GB
 #SBATCH --time=1:00:00
+#SBATCH --mail-typr=ALL
+#SBATCH --mail-user=jiayangw@usc.edu
 #SBATCH --account=jhaldar_118
 
 module purge
