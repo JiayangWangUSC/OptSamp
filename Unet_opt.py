@@ -109,7 +109,7 @@ for epoch in range(max_epochs):
         sample_model.mask.requires_grad = True
         
         image_noise = sample_model(train_batch)
-        recon = recon_model(image_noise)
+        recon = recon_model(image_noise.to(device))
         ground_truth = toIm(train_batch)
 
         loss = NRMSE_loss(recon,ground_truth)
