@@ -31,12 +31,12 @@ class Sample(torch.nn.Module):
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = mask = torch.ones_like(train_data[0])
+        self.mask = torch.ones_like(train_data[0])
         self.mask = factor*self.mask[0,:,:,0].squeeze() 
         self.sigma = sigma
 
     def forward(self,kspace):
-        noise = sigma*torch.randn_like(kspace)
+        noise = self.sigma*torch.randn_like(kspace)
         kspace_noise = kspace + torch.div(noise,self.mask.unsqueeze(0).unsqueeze(3))  # need to reshape mask
         image = fastmri.ifft2c(kspace_noise)
         image = fastmri.complex_abs(image)
@@ -111,12 +111,15 @@ for epoch in range(max_epochs):
         ground_truth = toIm(train_batch)
 
         loss = NRMSE_loss(recon,ground_truth)
-        if batch_count%100 == 0:
+        if batch_count%3 == 0:
             print("batch:",batch_count,"train loss:",loss.item(),"Original NRMSE:", NRMSE_loss(image_noise,ground_truth))
         
         loss.backward()
         recon_optimizer.step()
         recon_optimizer.zero_grad()
+
+        with torch.no_grad():
+            grad = sample_model
 
     with torch.no_grad():
         loss = 0
