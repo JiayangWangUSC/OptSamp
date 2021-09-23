@@ -81,20 +81,20 @@ recon_model = Unet(
 
 
 # %% GPU 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-if torch.cuda.is_available() == False:
-    batch_size = 1
-    print("Let's use",device)
-else:
-    print("Let's use", torch.cuda.device_count(), "GPUs!")
-    batch_size = torch.cuda.device_count()
-    sample_model = torch.nn.DataParallel(sample_model)
-    recon_model = torch.nn.DataParallel(recon_model)
-    toIm = torch.nn.DataParallel(toIm)
+#if torch.cuda.is_available() == False:
+#    batch_size = 1
+#    print("Let's use",device)
+#else:
+#    print("Let's use", torch.cuda.device_count(), "GPUs!")
+#    batch_size = torch.cuda.device_count()
+#    sample_model = torch.nn.DataParallel(sample_model)
+#    recon_model = torch.nn.DataParallel(recon_model)
+#    toIm = torch.nn.DataParallel(toIm)
 
-#batch_size = 1
-#device = torch.device("cpu")
+batch_size = 1
+device = torch.device("cpu")
 
 train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
 val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
