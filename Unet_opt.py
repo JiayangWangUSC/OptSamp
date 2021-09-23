@@ -129,7 +129,7 @@ for epoch in range(max_epochs):
                 temp = torch.relu(temp-1)+1
                 temp = temp - torch.mean(temp) + factor
             sample_model.mask = torch.relu(temp-1)+1
-            print(torch.min(sample_model.mask))
+
 
     with torch.no_grad():
         loss = 0
