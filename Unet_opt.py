@@ -95,6 +95,7 @@ def NRMSE_loss(recon,ground_truth):
     return torch.norm(recon-ground_truth)/torch.norm(ground_truth)
 
 # %% training
+step = 1
 max_epochs = 1
 val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
@@ -111,7 +112,7 @@ for epoch in range(max_epochs):
         ground_truth = toIm(train_batch)
 
         loss = NRMSE_loss(recon,ground_truth)
-        if batch_count%3 == 0:
+        if batch_count%2 == 0:
             print("batch:",batch_count,"train loss:",loss.item(),"Original NRMSE:", NRMSE_loss(image_noise,ground_truth))
         
         loss.backward()
@@ -119,7 +120,15 @@ for epoch in range(max_epochs):
         recon_optimizer.zero_grad()
 
         with torch.no_grad():
-            grad = sample_model
+            grad = sample_model.mask.grad
+            grad = 2*F.sigmoid((grad - torch.mean(grad))/torch.std(grad))-1
+            grad = grad - torch.mean(grad)
+            temp = sample_model.mask.clone()
+            temp = temp - step * grad
+            for p in range(10):
+                temp = torch.relu(temp-1)+1
+                temp = temp - torch.mean(temp) + factor
+            sample_model.mask = torch.relu(temp-1)+1
 
     with torch.no_grad():
         loss = 0
