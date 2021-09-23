@@ -14,11 +14,20 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
 
 train_data = mri_data.SliceDataset(
     #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
-    #root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
-    root = pathlib.Path('/project/jhaldar_118/fastMRI_dataset/Brain/MultiCoil/multicoil_val/T2/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
     transform=data_transform,
     challenge='multicoil'
 )
+
+val_data = mri_data.SliceDataset(
+    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/val/'),
+    transform=data_transform,
+    challenge='multicoil'
+)
+
+
+
 
 
 
@@ -78,18 +87,20 @@ recon_model = Unet(
 
 
 # %% GPU 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-if torch.cuda.is_available() == False:
-    batch_size = 1
-    print("Let's use",device)
-else:
-    print("Let's use", torch.cuda.device_count(), "GPUs!")
-    batch_size = torch.cuda.device_count()
-    sample_model = torch.nn.DataParallel(sample_model)
-    recon_model = torch.nn.DataParallel(recon_model)
-    toIm = torch.nn.DataParallel(toIm)
+#if torch.cuda.is_available() == False:
+#    batch_size = 1
+#    print("Let's use",device)
+#else:
+#    print("Let's use", torch.cuda.device_count(), "GPUs!")
+#    batch_size = torch.cuda.device_count()
+#    sample_model = torch.nn.DataParallel(sample_model)
+#    recon_model = torch.nn.DataParallel(recon_model)
+#    toIm = torch.nn.DataParallel(toIm)
 
+batch_size = 1
+device = torch.device("cpu")
 train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
 sample_model.to(device)
 recon_model.to(device)
@@ -103,13 +114,11 @@ def NRMSE_loss(recon,ground_truth):
 
 # %% training
 max_epochs = 1
+print(len(train_dataloader.dataset))
 for epoch in range(max_epochs):
     print("epoch:",epoch)
     batch_count = 0
     for train_batch in train_dataloader:
-        #print(train_batch.size())
-        if train_batch.size(1)!=16 or train_batch.size(2)!=768 or train_batch.size(3)!=396:
-            continue
         batch_count = batch_count + 1
         
         train_batch.to(device)
@@ -121,6 +130,7 @@ for epoch in range(max_epochs):
         loss = NRMSE_loss(recon,ground_truth)
         if batch_count%10 == 0:
             print("batch:",batch_count,"train loss:",loss.item(),"Original NRMSE:", NRMSE_loss(image_noise,ground_truth))
+        
         loss.backward()
         recon_optimizer.step()
         recon_optimizer.zero_grad()
