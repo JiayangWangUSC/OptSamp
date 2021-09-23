@@ -81,20 +81,20 @@ recon_model = Unet(
 
 
 # %% GPU 
-#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-#if torch.cuda.is_available() == False:
-#    batch_size = 1
-#    print("Let's use",device)
-#else:
-#    print("Let's use", torch.cuda.device_count(), "GPUs!")
-#    batch_size = torch.cuda.device_count()
-#    sample_model = torch.nn.DataParallel(sample_model)
-#    recon_model = torch.nn.DataParallel(recon_model)
-#    toIm = torch.nn.DataParallel(toIm)
+if torch.cuda.is_available() == False:
+    batch_size = 1
+    print("Let's use",device)
+else:
+    print("Let's use", torch.cuda.device_count(), "GPUs!")
+    batch_size = torch.cuda.device_count()
+    sample_model = torch.nn.DataParallel(sample_model)
+    recon_model = torch.nn.DataParallel(recon_model)
+    toIm = torch.nn.DataParallel(toIm)
 
-batch_size = 1
-device = torch.device("cpu")
+#batch_size = 1
+#device = torch.device("cpu")
 
 train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
 val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
@@ -115,16 +115,6 @@ val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
 
-    with torch.no_grad():
-        loss = 0
-        for val_batch in val_dataloader:
-            val_batch.to(device)
-            recon = recon_model(sample_model(val_batch))
-            ground_truth = toIm(val_batch)
-            loss += NRMSE_loss(recon,ground_truth)
-        val_loss[epoch] = loss/len(val_dataloader.dataset)
-    print("epoch:",epoch+1,"validation loss:",val_loss[epoch])
-
     batch_count = 0
     for train_batch in train_dataloader:
         batch_count = batch_count + 1
@@ -143,11 +133,20 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
+    with torch.no_grad():
+        loss = 0
+        for val_batch in val_dataloader:
+            val_batch.to(device)
+            recon = recon_model(sample_model(val_batch))
+            ground_truth = toIm(val_batch)
+            loss += NRMSE_loss(recon,ground_truth)
+        val_loss[epoch] = loss/len(val_dataloader.dataset)
+        print("epoch:",epoch+1,"validation loss:",val_loss[epoch])
 
-
+    torch.save(val_loss,"./uniform_model_val_loss")
     torch.save(recon_model,"./uniform_model")
 
-torch.save(val_loss,"./uniform_model_val_loss")
+
 # %% save model
 #torch.save(recon_model,"./uniform_model")
 

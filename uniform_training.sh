@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --partition=debug
+#SBATCH --partition==gpu
 #SBATCH --gres=gpu:p100:1
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -14,4 +14,4 @@ module purge
 module load gcc/8.3.0
 module load cuda/10.1.243
 
-run /project/jhaldar_118/jiayangw/OptSamp/uniform_training.py
+python /project/jhaldar_118/jiayangw/OptSamp/uniform_training.py
