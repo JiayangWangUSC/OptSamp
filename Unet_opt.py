@@ -147,6 +147,6 @@ for epoch in range(max_epochs):
         val_loss[epoch] = loss/len(val_dataloader.dataset)
         print("epoch:",epoch+1,"validation loss:",val_loss[epoch])
 
-    torch.save(val_loss,"./uniform_model_val_loss")
-    torch.save(recon_model,"./uniform_model")
+    torch.save(val_loss,"./unet_model_val_loss")
+    torch.save(recon_model,"./unet_model")
     torch.save(sample_model.mask,"./unet_mask")
