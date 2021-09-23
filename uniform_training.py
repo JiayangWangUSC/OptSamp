@@ -26,12 +26,6 @@ val_data = mri_data.SliceDataset(
     challenge='multicoil'
 )
 
-
-
-
-
-
-
 # %% noise generator and transform to image
 class Sample(torch.nn.Module): 
 
@@ -101,7 +95,10 @@ recon_model = Unet(
 
 batch_size = 1
 device = torch.device("cpu")
+
 train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
+val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
+
 sample_model.to(device)
 recon_model.to(device)
 toIm.to(device)
@@ -114,7 +111,7 @@ def NRMSE_loss(recon,ground_truth):
 
 # %% training
 max_epochs = 1
-print(len(train_dataloader.dataset))
+val_loss = torch.zeros(max_epoch)
 for epoch in range(max_epochs):
     print("epoch:",epoch)
     batch_count = 0
@@ -123,19 +120,31 @@ for epoch in range(max_epochs):
         
         train_batch.to(device)
         
-        image_noise = sample_model(train_batch).to(device)
+        image_noise = sample_model(train_batch)
         recon = recon_model(image_noise)
         ground_truth = toIm(train_batch)
 
         loss = NRMSE_loss(recon,ground_truth)
-        if batch_count%10 == 0:
+        if batch_count%100 == 0:
             print("batch:",batch_count,"train loss:",loss.item(),"Original NRMSE:", NRMSE_loss(image_noise,ground_truth))
         
         loss.backward()
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
+    with torch.no_grad():
+        loss = 0
+        for val_batch in val_dataloader:
+            val_batch.to(device)
+            recon = recon_model(sample_model(val_batch))
+            ground_truth = toIm(val_batch)
+            loss += NRMSE_loss(recon,ground_truth)
+        val_loss[epoch] = loss/len(val_dataloader.dataset)
+    print("epoch:",epoch+1,"validation loss:",val_loss[epoch])
+
     torch.save(recon_model,"./uniform_model")
+
+torch.save(val_loss,"./uniform_model_val_loss")
 # %% save model
 #torch.save(recon_model,"./uniform_model")
 
