@@ -113,7 +113,18 @@ def NRMSE_loss(recon,ground_truth):
 max_epochs = 1
 val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
-    print("epoch:",epoch)
+    print("epoch:",epoch+1)
+
+    with torch.no_grad():
+        loss = 0
+        for val_batch in val_dataloader:
+            val_batch.to(device)
+            recon = recon_model(sample_model(val_batch))
+            ground_truth = toIm(val_batch)
+            loss += NRMSE_loss(recon,ground_truth)
+        val_loss[epoch] = loss/len(val_dataloader.dataset)
+    print("epoch:",epoch+1,"validation loss:",val_loss[epoch])
+
     batch_count = 0
     for train_batch in train_dataloader:
         batch_count = batch_count + 1
@@ -132,15 +143,7 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    with torch.no_grad():
-        loss = 0
-        for val_batch in val_dataloader:
-            val_batch.to(device)
-            recon = recon_model(sample_model(val_batch))
-            ground_truth = toIm(val_batch)
-            loss += NRMSE_loss(recon,ground_truth)
-        val_loss[epoch] = loss/len(val_dataloader.dataset)
-    print("epoch:",epoch+1,"validation loss:",val_loss[epoch])
+
 
     torch.save(recon_model,"./uniform_model")
 
