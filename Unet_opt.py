@@ -80,7 +80,7 @@ recon_model = Unet(
 # %% 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-batch_size = 4
+batch_size = 8
 
 train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
 val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
@@ -115,7 +115,7 @@ for epoch in range(max_epochs):
         ground_truth = toIm(train_batch)
 
         loss = NRMSE_loss(recon.to(device),ground_truth.to(device))
-        if batch_count%10 == 0:
+        if batch_count%100 == 0:
             print("batch:",batch_count,"train loss:",loss.item(),"Original NRMSE:", NRMSE_loss(image_noise,ground_truth))
         
         loss.backward()
@@ -140,11 +140,11 @@ for epoch in range(max_epochs):
         loss = 0
         for val_batch in val_dataloader:
             val_batch.to(device)
-            recon = recon_model(sample_model(val_batch))
+            recon = recon_model(sample_model(val_batch).to(device))
             ground_truth = toIm(val_batch)
-            loss += NRMSE_loss(recon,ground_truth)
+            loss += NRMSE_loss(recon.to(device),ground_truth.to(device))
         val_loss[epoch] = loss/len(val_dataloader.dataset)
-        print("epoch:",epoch+1,"validation loss:",val_loss[epoch])
+        print("epoch:",epoch+1,"validation loss:",val_loss[epoch],"mask min:",torch.min(sample_model.mask),"mask max:",torch.max(sample_model.mask))
 
     torch.save(val_loss,"./unet_model_val_loss")
     torch.save(recon_model,"./unet_model")
