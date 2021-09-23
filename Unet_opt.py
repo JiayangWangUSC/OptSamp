@@ -13,15 +13,15 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     return kspace
 
 train_data = mri_data.SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
+    #root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
     transform=data_transform,
     challenge='multicoil'
 )
 
 val_data = mri_data.SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/val/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
+    #root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/val/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -106,22 +106,21 @@ for epoch in range(max_epochs):
         batch_count = batch_count + 1
         
         train_batch.to(device)
+        sample_model.mask.requires_grad = True
         
         image_noise = sample_model(train_batch)
         recon = recon_model(image_noise)
         ground_truth = toIm(train_batch)
 
         loss = NRMSE_loss(recon,ground_truth)
-        if batch_count%2 == 0:
+        if batch_count%10 == 0:
             print("batch:",batch_count,"train loss:",loss.item(),"Original NRMSE:", NRMSE_loss(image_noise,ground_truth))
         
         loss.backward()
-        recon_optimizer.step()
-        recon_optimizer.zero_grad()
 
         with torch.no_grad():
             grad = sample_model.mask.grad
-            grad = 2*F.sigmoid((grad - torch.mean(grad))/torch.std(grad))-1
+            grad = 2*torch.sigmoid((grad - torch.mean(grad))/torch.std(grad))-1
             grad = grad - torch.mean(grad)
             temp = sample_model.mask.clone()
             temp = temp - step * grad
@@ -129,6 +128,13 @@ for epoch in range(max_epochs):
                 temp = torch.relu(temp-1)+1
                 temp = temp - torch.mean(temp) + factor
             sample_model.mask = torch.relu(temp-1)+1
+            #print(torch.min(sample_model.mask))
+
+        sample_model.mask.grad = None
+        recon_optimizer.step()
+        recon_optimizer.zero_grad(set_to_none=False)
+
+
 
 
     with torch.no_grad():
