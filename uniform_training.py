@@ -111,7 +111,7 @@ def NRMSE_loss(recon,ground_truth):
 
 # %% training
 max_epochs = 1
-val_loss = torch.zeros(max_epoch)
+val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch)
     batch_count = 0
