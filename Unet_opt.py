@@ -37,7 +37,7 @@ class Sample(torch.nn.Module):
 
     def forward(self,kspace):
         noise = self.sigma*torch.randn_like(kspace)
-        kspace_noise = kspace + torch.div(noise,self.mask.unsqueeze(0).unsqueeze(3))  # need to reshape mask
+        kspace_noise = kspace + torch.div(noise,torch.sqrt(self.mask.unsqueeze(0).unsqueeze(3)))  # need to reshape mask
         image = fastmri.ifft2c(kspace_noise)
         image = fastmri.complex_abs(image)
         image = fastmri.rss(image,dim=1).unsqueeze(1)
