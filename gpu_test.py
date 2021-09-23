@@ -136,9 +136,6 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad(set_to_none=False)
 
-
-
-
     with torch.no_grad():
         loss = 0
         for val_batch in val_dataloader:

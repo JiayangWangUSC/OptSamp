@@ -78,8 +78,9 @@ recon_model = Unet(
 )
 
 # %% 
-batch_size = 1
-device = torch.device("cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+batch_size = 4
 
 train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
 val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
@@ -106,13 +107,14 @@ for epoch in range(max_epochs):
         batch_count = batch_count + 1
         
         train_batch.to(device)
+        
         sample_model.mask.requires_grad = True
         
         image_noise = sample_model(train_batch)
-        recon = recon_model(image_noise)
+        recon = recon_model(image_noise.to(device))
         ground_truth = toIm(train_batch)
 
-        loss = NRMSE_loss(recon,ground_truth)
+        loss = NRMSE_loss(recon.to(device),ground_truth.to(device))
         if batch_count%10 == 0:
             print("batch:",batch_count,"train loss:",loss.item(),"Original NRMSE:", NRMSE_loss(image_noise,ground_truth))
         
@@ -133,9 +135,6 @@ for epoch in range(max_epochs):
         sample_model.mask.grad = None
         recon_optimizer.step()
         recon_optimizer.zero_grad(set_to_none=False)
-
-
-
 
     with torch.no_grad():
         loss = 0
