@@ -110,7 +110,7 @@ def NRMSE_loss(recon,ground_truth):
     return torch.norm(recon-ground_truth)/torch.norm(ground_truth)
 
 # %% training
-max_epochs = 1
+max_epochs = 10
 val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)

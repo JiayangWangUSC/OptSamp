@@ -96,7 +96,7 @@ def NRMSE_loss(recon,ground_truth):
 
 # %% training
 step = 1
-max_epochs = 1
+max_epochs = 10
 val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
@@ -149,3 +149,4 @@ for epoch in range(max_epochs):
 
     torch.save(val_loss,"./uniform_model_val_loss")
     torch.save(recon_model,"./uniform_model")
+    torch.save(sample_model.mask,"./unet_mask")
