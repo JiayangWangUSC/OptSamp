@@ -81,7 +81,7 @@ recon_model = Unet(
 
 
 # %% GPU 
-#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 #if torch.cuda.is_available() == False:
 #    batch_size = 1
@@ -94,7 +94,7 @@ recon_model = Unet(
 #    toIm = torch.nn.DataParallel(toIm)
 
 batch_size = 1
-device = torch.device("cpu")
+#device = torch.device("cpu")
 
 train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
 val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
@@ -122,11 +122,11 @@ for epoch in range(max_epochs):
         train_batch.to(device)
         
         image_noise = sample_model(train_batch)
-        recon = recon_model(image_noise)
+        recon = recon_model(image_noise.to(device))
         ground_truth = toIm(train_batch)
 
-        loss = NRMSE_loss(recon,ground_truth)
-        if batch_count%100 == 0:
+        loss = NRMSE_loss(recon.to(device),ground_truth.to(device))
+        if batch_count%10 == 0:
             print("batch:",batch_count,"train loss:",loss.item(),"Original NRMSE:", NRMSE_loss(image_noise,ground_truth))
         
         loss.backward()
