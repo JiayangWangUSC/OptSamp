@@ -29,14 +29,15 @@ val_data = mri_data.SliceDataset(
 # %% noise generator and transform to image
 class Sample(torch.nn.Module): 
 
-    def __init__(self,sigma,mask):
+    def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = torch.sqrt(mask)
+        self.mask = torch.ones_like(train_data[0])
+        self.mask = factor*self.mask[0,:,:,0].squeeze() 
         self.sigma = sigma
 
     def forward(self,kspace):
-        noise = sigma*torch.randn_like(kspace)
-        kspace_noise = kspace + torch.div(noise,self.mask.unsqueeze(0).unsqueeze(3))  # need to reshape mask
+        noise = self.sigma*torch.randn_like(kspace)
+        kspace_noise = kspace + torch.div(noise,torch.sqrt(self.mask.unsqueeze(0).unsqueeze(3)))  # need to reshape mask
         image = fastmri.ifft2c(kspace_noise)
         image = fastmri.complex_abs(image)
         image = fastmri.rss(image,dim=1).unsqueeze(1)
@@ -62,11 +63,8 @@ class toImage(torch.nn.Module):
 
 # %% sampling
 factor = 8
-mask = torch.ones_like(train_data[0])
-mask = factor*mask[0,:,:,0].squeeze() 
-#mask.requires_grad = True
 sigma = 5e-5
-sample_model = Sample(sigma,mask)
+sample_model = Sample(sigma,factor)
 
 toIm = toImage()
 
@@ -79,22 +77,10 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-
-# %% GPU 
+# %% 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-#if torch.cuda.is_available() == False:
-#    batch_size = 1
-#    print("Let's use",device)
-#else:
-#    print("Let's use", torch.cuda.device_count(), "GPUs!")
-#    batch_size = torch.cuda.device_count()
-#    sample_model = torch.nn.DataParallel(sample_model)
-#    recon_model = torch.nn.DataParallel(recon_model)
-#    toIm = torch.nn.DataParallel(toIm)
-
-batch_size = 1
-#device = torch.device("cpu")
+batch_size = 4
 
 train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
 val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
@@ -110,6 +96,7 @@ def NRMSE_loss(recon,ground_truth):
     return torch.norm(recon-ground_truth)/torch.norm(ground_truth)
 
 # %% training
+step = 1
 max_epochs = 10
 val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
@@ -121,17 +108,36 @@ for epoch in range(max_epochs):
         
         train_batch.to(device)
         
+        sample_model.mask.requires_grad = True
+        
         image_noise = sample_model(train_batch)
         recon = recon_model(image_noise.to(device))
         ground_truth = toIm(train_batch)
 
         loss = NRMSE_loss(recon.to(device),ground_truth.to(device))
-        if batch_count%100 == 0:
+        if batch_count%10 == 0:
             print("batch:",batch_count,"train loss:",loss.item(),"Original NRMSE:", NRMSE_loss(image_noise,ground_truth))
         
         loss.backward()
+
+        with torch.no_grad():
+            grad = sample_model.mask.grad
+            grad = 2*torch.sigmoid((grad - torch.mean(grad))/torch.std(grad))-1
+            grad = grad - torch.mean(grad)
+            temp = sample_model.mask.clone()
+            temp = temp - step * grad
+            for p in range(10):
+                temp = torch.relu(temp-1)+1
+                temp = temp - torch.mean(temp) + factor
+            sample_model.mask = torch.relu(temp-1)+1
+            #print(torch.min(sample_model.mask))
+
+        sample_model.mask.grad = None
         recon_optimizer.step()
-        recon_optimizer.zero_grad()
+        recon_optimizer.zero_grad(set_to_none=False)
+
+
+
 
     with torch.no_grad():
         loss = 0
@@ -143,5 +149,6 @@ for epoch in range(max_epochs):
         val_loss[epoch] = loss/len(val_dataloader.dataset)
         print("epoch:",epoch+1,"validation loss:",val_loss[epoch])
 
-    torch.save(val_loss,"./uniform_model_val_loss")
-    torch.save(recon_model,"./uniform_model")
+    torch.save(val_loss,"./unet_model_val_loss")
+    torch.save(recon_model,"./unet_model")
+    torch.save(sample_model.mask,"./unet_mask")
