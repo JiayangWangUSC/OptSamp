@@ -93,7 +93,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 #    recon_model = torch.nn.DataParallel(recon_model)
 #    toIm = torch.nn.DataParallel(toIm)
 
-batch_size = 1
+batch_size = 4
 #device = torch.device("cpu")
 
 train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
