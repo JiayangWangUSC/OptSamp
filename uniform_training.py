@@ -65,7 +65,7 @@ factor = 8
 mask = torch.ones_like(train_data[0])
 mask = factor*mask[0,:,:,0].squeeze() 
 #mask.requires_grad = True
-sigma = 5e-5
+sigma = 1e-5
 sample_model = Sample(sigma,mask)
 
 toIm = toImage()
@@ -132,7 +132,7 @@ for epoch in range(max_epochs):
         ground_truth = toIm(train_batch)
 
         loss = torch.norm(recon.to(device)-ground_truth.to(device))/torch.norm(ground_truth.to(device))
-        if batch_count%2 == 0:
+        if batch_count%10 == 0:
             print("batch:",batch_count,"train MSE loss:",loss.item(),"Original NRMSE:", torch.norm(image_noise-ground_truth)/torch.norm(ground_truth.to(device)))
         
         loss.backward()
