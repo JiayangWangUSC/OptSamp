@@ -83,7 +83,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 batch_size = 8
 
 train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
-val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
+val_dataloader = torch.utils.data.DataLoader(val_data,1,shuffle=True)
 
 sample_model.to(device)
 recon_model.to(device)
@@ -91,9 +91,6 @@ toIm.to(device)
 
 # %% optimizer
 recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
-
-def NRMSE_loss(recon,ground_truth):
-    return torch.norm(recon-ground_truth)/torch.norm(ground_truth)
 
 # %% training
 step = 1
@@ -114,16 +111,15 @@ for epoch in range(max_epochs):
         recon = recon_model(image_noise.to(device))
         ground_truth = toIm(train_batch)
 
-        loss = NRMSE_loss(recon.to(device),ground_truth.to(device))
+        loss = torch.norm(recon.to(device)-ground_truth.to(device))
         if batch_count%100 == 0:
-            print("batch:",batch_count,"train loss:",loss.item(),"Original NRMSE:", NRMSE_loss(image_noise,ground_truth))
+            print("batch:",batch_count,"train MSE loss:",loss.item(),"Original MSE:", torch.norm(image_noise-ground_truth))
         
         loss.backward()
 
         with torch.no_grad():
             grad = sample_model.mask.grad
-            grad = 2*torch.sigmoid((grad - torch.mean(grad))/torch.std(grad))-1
-            grad = grad - torch.mean(grad)
+            grad = (grad - torch.mean(grad))/torch.std(grad)
             temp = sample_model.mask.clone()
             temp = temp - step * grad
             for p in range(10):
@@ -138,13 +134,17 @@ for epoch in range(max_epochs):
 
     with torch.no_grad():
         loss = 0
+        orig_loss = 0
         for val_batch in val_dataloader:
             val_batch.to(device)
-            recon = recon_model(sample_model(val_batch).to(device))
+            image_noise = sample_model(val_batch)
+            recon = recon_model(image_noise.to(device))
             ground_truth = toIm(val_batch)
-            loss += NRMSE_loss(recon.to(device),ground_truth.to(device))
-        val_loss[epoch] = loss/len(val_dataloader.dataset)
-        print("epoch:",epoch+1,"validation loss:",val_loss[epoch],"mask min:",torch.min(sample_model.mask),"mask max:",torch.max(sample_model.mask))
+            loss += torch.norm(recon.to(device),ground_truth.to(device))/torch.norm(ground_truth.to(device))
+            orig_loss += torch.norm(image_noise.to(device),ground_truth.to(device))/torch.norm(ground_truth.to(device))
+
+        val_loss[epoch] = loss/len(val_dataloader)
+        print("epoch:",epoch+1,"validation NRMSE:",val_loss[epoch],"original NRMSE:",orig_loss/len(val_dataloader),"mask max:",torch.max(sample_model.mask))
 
     torch.save(val_loss,"./unet_model_val_loss")
     torch.save(recon_model,"./unet_model")
