@@ -65,7 +65,7 @@ factor = 8
 mask = torch.ones_like(train_data[0])
 mask = factor*mask[0,:,:,0].squeeze() 
 #mask.requires_grad = True
-sigma = 1e-5
+sigma = 5e-6
 sample_model = Sample(sigma,mask)
 
 toIm = toImage()
