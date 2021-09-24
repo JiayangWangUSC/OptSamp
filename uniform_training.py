@@ -27,6 +27,9 @@ val_data = mri_data.SliceDataset(
 )
 
 # %% noise generator and transform to image
+glob_mean = 4e-4
+glob_std = 4e-4
+
 class Sample(torch.nn.Module): 
 
     def __init__(self,sigma,mask):
@@ -40,10 +43,7 @@ class Sample(torch.nn.Module):
         image = fastmri.ifft2c(kspace_noise)
         image = fastmri.complex_abs(image)
         image = fastmri.rss(image,dim=1).unsqueeze(1)
-        gt = fastmri.ifft2c(kspace)
-        gt = fastmri.complex_abs(gt)
-        gt = fastmri.rss(gt,dim=1).unsqueeze(1)
-        image = transforms.normalize(image,gt.mean(),gt.std(),1e-11)
+        image = transforms.normalize(image,glob_mean,glob_std,1e-11)
         return image
 
 
@@ -56,7 +56,7 @@ class toImage(torch.nn.Module):
         image = fastmri.ifft2c(kspace)
         image = fastmri.complex_abs(image)
         image = fastmri.rss(image,dim=1).unsqueeze(1)
-        image = transforms.normalize_instance(image,1e-11)
+        image = transforms.normalize(image,glob_mean,glob_std,1e-11)
         return image[0]
 
 
@@ -108,7 +108,9 @@ for data in train_data:
     gt = fastmri.ifft2c(data)
     gt = fastmri.complex_abs(gt)
     gt = fastmri.rss(gt,dim=1).unsqueeze(1)
-    print("mean:",gt.mean(),"standard deviation:",gt.std())
+    gt = transforms.normalize(gt,glob_mean,glob_std,1e-11)
+    #print("mean:",gt.mean(),"standard deviation:",gt.std())
+    print("image norm:",torch.norm(gt))
 
 # %% optimizer
 recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
