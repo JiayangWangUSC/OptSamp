@@ -140,8 +140,8 @@ for epoch in range(max_epochs):
             image_noise = sample_model(val_batch)
             recon = recon_model(image_noise.to(device))
             ground_truth = toIm(val_batch)
-            loss += torch.norm(recon.to(device),ground_truth.to(device))/torch.norm(ground_truth.to(device))
-            orig_loss += torch.norm(image_noise.to(device),ground_truth.to(device))/torch.norm(ground_truth.to(device))
+            loss += torch.norm(recon.to(device)-ground_truth.to(device))/torch.norm(ground_truth.to(device))
+            orig_loss += torch.norm(image_noise.to(device)-ground_truth.to(device))/torch.norm(ground_truth.to(device))
 
         val_loss[epoch] = loss/len(val_dataloader)
         print("epoch:",epoch+1,"validation NRMSE:",val_loss[epoch],"original NRMSE:",orig_loss/len(val_dataloader),"mask max:",torch.max(sample_model.mask))
