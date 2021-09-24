@@ -104,7 +104,7 @@ recon_model.to(device)
 toIm.to(device)
 
 # %% optimizer
-recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
+recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-2)
 
 # %% training
 max_epochs = 10
