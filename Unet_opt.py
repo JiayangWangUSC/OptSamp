@@ -37,7 +37,7 @@ class Sample(torch.nn.Module):
 
     def forward(self,kspace):
         noise = self.sigma*torch.randn_like(kspace)
-        kspace_noise = kspace + torch.div(noise,torch.sqrt(self.mask.unsqueeze(0).unsqueeze(3)))  # need to reshape mask
+        kspace_noise = kspace + torch.div(noise,torch.sqrt(self.mask.unsqueeze(0).unsqueeze(3).repeat(16,1,1,2)))  # need to reshape mask
         image = fastmri.ifft2c(kspace_noise)
         image = fastmri.complex_abs(image)
         image = fastmri.rss(image,dim=1).unsqueeze(1)
@@ -94,7 +94,7 @@ recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
 
 # %% training
 step = 1
-max_epochs = 1
+max_epochs = 10
 val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
