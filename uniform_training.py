@@ -97,20 +97,20 @@ batch_size = 8
 #device = torch.device("cpu")
 
 train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
-val_dataloader = torch.utils.data.DataLoader(val_data,1,shuffle=True)
+val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
 
 sample_model.to(device)
 recon_model.to(device)
 toIm.to(device)
 
 # %% go through dataset
-for data in train_data:
-    gt = fastmri.ifft2c(data)
-    gt = fastmri.complex_abs(gt)
-    gt = fastmri.rss(gt,dim=1).unsqueeze(1)
-    gt = transforms.normalize(gt,glob_mean,glob_std,1e-11)
+#for data in train_data:
+#    gt = fastmri.ifft2c(data)
+#    gt = fastmri.complex_abs(gt)
+#    gt = fastmri.rss(gt,dim=1).unsqueeze(1)
+#    gt = transforms.normalize(gt,glob_mean,glob_std,1e-11)
     #print("mean:",gt.mean(),"standard deviation:",gt.std())
-    print("image norm:",torch.norm(gt))
+#    print("image norm:",torch.norm(gt))
 
 # %% optimizer
 recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
@@ -131,9 +131,9 @@ for epoch in range(max_epochs):
         recon = recon_model(image_noise.to(device))
         ground_truth = toIm(train_batch)
 
-        loss = torch.norm(recon.to(device)-ground_truth.to(device))
+        loss = torch.norm(recon.to(device)-ground_truth.to(device))/torch.norm(ground_truth.to(device))
         if batch_count%100 == 0:
-            print("batch:",batch_count,"train MSE loss:",loss.item(),"Original MSE:", torch.norm(image_noise-ground_truth))
+            print("batch:",batch_count,"train NRMSE loss:",loss.item(),"Original NRMSE:", torch.norm(image_noise-ground_truth)/ground_truth)
         
         loss.backward()
         recon_optimizer.step()
