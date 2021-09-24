@@ -97,7 +97,7 @@ batch_size = 8
 #device = torch.device("cpu")
 
 train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
-val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
+val_dataloader = torch.utils.data.DataLoader(val_data,1,shuffle=True)
 
 sample_model.to(device)
 recon_model.to(device)
@@ -105,9 +105,6 @@ toIm.to(device)
 
 # %% optimizer
 recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
-
-def NRMSE_loss(recon,ground_truth):
-    return torch.norm(recon-ground_truth)/torch.norm(ground_truth)
 
 # %% training
 max_epochs = 10
@@ -125,9 +122,9 @@ for epoch in range(max_epochs):
         recon = recon_model(image_noise.to(device))
         ground_truth = toIm(train_batch)
 
-        loss = NRMSE_loss(recon.to(device),ground_truth.to(device))
+        loss = torch.nn.MSELoss(recon.to(device),ground_truth.to(device))
         if batch_count%100 == 0:
-            print("batch:",batch_count,"train loss:",loss.item(),"Original NRMSE:", NRMSE_loss(image_noise,ground_truth))
+            print("batch:",batch_count,"train MSE loss:",loss.item(),"Original MSE:", torch.nn.MSELoss(image_noise,ground_truth))
         
         loss.backward()
         recon_optimizer.step()
@@ -139,9 +136,9 @@ for epoch in range(max_epochs):
             val_batch.to(device)
             recon = recon_model(sample_model(val_batch).to(device))
             ground_truth = toIm(val_batch)
-            loss += NRMSE_loss(recon.to(device),ground_truth.to(device))
-        val_loss[epoch] = loss/len(val_dataloader.dataset)
-        print("epoch:",epoch+1,"validation loss:",val_loss[epoch])
+            loss += torch.nn.MSELoss(recon.to(device),ground_truth.to(device))/torch.nn.MSELoss(ground_truth.to(device))
+        val_loss[epoch] = loss/len(val_dataloader)
+        print("epoch:",epoch+1,"validation average NRMSE loss:",val_loss[epoch])
 
     torch.save(val_loss,"./uniform_model_val_loss")
     torch.save(recon_model,"./uniform_model")
