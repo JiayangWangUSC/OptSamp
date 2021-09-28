@@ -112,7 +112,7 @@ for epoch in range(max_epochs):
         ground_truth = toIm(train_batch)
 
         loss = torch.norm(recon.to(device)-ground_truth.to(device))/torch.norm(ground_truth.to(device))
-        if batch_count%10 == 0:
+        if batch_count%100 == 0:
             print("batch:",batch_count,"train NRMSE loss:",loss.item(),"Original NRMSE:", torch.norm(image_noise-ground_truth)/torch.norm(ground_truth.to(device)))
         
    

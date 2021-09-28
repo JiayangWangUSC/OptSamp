@@ -13,15 +13,15 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     return kspace
 
 train_data = mri_data.SliceDataset(
-    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
-    #root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/test/'),
+    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/test/'),
     transform=data_transform,
     challenge='multicoil'
 )
 
 val_data = mri_data.SliceDataset(
-    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
-    #root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/val/'),
+    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/val/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -132,7 +132,7 @@ for epoch in range(max_epochs):
         ground_truth = toIm(train_batch)
 
         loss = torch.norm(recon.to(device)-ground_truth.to(device))/torch.norm(ground_truth.to(device))
-        if batch_count%10 == 0:
+        if batch_count%100 == 0:
             print("batch:",batch_count,"train NRMSE loss:",loss.item(),"Original NRMSE:", torch.norm(image_noise-ground_truth)/torch.norm(ground_truth.to(device)))
         
         loss.backward()
