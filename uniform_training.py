@@ -134,7 +134,7 @@ for epoch in range(max_epochs):
 
         loss = torch.norm(recon.to(device)-ground_truth.to(device))/torch.norm(ground_truth.to(device))
         if batch_count%100 == 0:
-            print("batch:",batch_count,"train MSE:",loss.item())
+            print("batch:",batch_count,"train MSE:",loss.item(),"Original MSE:", torch.norm(image_noise-ground_truth)/torch.norm(ground_truth))
         
         loss.backward()
         recon_optimizer.step()
