@@ -114,7 +114,7 @@ toIm.to(device)
 #    print("image norm:",torch.norm(gt))
 
 # %% optimizer
-recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
+recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-4)
 
 # %% training
 max_epochs = 5
