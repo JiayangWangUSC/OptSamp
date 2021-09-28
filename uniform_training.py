@@ -13,22 +13,23 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     return kspace
 
 train_data = mri_data.SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
+    #root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
     transform=data_transform,
     challenge='multicoil'
 )
 
 val_data = mri_data.SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/val/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
+    #root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/val/'),
     transform=data_transform,
     challenge='multicoil'
 )
 
 # %% noise generator and transform to image
 glob_mean = 0
-glob_std = 0.1
+glob_std = 5e-4
+batch_size = 8
 
 class Sample(torch.nn.Module): 
 
@@ -39,7 +40,7 @@ class Sample(torch.nn.Module):
 
     def forward(self,kspace):
         noise = sigma*torch.randn_like(kspace)
-        kspace_noise = kspace + torch.div(noise,self.mask.unsqueeze(0).unsqueeze(3).repeat(16,1,1,2))  # need to reshape mask
+        kspace_noise = kspace + torch.div(noise,self.mask.unsqueeze(0).unsqueeze(3).unsqueeze(0).repeat(batch_size,16,1,1,2))  # need to reshape mask
         image = fastmri.ifft2c(kspace_noise)
         image = fastmri.complex_abs(image)
         image = fastmri.rss(image,dim=1).unsqueeze(1)
@@ -93,7 +94,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 #    recon_model = torch.nn.DataParallel(recon_model)
 #    toIm = torch.nn.DataParallel(toIm)
 
-batch_size = 8
+
 #device = torch.device("cpu")
 
 train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
@@ -131,9 +132,9 @@ for epoch in range(max_epochs):
         recon = recon_model(image_noise.to(device))
         ground_truth = toIm(train_batch)
 
-        loss = torch.norm(recon.to(device)-ground_truth.to(device))
+        loss = torch.norm(recon.to(device)-ground_truth.to(device))/torch.norm(ground_truth.to(device))
         if batch_count%100 == 0:
-            print("batch:",batch_count,"train MSE:",loss.item(),"Original MSE:", torch.norm(image_noise-ground_truth))
+            print("batch:",batch_count,"train MSE:",loss.item(),"Original MSE:", torch.norm(image_noise-ground_truth)/torch.norm(ground_truth.to(device)))
         
         loss.backward()
         recon_optimizer.step()
@@ -149,8 +150,8 @@ for epoch in range(max_epochs):
             recon = recon_model(image_noise.to(device))
             ground_truth = toIm(val_batch)
 
-            loss += torch.norm(recon.to(device)-ground_truth.to(device))
-            orig_loss += torch.norm(image_noise.to(device)-ground_truth.to(device))
+            loss += torch.norm(recon.to(device)-ground_truth.to(device))/torch.norm(ground_truth.to(device))
+            orig_loss += torch.norm(image_noise.to(device)-ground_truth.to(device))/torch.norm(ground_truth.to(device))
 
         val_loss[epoch] = loss/len(val_dataloader)
         print("epoch:",epoch+1,"validation MSE:",val_loss[epoch],"original MSE:",orig_loss/len(val_dataloader))
