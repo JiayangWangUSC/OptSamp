@@ -116,7 +116,7 @@ toIm.to(device)
 recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
 
 # %% training
-max_epochs = 1
+max_epochs = 3
 val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
@@ -132,7 +132,7 @@ for epoch in range(max_epochs):
         ground_truth = toIm(train_batch)
 
         loss = torch.norm(recon.to(device)-ground_truth.to(device))/torch.norm(ground_truth.to(device))
-        if batch_count%100 == 0:
+        if batch_count%10 == 0:
             print("batch:",batch_count,"train NRMSE loss:",loss.item(),"Original NRMSE:", torch.norm(image_noise-ground_truth)/torch.norm(ground_truth.to(device)))
         
         loss.backward()
