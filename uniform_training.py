@@ -14,7 +14,7 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
 
 train_data = mri_data.SliceDataset(
     #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/test/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -116,7 +116,7 @@ toIm.to(device)
 recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
 
 # %% training
-max_epochs = 1
+max_epochs = 10
 val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
@@ -132,8 +132,8 @@ for epoch in range(max_epochs):
         ground_truth = toIm(train_batch)
 
         loss = torch.norm(recon.to(device)-ground_truth.to(device))
-        if batch_count%10 == 0:
-            print("batch:",batch_count,"train NRMSE loss:",loss.item(),"Original NRMSE:", torch.norm(image_noise-ground_truth))
+        if batch_count%100 == 0:
+            print("batch:",batch_count,"train MSE:",loss.item(),"Original MSE:", torch.norm(image_noise-ground_truth))
         
         loss.backward()
         recon_optimizer.step()
@@ -153,7 +153,7 @@ for epoch in range(max_epochs):
             orig_loss += torch.norm(image_noise.to(device)-ground_truth.to(device))
 
         val_loss[epoch] = loss/len(val_dataloader)
-        print("epoch:",epoch+1,"validation average NRMSE:",val_loss[epoch],"original average NRMSE:",orig_loss/len(val_dataloader))
+        print("epoch:",epoch+1,"validation MSE:",val_loss[epoch],"original MSE:",orig_loss/len(val_dataloader))
 
     torch.save(val_loss,"./uniform_model_val_loss")
     torch.save(recon_model,"./uniform_model")
