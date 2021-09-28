@@ -13,15 +13,15 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     return kspace
 
 train_data = mri_data.SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/test/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
+    #root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/test/'),
     transform=data_transform,
     challenge='multicoil'
 )
 
 val_data = mri_data.SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/val/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
+    #root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/val/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -42,9 +42,9 @@ class Sample(torch.nn.Module):
         kspace_noise = kspace + torch.div(noise,self.mask.unsqueeze(0).unsqueeze(3).repeat(16,1,1,2))  # need to reshape mask
         image = fastmri.ifft2c(kspace_noise)
         image = fastmri.complex_abs(image)
-        image = fastmri.rss(image,dim=1).unsqueeze(1)
+        image = fastmri.rss(image,dim=0).unsqueeze(0)
         image = transforms.normalize(image,glob_mean,glob_std,1e-11)
-        return image
+        return image[0]
 
 
 class toImage(torch.nn.Module): 
@@ -55,7 +55,7 @@ class toImage(torch.nn.Module):
     def forward(self,kspace):
         image = fastmri.ifft2c(kspace)
         image = fastmri.complex_abs(image)
-        image = fastmri.rss(image,dim=1).unsqueeze(1)
+        image = fastmri.rss(image,dim=0).unsqueeze(0)
         image = transforms.normalize(image,glob_mean,glob_std,1e-11)
         return image[0]
 
@@ -65,7 +65,7 @@ factor = 8
 mask = torch.ones_like(train_data[0])
 mask = factor*mask[0,:,:,0].squeeze() 
 #mask.requires_grad = True
-sigma = 5e-6
+sigma = 5e-5
 sample_model = Sample(sigma,mask)
 
 toIm = toImage()
@@ -116,7 +116,7 @@ toIm.to(device)
 recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
 
 # %% training
-max_epochs = 1
+max_epochs = 10
 val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
@@ -133,7 +133,7 @@ for epoch in range(max_epochs):
 
         loss = torch.norm(recon.to(device)-ground_truth.to(device))/torch.norm(ground_truth.to(device))
         if batch_count%10 == 0:
-            print("batch:",batch_count,"train MSE loss:",loss.item(),"Original NRMSE:", torch.norm(image_noise-ground_truth)/torch.norm(ground_truth.to(device)))
+            print("batch:",batch_count,"train NRMSE loss:",loss.item(),"Original NRMSE:", torch.norm(image_noise-ground_truth)/torch.norm(ground_truth.to(device)))
         
         loss.backward()
         recon_optimizer.step()
