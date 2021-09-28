@@ -42,7 +42,7 @@ class Sample(torch.nn.Module):
         kspace_noise = kspace + torch.div(noise,self.mask.unsqueeze(0).unsqueeze(3).repeat(16,1,1,2))  # need to reshape mask
         image = fastmri.ifft2c(kspace_noise)
         image = fastmri.complex_abs(image)
-        image = fastmri.rss(image,dim=0).squeeze()
+        image = fastmri.rss(image,dim=1).unsqueeze(1)
         image = transforms.normalize(image,glob_mean,glob_std,1e-11)
         return image
 
@@ -55,7 +55,7 @@ class toImage(torch.nn.Module):
     def forward(self,kspace):
         image = fastmri.ifft2c(kspace)
         image = fastmri.complex_abs(image)
-        image = fastmri.rss(image,dim=0).squeeze()
+        image = fastmri.rss(image,dim=1).unsqueeze(1)
         image = transforms.normalize(image,glob_mean,glob_std,1e-11)
         return image
 
