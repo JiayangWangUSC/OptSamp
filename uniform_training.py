@@ -28,7 +28,7 @@ val_data = mri_data.SliceDataset(
 
 # %% noise generator and transform to image
 glob_mean = 0
-glob_std = 4e-4
+glob_std = 0.1
 
 class Sample(torch.nn.Module): 
 
@@ -42,9 +42,9 @@ class Sample(torch.nn.Module):
         kspace_noise = kspace + torch.div(noise,self.mask.unsqueeze(0).unsqueeze(3).repeat(16,1,1,2))  # need to reshape mask
         image = fastmri.ifft2c(kspace_noise)
         image = fastmri.complex_abs(image)
-        image = fastmri.rss(image,dim=0).unsqueeze(0)
+        image = fastmri.rss(image,dim=0).squeeze()
         image = transforms.normalize(image,glob_mean,glob_std,1e-11)
-        return image[0]
+        return image
 
 
 class toImage(torch.nn.Module): 
@@ -55,9 +55,9 @@ class toImage(torch.nn.Module):
     def forward(self,kspace):
         image = fastmri.ifft2c(kspace)
         image = fastmri.complex_abs(image)
-        image = fastmri.rss(image,dim=0).unsqueeze(0)
+        image = fastmri.rss(image,dim=0).squeeze()
         image = transforms.normalize(image,glob_mean,glob_std,1e-11)
-        return image[0]
+        return image
 
 
 # %% sampling
