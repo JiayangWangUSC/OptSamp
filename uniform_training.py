@@ -145,7 +145,7 @@ for epoch in range(max_epochs):
         for val_batch in val_dataloader:
             val_batch.to(device)
 
-            image_noise = sample_model(train_batch)
+            image_noise = sample_model(val_batch)
             recon = recon_model(image_noise.to(device))
             ground_truth = toIm(val_batch)
 
