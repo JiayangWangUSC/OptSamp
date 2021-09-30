@@ -150,8 +150,8 @@ for epoch in range(max_epochs):
             recon = recon_model(image_noise.to(device))
             ground_truth = toIm(val_batch)
 
-            loss += torch.norm(recon.to(device)-ground_truth.to(device)))
-            orig_loss += torch.norm(image_noise.to(device)-ground_truth.to(device)))
+            loss += torch.norm(recon.to(device)-ground_truth.to(device))
+            orig_loss += torch.norm(image_noise.to(device)-ground_truth.to(device))
 
         val_loss[epoch] = loss/len(val_dataloader)
         print("epoch:",epoch+1,"validation MSE:",val_loss[epoch],"original MSE:",orig_loss/len(val_dataloader))
