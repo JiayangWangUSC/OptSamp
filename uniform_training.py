@@ -28,7 +28,7 @@ val_data = mri_data.SliceDataset(
 
 # %% noise generator and transform to image
 glob_mean = 0
-glob_std = 5e-4
+glob_std = 1e-4
 batch_size = 8
 
 class Sample(torch.nn.Module): 
@@ -117,7 +117,7 @@ toIm.to(device)
 recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-4)
 
 # %% training
-max_epochs = 20
+max_epochs = 10
 val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
@@ -133,7 +133,7 @@ for epoch in range(max_epochs):
         ground_truth = toIm(train_batch)
 
         loss = torch.norm(recon.to(device)-ground_truth.to(device))
-        if batch_count%30 == 0:
+        if batch_count%100 == 0:
             print("batch:",batch_count,"train MSE:",loss.item(),"Original MSE:", torch.norm(image_noise-ground_truth))
         
         loss.backward()

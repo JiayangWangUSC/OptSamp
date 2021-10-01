@@ -29,7 +29,7 @@ test_data = mri_data.SliceDataset(
 
 # %% noise generator and transform to image
 glob_mean = 0
-glob_std = 5e-4
+glob_std = 1e-4
 batch_size = 8
 
 class Sample(torch.nn.Module): 
