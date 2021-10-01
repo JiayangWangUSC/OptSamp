@@ -66,7 +66,7 @@ factor = 8
 mask = torch.ones_like(train_data[0])
 mask = factor*mask[0,:,:,0].squeeze() 
 #mask.requires_grad = True
-sigma = 5e-5
+sigma = 1e-4
 sample_model = Sample(sigma,mask)
 
 toIm = toImage()
@@ -114,10 +114,10 @@ toIm.to(device)
 #    print("image norm:",torch.norm(gt))
 
 # %% optimizer
-recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
+recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-4)
 
 # %% training
-max_epochs = 10
+max_epochs = 20
 val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
