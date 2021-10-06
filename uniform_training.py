@@ -114,7 +114,7 @@ toIm.to(device)
 #    print("image norm:",torch.norm(gt))
 
 # %% optimizer
-recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-4)
+recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
 
 # %% training
 max_epochs = 10
@@ -132,9 +132,9 @@ for epoch in range(max_epochs):
         recon = recon_model(image_noise.to(device))
         ground_truth = toIm(train_batch)
 
-        loss = torch.norm(recon.to(device)-ground_truth.to(device))
+        loss = torch.nn.MSELoss(recon.to(device),ground_truth.to(device))
         if batch_count%100 == 0:
-            print("batch:",batch_count,"train MSE:",loss.item(),"Original MSE:", torch.norm(image_noise-ground_truth))
+            print("batch:",batch_count,"train MSE:",loss.item(),"Original MSE:", torch.nn.MSELoss(image_noise,ground_truth))
         
         loss.backward()
         recon_optimizer.step()
@@ -150,8 +150,8 @@ for epoch in range(max_epochs):
             recon = recon_model(image_noise.to(device))
             ground_truth = toIm(val_batch)
 
-            loss += torch.norm(recon.to(device)-ground_truth.to(device))
-            orig_loss += torch.norm(image_noise.to(device)-ground_truth.to(device))
+            loss += torch.nn.MSELoss(recon.to(device),ground_truth.to(device))
+            orig_loss += torch.nn.MSELoss(image_noise.to(device),ground_truth.to(device))
 
         val_loss[epoch] = loss/len(val_dataloader)
         print("epoch:",epoch+1,"validation MSE:",val_loss[epoch],"original MSE:",orig_loss/len(val_dataloader))
