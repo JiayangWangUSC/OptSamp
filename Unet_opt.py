@@ -35,7 +35,7 @@ class Sample(torch.nn.Module):
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = torch.ones_like(train_data[0])
+        self.mask = torch.ones_like(train_data[20])
         self.mask = factor*self.mask[0,:,:,0].squeeze() 
         self.sigma = sigma
 

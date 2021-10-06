@@ -13,8 +13,8 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     return kspace
 
 train_data = mri_data.SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
+    #root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -33,14 +33,15 @@ batch_size = 8
 
 class Sample(torch.nn.Module): 
 
-    def __init__(self,sigma,mask):
+    def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = torch.sqrt(mask)
+        self.mask = torch.ones_like(train_data[20])
+        self.mask = factor*self.mask[0,:,:,0].squeeze() 
         self.sigma = sigma
 
     def forward(self,kspace):
-        noise = sigma*torch.randn_like(kspace)
-        kspace_noise = kspace + torch.div(noise,self.mask.unsqueeze(0).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,1,1,2))  # need to reshape mask
+        noise = self.sigma*torch.randn_like(kspace)
+        kspace_noise = kspace + torch.div(noise,torch.sqrt(self.mask).unsqueeze(0).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,1,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
         image = fastmri.ifft2c(kspace_noise)
         image = fastmri.complex_abs(image)
         image = fastmri.rss(image,dim=1).unsqueeze(1)
@@ -63,11 +64,11 @@ class toImage(torch.nn.Module):
 
 # %% sampling
 factor = 8
-mask = torch.ones_like(train_data[0])
-mask = factor*mask[0,:,:,0].squeeze() 
+#mask = torch.ones_like(train_data[0])
+#mask = factor*mask[0,:,:,0].squeeze() 
 #mask.requires_grad = True
 sigma = 1e-4
-sample_model = Sample(sigma,mask)
+sample_model = Sample(sigma,factor)
 
 toIm = toImage()
 
