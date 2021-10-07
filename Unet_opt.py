@@ -28,7 +28,7 @@ val_data = mri_data.SliceDataset(
 
 # %% noise generator and transform to image
 glob_mean = 0
-glob_std = 1e-4
+glob_std = 5e-5
 batch_size = 8
 
 class Sample(torch.nn.Module): 
@@ -64,7 +64,7 @@ class toImage(torch.nn.Module):
 
 # %% sampling
 factor = 8
-sigma = 1e-4
+sigma = 5e-5
 sample_model = Sample(sigma,factor)
 
 toIm = toImage()
@@ -95,7 +95,7 @@ recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
 Loss = torch.nn.MSELoss()
 # %% training
 step = 1
-max_epochs = 10
+max_epochs = 30
 val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)

@@ -29,14 +29,14 @@ test_data = mri_data.SliceDataset(
 
 # %% noise generator and transform to image
 glob_mean = 0
-glob_std = 1e-4
+glob_std = 5e-5
 batch_size = 8
 
 class Sample(torch.nn.Module): 
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = torch.ones_like(test_data[20])
+        self.mask = torch.ones_like(train_data[20])
         self.mask = factor*self.mask[0,:,:,0].squeeze() 
         self.sigma = sigma
 
@@ -65,7 +65,7 @@ class toImage(torch.nn.Module):
 
 # %% sampling
 factor = 8
-sigma = 1e-4
+sigma = 5e-5
 sample_model = Sample(sigma,factor)
 
 toIm = toImage()
@@ -80,14 +80,14 @@ plt.plot(val_loss)
 kspace = test_data[16]
 print(kspace.size(0))
 kspace = kspace.unsqueeze(0)
-Im  = toIm(kspace)
+Im  = toIm(kspace).squeeze()
 #plt.imshow(Im[0,0,:,:],cmap='gray')
-ImN = sample_model(kspace)
+ImN = sample_model(kspace).squeeze()
 #plt.imshow(ImN[0,0,:,:],cmap='gray')
-with torch.no_grad():
+#with torch.no_grad():
 
-    ImR = model(ImN)
-plt.imshow(ImR[0,0,:,:],cmap='gray')
+#    ImR = model(ImN)
+#plt.imshow(ImR[0,0,:,:],cmap='gray')
 # %%
 mask = torch.load('/home/wjy/unet_mask')
 val_unet_loss = torch.load('/home/wjy/unet_model_val_loss')
