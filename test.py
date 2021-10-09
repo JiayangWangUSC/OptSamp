@@ -6,7 +6,7 @@ import fastmri
 from fastmri.models import Unet
 from fastmri.data import transforms, mri_data
 import matplotlib.pyplot as plt
-
+from torchvision.utils import save_image
 # %% data loader
 def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     # Transform the kspace to tensor format
@@ -14,7 +14,7 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     return kspace
 
 test_data = mri_data.SliceDataset(
-    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/train/'),
     #root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
     transform=data_transform,
     challenge='multicoil'
@@ -36,7 +36,7 @@ class Sample(torch.nn.Module):
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = torch.ones_like(train_data[20])
+        self.mask = torch.ones_like(test_data[0])
         self.mask = factor*self.mask[0,:,:,0].squeeze() 
         self.sigma = sigma
 
@@ -77,7 +77,7 @@ model = torch.load('/home/wjy/uniform_model',map_location=torch.device('cpu'))
 # %%
 plt.plot(val_loss)
 # %%
-kspace = test_data[16]
+kspace = test_data[0]
 print(kspace.size(0))
 kspace = kspace.unsqueeze(0)
 Im  = toIm(kspace).squeeze()
