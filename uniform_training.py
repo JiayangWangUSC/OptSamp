@@ -10,11 +10,14 @@ from fastmri.data import transforms, mri_data
 def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     # Transform the kspace to tensor format
     kspace = transforms.to_tensor(kspace)
+    image = fastmri.ifft2c(kspace)
+    image = image[:,:,torch.arange(191,575),:,:]
+    kspace = fastmri.fft2c(image)
     return kspace
 
 train_data = mri_data.SliceDataset(
     #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/val/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -28,18 +31,18 @@ val_data = mri_data.SliceDataset(
 
 # %% noise generator and transform to image
 glob_mean = 0
-glob_std = 5e-5
+glob_std = 1e-4
 batch_size = 8
 
 class Sample(torch.nn.Module): 
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = torch.ones_like(train_data[20])
-        self.mask = factor*self.mask[0,:,:,0].squeeze() 
+        self.mask = torch.ones(384,396)
         self.sigma = sigma
 
     def forward(self,kspace):
+
         noise = self.sigma*torch.randn_like(kspace)
         kspace_noise = kspace + torch.div(noise,torch.sqrt(self.mask).unsqueeze(0).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,1,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
         image = fastmri.ifft2c(kspace_noise)
@@ -67,7 +70,7 @@ factor = 8
 #mask = torch.ones_like(train_data[0])
 #mask = factor*mask[0,:,:,0].squeeze() 
 #mask.requires_grad = True
-sigma = 5e-5
+sigma = 3e-5
 sample_model = Sample(sigma,factor)
 
 toIm = toImage()
@@ -118,7 +121,7 @@ toIm.to(device)
 recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
 Loss = torch.nn.MSELoss()
 # %% training
-max_epochs = 30
+max_epochs = 20
 val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
@@ -141,26 +144,21 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    with torch.no_grad():
-        loss = 0
-        orig_loss = 0
-        for val_batch in val_dataloader:
-            val_batch.to(device)
+#    with torch.no_grad():
+#        loss = 0
+#        orig_loss = 0
+#        for val_batch in val_dataloader:
+#            val_batch.to(device)
 
-            image_noise = sample_model(val_batch)
-            recon = recon_model(image_noise.to(device))
-            ground_truth = toIm(val_batch)
+#            image_noise = sample_model(val_batch)
+#            recon = recon_model(image_noise.to(device))
+#            ground_truth = toIm(val_batch)
+#
+#            loss += Loss(recon.to(device),ground_truth.to(device))
+#            orig_loss += Loss(image_noise.to(device),ground_truth.to(device))
+#
+#        val_loss[epoch] = loss/len(val_dataloader)
+#        print("epoch:",epoch+1,"validation MSE:",val_loss[epoch],"original MSE:",orig_loss/len(val_dataloader))
 
-            loss += Loss(recon.to(device),ground_truth.to(device))
-            orig_loss += Loss(image_noise.to(device),ground_truth.to(device))
-
-        val_loss[epoch] = loss/len(val_dataloader)
-        print("epoch:",epoch+1,"validation MSE:",val_loss[epoch],"original MSE:",orig_loss/len(val_dataloader))
-
-    torch.save(val_loss,"./uniform_model_val_loss")
-    torch.save(recon_model,"./uniform_model")
-
-
-# %% save model
-#torch.save(recon_model,"./uniform_model")
-
+    #torch.save(val_loss,"./uniform_model_val_loss")
+    torch.save(recon_model,"./warmup_model")

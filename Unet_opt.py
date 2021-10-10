@@ -10,6 +10,9 @@ from fastmri.data import transforms, mri_data
 def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     # Transform the kspace to tensor format
     kspace = transforms.to_tensor(kspace)
+    image = fastmri.ifft2c(kspace)
+    image = image[:,:,torch.arange(191,575),:,:]
+    kspace = fastmri.fft2c(image)
     return kspace
 
 train_data = mri_data.SliceDataset(
@@ -28,18 +31,19 @@ val_data = mri_data.SliceDataset(
 
 # %% noise generator and transform to image
 glob_mean = 0
-glob_std = 5e-5
+glob_std = 1e-4
 batch_size = 8
 
 class Sample(torch.nn.Module): 
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = torch.ones_like(train_data[20])
+        self.mask = torch.ones(384,396)
         self.mask = factor*self.mask[0,:,:,0].squeeze() 
         self.sigma = sigma
 
     def forward(self,kspace):
+        
         noise = self.sigma*torch.randn_like(kspace)
         kspace_noise = kspace + torch.div(noise,torch.sqrt(self.mask).unsqueeze(0).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,1,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
         image = fastmri.ifft2c(kspace_noise)
@@ -64,7 +68,7 @@ class toImage(torch.nn.Module):
 
 # %% sampling
 factor = 8
-sigma = 5e-5
+sigma = 3e-5
 sample_model = Sample(sigma,factor)
 
 toIm = toImage()
@@ -97,7 +101,7 @@ recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
 Loss = torch.nn.MSELoss()
 # %% training
 step = 1e-1
-max_epochs = 10
+max_epochs = 30
 val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
