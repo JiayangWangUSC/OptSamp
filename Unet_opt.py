@@ -11,7 +11,7 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     # Transform the kspace to tensor format
     kspace = transforms.to_tensor(kspace)
     image = fastmri.ifft2c(kspace)
-    image = image[:,:,torch.arange(191,575),:,:]
+    image = image[:,torch.arange(191,575),:,:]
     kspace = fastmri.fft2c(image)
     return kspace
 
