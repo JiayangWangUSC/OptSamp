@@ -17,7 +17,7 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
 
 train_data = mri_data.SliceDataset(
     #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/val/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -84,6 +84,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
+recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/warmup_model')
 
 # %% GPU 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -108,18 +109,11 @@ sample_model.to(device)
 recon_model.to(device)
 toIm.to(device)
 
-# %% go through dataset
-#for data in train_data:
-#    gt = fastmri.ifft2c(data)
-#    gt = fastmri.complex_abs(gt)
-#    gt = fastmri.rss(gt,dim=1).unsqueeze(1)
-#    gt = transforms.normalize(gt,glob_mean,glob_std,1e-11)
-    #print("mean:",gt.mean(),"standard deviation:",gt.std())
-#    print("image norm:",torch.norm(gt))
 
 # %% optimizer
 recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
 Loss = torch.nn.MSELoss()
+
 # %% training
 max_epochs = 20
 val_loss = torch.zeros(max_epochs)
@@ -144,21 +138,21 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-#    with torch.no_grad():
-#        loss = 0
-#        orig_loss = 0
-#        for val_batch in val_dataloader:
-#            val_batch.to(device)
+    with torch.no_grad():
+        loss = 0
+        orig_loss = 0
+        for val_batch in val_dataloader:
+            val_batch.to(device)
 
-#            image_noise = sample_model(val_batch)
-#            recon = recon_model(image_noise.to(device))
-#            ground_truth = toIm(val_batch)
-#
-#            loss += Loss(recon.to(device),ground_truth.to(device))
-#            orig_loss += Loss(image_noise.to(device),ground_truth.to(device))
-#
-#        val_loss[epoch] = loss/len(val_dataloader)
-#        print("epoch:",epoch+1,"validation MSE:",val_loss[epoch],"original MSE:",orig_loss/len(val_dataloader))
+            image_noise = sample_model(val_batch)
+            recon = recon_model(image_noise.to(device))
+            ground_truth = toIm(val_batch)
 
-    #torch.save(val_loss,"./uniform_model_val_loss")
-    torch.save(recon_model,"./warmup_model")
+            loss += Loss(recon.to(device),ground_truth.to(device))
+            orig_loss += Loss(image_noise.to(device),ground_truth.to(device))
+
+        val_loss[epoch] = loss/len(val_dataloader)
+        print("epoch:",epoch+1,"validation MSE:",val_loss[epoch],"original MSE:",orig_loss/len(val_dataloader))
+
+    torch.save(val_loss,"./uniform_model_val_loss")
+    torch.save(recon_model,"./uniform_model")

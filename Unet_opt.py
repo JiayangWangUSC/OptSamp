@@ -82,7 +82,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/uniform_model')
+recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/warmup_model')
 
 # %% 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -101,7 +101,7 @@ recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
 Loss = torch.nn.MSELoss()
 # %% training
 step = 1e-1
-max_epochs = 30
+max_epochs = 20
 val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
