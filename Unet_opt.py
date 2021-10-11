@@ -39,7 +39,6 @@ class Sample(torch.nn.Module):
     def __init__(self,sigma,factor):
         super().__init__()
         self.mask = torch.ones(384,396)
-        self.mask = factor*self.mask[0,:,:,0].squeeze() 
         self.sigma = sigma
 
     def forward(self,kspace):
