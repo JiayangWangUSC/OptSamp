@@ -38,7 +38,7 @@ class Sample(torch.nn.Module):
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = torch.ones(384,396)
+        self.mask = factor*torch.ones(384,396)
         self.sigma = sigma
 
     def forward(self,kspace):
@@ -70,7 +70,7 @@ factor = 8
 #mask = torch.ones_like(train_data[0])
 #mask = factor*mask[0,:,:,0].squeeze() 
 #mask.requires_grad = True
-sigma = 3e-5
+sigma = 1e-4
 sample_model = Sample(sigma,factor)
 
 toIm = toImage()

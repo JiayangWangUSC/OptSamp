@@ -33,7 +33,3 @@ end
 
 datalen = length(slice);
 batch_size = 8;
-batch_num = datalen/batch_size;
-
-
-for 

@@ -38,7 +38,7 @@ class Sample(torch.nn.Module):
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = torch.ones(384,396)
+        self.mask = factor*torch.ones(384,396)
         self.sigma = sigma
 
     def forward(self,kspace):
@@ -67,7 +67,7 @@ class toImage(torch.nn.Module):
 
 # %% sampling
 factor = 8
-sigma = 3e-5
+sigma = 1e-4
 sample_model = Sample(sigma,factor)
 
 toIm = toImage()
