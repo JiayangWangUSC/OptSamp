@@ -4,8 +4,8 @@ clc;
 
 %% load data
 
-%datapath = '/home/wjy/Project/fastmri_dataset/test/';
-datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/train/';
+datapath = '/home/wjy/Project/fastmri_dataset/test/';
+%datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/train/';
 dirname = dir(datapath);
 %data = h5read('file_brain_AXT2_200_6002217.h5','/home/wjy/Project/fastmri_dataset/test');
 %kspace = h5read([datapath,dirname(3).name],'/kspace');
@@ -77,7 +77,7 @@ ImN= sqrt(sum(abs(ifft2c(reshape(usData./kMask,N1,N2,Nc))).^2,3));
 
 
 %%
-epoch_max = 1;
+epoch_max = 10;
 step = 1e-1;
 train_loss = zeros(1,epoch_max);
 for epoch = 1:epoch_max
