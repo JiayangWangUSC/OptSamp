@@ -72,7 +72,7 @@ toIm = toImage()
 
 
 # %% load uniform-unet model
-val_uniform_loss = torch.load('/home/wjy/uniform_model_val_loss')
+val_uniform_loss = torch.load('/home/wjy/unet_model_val_loss')
 model = torch.load('/home/wjy/uniform_model',map_location=torch.device('cpu'))
 # %%
 plt.plot(val_loss)
