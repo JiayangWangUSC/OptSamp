@@ -10,4 +10,4 @@
 module purge
 module load matlab
 
-matlab -batch '/project/jhaldar_118/jiayangw/OptSamp/TV_gradient'
+matlab -batch /project/jhaldar_118/jiayangw/OptSamp/TV_gradient
