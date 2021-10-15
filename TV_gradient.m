@@ -62,18 +62,18 @@ weight = factor*ones(N1,N2);
 
 MaxIter = 5;
 
-kData = undersample(reshape(kspace(1,:,:,:),2*N1,N2,Nc))/1e-4;
-kMask = repmat(sqrt(weight),[1,1,Nc]);
-usData = kMask.*kData+noise;
+%kData = undersample(reshape(kspace(1,:,:,:),2*N1,N2,Nc))/1e-4;
+%kMask = repmat(sqrt(weight),[1,1,Nc]);
+%usData = kMask.*kData+noise;
 
 %%
 rho = 10;
 beta = 1e-3;
-recon = TV(usData,kMask,rho,beta,MaxIter,D,Dh,DhD);
-imr = ifft2c(reshape(recon,N1,N2,Nc));
-ImR = sqrt(sum(abs(imr).^2,3));
-Im = sqrt(sum(abs(ifft2c(reshape(kData,N1,N2,Nc))).^2,3));
-ImN= sqrt(sum(abs(ifft2c(reshape(usData./kMask,N1,N2,Nc))).^2,3));
+%recon = TV(usData,kMask,rho,beta,MaxIter,D,Dh,DhD);
+%imr = ifft2c(reshape(recon,N1,N2,Nc));
+%ImR = sqrt(sum(abs(imr).^2,3));
+%Im = sqrt(sum(abs(ifft2c(reshape(kData,N1,N2,Nc))).^2,3));
+%ImN= sqrt(sum(abs(ifft2c(reshape(usData./kMask,N1,N2,Nc))).^2,3));
 
 
 %%
