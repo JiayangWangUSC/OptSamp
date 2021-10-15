@@ -77,7 +77,7 @@ ImN= sqrt(sum(abs(ifft2c(reshape(usData./kMask,N1,N2,Nc))).^2,3));
 
 
 %%
-epoch_max = 10;
+epoch_max = 11;
 step = 1e-1;
 train_loss = zeros(1,epoch_max);
 for epoch = 1:epoch_max
