@@ -77,7 +77,7 @@ beta = 1e-3;
 
 
 %%
-epoch_max = 5;
+epoch_max = 3;
 step = 1e-1;
 train_loss = zeros(1,epoch_max);
 for epoch = 1:epoch_max
