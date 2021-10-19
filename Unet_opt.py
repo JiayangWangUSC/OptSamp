@@ -100,7 +100,7 @@ recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
 Loss = torch.nn.MSELoss()
 # %% training
 step = 1e-1
-max_epochs = 30
+max_epochs = 20
 val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
@@ -116,6 +116,9 @@ for epoch in range(max_epochs):
         image_noise = sample_model(train_batch)
         recon = recon_model(image_noise.to(device))
         ground_truth = toIm(train_batch)
+        support = torch.ge(ground_truth,0.06*ground_truth.max())
+        image_noise = torch.mul(image_noise,support)
+        ground_truth = torch.mul(ground_truth,support)
 
         loss = Loss(recon.to(device),ground_truth.to(device))
         if batch_count%100 == 0:
@@ -148,6 +151,9 @@ for epoch in range(max_epochs):
             image_noise = sample_model(val_batch)
             recon = recon_model(image_noise.to(device))
             ground_truth = toIm(val_batch)
+            support = torch.ge(ground_truth,0.06*ground_truth.max())
+            image_noise = torch.mul(image_noise,support)
+            ground_truth = torch.mul(ground_truth,support)
 
             loss += Loss(recon.to(device),ground_truth.to(device))
             orig_loss += Loss(image_noise.to(device),ground_truth.to(device))
