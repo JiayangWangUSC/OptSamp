@@ -11,10 +11,13 @@ from torchvision.utils import save_image
 def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     # Transform the kspace to tensor format
     kspace = transforms.to_tensor(kspace)
+    image = fastmri.ifft2c(kspace)
+    image = image[:,torch.arange(191,575),:,:]
+    kspace = fastmri.fft2c(image)
     return kspace
 
 test_data = mri_data.SliceDataset(
-    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/train/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/test/'),
     #root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
     transform=data_transform,
     challenge='multicoil'
@@ -29,18 +32,18 @@ test_data = mri_data.SliceDataset(
 
 # %% noise generator and transform to image
 glob_mean = 0
-glob_std = 5e-5
+glob_std = 1e-4
 batch_size = 8
 
 class Sample(torch.nn.Module): 
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = torch.ones_like(test_data[0])
-        self.mask = factor*self.mask[0,:,:,0].squeeze() 
+        self.mask = factor*torch.ones(384,396)
         self.sigma = sigma
 
     def forward(self,kspace):
+
         noise = self.sigma*torch.randn_like(kspace)
         kspace_noise = kspace + torch.div(noise,torch.sqrt(self.mask).unsqueeze(0).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,1,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
         image = fastmri.ifft2c(kspace_noise)
@@ -48,7 +51,6 @@ class Sample(torch.nn.Module):
         image = fastmri.rss(image,dim=1).unsqueeze(1)
         image = transforms.normalize(image,glob_mean,glob_std,1e-11)
         return image
-
 
 class toImage(torch.nn.Module): 
 
@@ -65,14 +67,14 @@ class toImage(torch.nn.Module):
 
 # %% sampling
 factor = 8
-sigma = 5e-5
+sigma = 1e-4
 sample_model = Sample(sigma,factor)
 
 toIm = toImage()
 
 
 # %% load uniform-unet model
-val_uniform_loss = torch.load('/home/wjy/unet_model_val_loss')
+#val_uniform_loss = torch.load('/home/wjy/unet_model_val_loss')
 model = torch.load('/home/wjy/uniform_model',map_location=torch.device('cpu'))
 # %%
 plt.plot(val_loss)
