@@ -131,13 +131,10 @@ for epoch = 1:epoch_max
             
             support = zeros(N1,N2);
             support(Im>0.06*max(Im(:))) = 1;
-
-            ImR = support.*ImR;
-            Im = support.*Im;
             
             %% backward propagation
             Grad = 0;
-            dx = (ImR-Im)./Im;
+            dx = (support.*(ImR-Im))/Im;
             dx = fft2c(repmat(dx,[1,1,Nc]).*imr);
             dx = dx(:);
             for k = MaxIter:-1:1
@@ -162,7 +159,7 @@ for epoch = 1:epoch_max
             Grad = sum(real(Grad)+imag(Grad),3);
             Gradient(:,:,datanum) = Grad;
             
-            mse(datanum) = norm(ImR-Im)^2;
+            mse(datanum) = norm(support.*(ImR-Im))^2;
     
         end
         
