@@ -105,7 +105,7 @@ for epoch = 1:epoch_max
     loss = 0;
     for batch = 1:batch_num
         kMask = repmat(sqrt(weight),[1,1,Nc]);
-        AhA = kMask(:).*kMask(:) + lambda*mm_reg;
+        AhA = kMask.*kMask + rho*DhD;
         AhA_dagger = AhA;
         AhA_dagger(find(AhA)) = 1./AhA(find(AhA));
         Gradient = zeros(N1,N2,batch_size);
@@ -124,26 +124,23 @@ for epoch = 1:epoch_max
             usData = kMask.*kData + noise;
         
             %recon
+            x = usData./kMask;
+            x = x(:);
+            X = repmat(0*x,[1,MaxIter]);
+            z = threshold(D(x),beta);
+            Z = repmat(0*z,[1,MaxIter]);
+            u = 0*z;
+            U = repmat(0*u,[1,MaxIter]);
             fd = kMask(:).*usData(:);
 
-            W = [];
-            Q = [];
-            V = [];
-            K = [];
-
-            for iter = 1:MaxIter
-                x_prev = x;
-                MM = P_M(x);
-                [pmm,S] = svd_left(MM,rank);
-                MMr = Ph_M(pmm*pmm'*MM);
-                x = AhA_dagger.*(fd + lambda*MMr);
-    
-                W(:,:,iter) = MM;
-                Q(:,iter) = MMr;
-                V(:,:,iter) = pmm;
-                S = repmat(S,[1,rank])-repmat(S',[rank,1]);
-                S(find(S)) = 1./(S(find(S)));
-                K(:,:,iter) = S;
+            for k = 1:MaxIter
+                X(:,k) = x;
+                Z(:,k) = z;
+                U(:,k) = u;
+                x = AhA_dagger(:).*(fd+rho*Dh(z-u));
+                Dx = D(x);
+                z = threshold(Dx+u,beta);
+                u = u + Dx - z; 
             end
             recon = x;
             imr = ifft2c(reshape(recon,N1,N2,Nc));
@@ -156,34 +153,32 @@ for epoch = 1:epoch_max
             
             %% backward propagation
             Grad = 0;
-            df = (support.*(ImR-Im))./Im;
-            df = fft2c(repmat(df,[1,1,Nc]).*imr);
-            df = df(:);
-            for iter = RealIter:-1:1
+            dx = (ImR-Im)./Im;
+            dx = fft2c(repmat(dx,[1,1,Nc]).*imr);
+            dx = dx(:);
+            for k = MaxIter:-1:1
+                dW = AhA_dagger.*AhA_dagger.*(rho*DhD.*(kData+noise./kMask/2)-kMask.*noise/2-rho*reshape(Dh(Z(:,k)-U(:,k)),N1,N2,Nc));
+                Grad = Grad + complex_odot(dW(:),dx);
+                if k == MaxIter
+                    du = - rho* D(AhA_dagger(:).*dx);
+                else
+                    du = du - rho* D(AhA_dagger(:).*dx) + complex_odot(threshold_grad(D(X(:,k+1))+U(:,k),beta),dz);
+                end
+                    dz = rho* D(AhA_dagger(:).*dx) - du;
     
-                df_prev = df;
-                dM = AhA_dagger.*AhA_dagger.*(2*lambda*kMask(:).*(mm_reg.*kData(:)-Q(:,iter))+(mm_reg-lambda*kMask(:).*kMask(:)).*noise(:));
-                Grad = Grad + complex_odot(dM,df);
-        
-                dX = P_M(lambda*AhA_dagger.* df_prev);
-                dH = dX*W(:,:,iter)';
-                tempV = V(:,:,iter);
-                dW1 = tempV*tempV'*dX;
-                dV = (dH + dH')*tempV;
-                dA = K(:,:,iter)'.*(tempV'*dV);
-                dW2 = tempV*(dA+dA')*(tempV'*W(:,:,iter));
-                df = Ph_M(dW1+dW2);
-        
-                if iter == 1
-                    dM = -noise./kMask./kMask;
-                    Grad = Grad + complex_odot(dM(:),df);
+                if k == 1
+                    dx = Dh(complex_odot(threshold_grad(D(X(:,k)),beta),dz));
+                    dW = -noise(:)./(kMask(:)).^3/2;
+                    Grad = Grad + complex_odot(dW,dx);
+                else
+                    dx = Dh(du + complex_odot(threshold_grad(D(X(:,k))+U(:,k-1),beta),dz));
                 end
             end
             Grad = reshape(Grad,N1,N2,Nc);
             Grad = sum(real(Grad)+imag(Grad),3);
             Gradient(:,:,datanum) = Grad;
             
-            mse(datanum) = norm(support.*(ImR-Im))^2;
+            mse(datanum) = norm(ImR-Im)^2;
     
         end
         
@@ -205,8 +200,8 @@ for epoch = 1:epoch_max
     train_loss(epoch) = loss/batch_num;
 end
 
-save train_loss_LORAKS train_loss
-save mask_LORAKS weight
+save train_loss_TV train_loss
+save mask_TV weight
 
 %% 
 function result = sigmoid(x)

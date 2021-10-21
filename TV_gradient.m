@@ -134,7 +134,7 @@ for epoch = 1:epoch_max
             
             %% backward propagation
             Grad = 0;
-            dx = (support.*(ImR-Im))/Im;
+            dx = (support.*(ImR-Im))./Im;
             dx = fft2c(repmat(dx,[1,1,Nc]).*imr);
             dx = dx(:);
             for k = MaxIter:-1:1
