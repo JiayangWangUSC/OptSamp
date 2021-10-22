@@ -36,6 +36,10 @@ fft2c = @(x) fftshift(fft2(ifftshift(x)));
 ifft2c = @(x) fftshift(ifft2(ifftshift(x)));
 
 %%
+kspace = h5read([datapath,dirname(3).name],'/kspace');
+kspace = complex(kspace.r,kspace.i);
+kspace = permute(kspace,[4,2,1,3]);
+kData = undersample(reshape(kspace(1,:,:,:),2*N1,N2,Nc))/1e-4;
 R = 3;
 P_M = @(x) LORAKS_operators(x,N1,N2,Nc,R,1,[]);
 Ph_M = @(x) LORAKS_operators(x,N1,N2,Nc,R,-1,[]);
