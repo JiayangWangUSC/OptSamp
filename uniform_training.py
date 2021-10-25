@@ -122,14 +122,14 @@ for epoch in range(max_epochs):
         
         train_batch.to(device)
         
-        image_noise = sample_model(train_batch)
-        recon = recon_model(image_noise.to(device))
-        ground_truth = toIm(train_batch)
-        support = torch.ge(ground_truth,0.06*ground_truth.max())
-        image_noise = torch.mul(image_noise,support)
-        ground_truth = torch.mul(ground_truth,support)
+        image_noise = sample_model(train_batch).to(device)
+        recon = recon_model(image_noise).to(device)
+        ground_truth = toIm(train_batch).to(device)
+        support = torch.ge(ground_truth,0.06*ground_truth.max()).to(device)
+        recon = torch.mul(recon,support).to(device)
+        ground_truth = torch.mul(ground_truth,support).to(device)
 
-        loss = Loss(recon.to(device),ground_truth.to(device))
+        loss = Loss(recon,ground_truth)
         if batch_count%100 == 0:
             print("batch:",batch_count,"train MSE:",loss.item(),"Original MSE:", Loss(image_noise,ground_truth))
         
@@ -143,15 +143,15 @@ for epoch in range(max_epochs):
         for val_batch in val_dataloader:
             val_batch.to(device)
 
-            image_noise = sample_model(val_batch)
-            recon = recon_model(image_noise.to(device))
-            ground_truth = toIm(val_batch)
-            support = torch.ge(ground_truth,0.06*ground_truth.max())
-            image_noise = torch.mul(image_noise,support)
-            ground_truth = torch.mul(ground_truth,support)
+            image_noise = sample_model(val_batch).to(device)
+            recon = recon_model(image_noise).to(device)
+            ground_truth = toIm(val_batch).to(device)
+            support = torch.ge(ground_truth,0.06*ground_truth.max()).to(device)
+            recon = torch.mul(recon,support).to(device)
+            ground_truth = torch.mul(ground_truth,support).to(device)
             
-            loss += Loss(recon.to(device),ground_truth.to(device))
-            orig_loss += Loss(image_noise.to(device),ground_truth.to(device))
+            loss += Loss(recon,ground_truth)
+            orig_loss += Loss(image_noise,ground_truth)
 
         val_loss[epoch] = loss/len(val_dataloader)
         print("epoch:",epoch+1,"validation MSE:",val_loss[epoch],"original MSE:",orig_loss/len(val_dataloader))
