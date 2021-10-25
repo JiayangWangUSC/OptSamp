@@ -65,7 +65,7 @@ factor = 8
 #mask = torch.ones_like(train_data[0])
 #mask = factor*mask[0,:,:,0].squeeze() 
 #mask.requires_grad = True
-sigma = 2
+sigma = 1
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
