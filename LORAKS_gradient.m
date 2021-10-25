@@ -4,8 +4,8 @@ clc;
 
 %% load data
 
-%datapath = '/home/wjy/Project/fastmri_dataset/test/';
-datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/train/';
+datapath = '/home/wjy/Project/fastmri_dataset/test/';
+%datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/train/';
 dirname = dir(datapath);
 %data = h5read('file_brain_AXT2_200_6002217.h5','/home/wjy/Project/fastmri_dataset/test');
 %kspace = h5read([datapath,dirname(3).name],'/kspace');
@@ -101,8 +101,8 @@ MaxIter = 5;
 % Im = sqrt(sum(abs(ifft2c(reshape(kData,N1,N2,Nc))).^2,3));
 % ImN= sqrt(sum(abs(ifft2c(reshape(usData./kMask,N1,N2,Nc))).^2,3));
 %%
-epoch_max = 1;
-step = 1;
+epoch_max = 10;
+step = 10;
 train_loss = zeros(1,epoch_max);
 for epoch = 1:epoch_max
     disp(epoch);
@@ -129,7 +129,9 @@ for epoch = 1:epoch_max
         
             %recon
             fd = kMask(:).*usData(:);
-
+            x = usData./kMask;
+            x = x(:);
+            
             W = [];
             Q = [];
             V = [];
@@ -163,7 +165,7 @@ for epoch = 1:epoch_max
             df = (support.*(ImR-Im))./Im;
             df = fft2c(repmat(df,[1,1,Nc]).*imr);
             df = df(:);
-            for iter = RealIter:-1:1
+            for iter = MaxIter:-1:1
     
                 df_prev = df;
                 dM = AhA_dagger.*AhA_dagger.*(2*lambda*kMask(:).*(mm_reg.*kData(:)-Q(:,iter))+(mm_reg-lambda*kMask(:).*kMask(:)).*noise(:));
@@ -201,7 +203,7 @@ for epoch = 1:epoch_max
             weight = weight - mean(weight(:)) + factor;
         end
         weight(weight<1) = 1;
-        if mod(batch,100) == 0
+        if mod(batch,10) == 0
             disp(['epoch:',num2str(epoch),' batch:',num2str(batch),' train loss:',num2str(mean(mse))]);
         end
         loss = loss + mean(mse);

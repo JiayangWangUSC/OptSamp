@@ -12,7 +12,7 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     kspace = transforms.to_tensor(kspace)
     image = fastmri.ifft2c(kspace)
     image = image[:,torch.arange(191,575),:,:]
-    kspace = fastmri.fft2c(image)
+    kspace = fastmri.fft2c(image)/1e-4
     return kspace
 
 train_data = mri_data.SliceDataset(
@@ -30,8 +30,6 @@ val_data = mri_data.SliceDataset(
 )
 
 # %% noise generator and transform to image
-glob_mean = 0
-glob_std = 1e-4
 batch_size = 8
 
 class Sample(torch.nn.Module): 
@@ -42,15 +40,13 @@ class Sample(torch.nn.Module):
         self.sigma = sigma
 
     def forward(self,kspace):
-        
+
         noise = self.sigma*torch.randn_like(kspace)
         kspace_noise = kspace + torch.div(noise,torch.sqrt(self.mask).unsqueeze(0).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,1,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
         image = fastmri.ifft2c(kspace_noise)
-        image = fastmri.complex_abs(image)
-        image = fastmri.rss(image,dim=1).unsqueeze(1)
-        image = transforms.normalize(image,glob_mean,glob_std,1e-11)
+        image = torch.sqrt(torch.sum(torch.sum(torch.mul(image,image),4),1)).unsqueeze(1)
+        #image = transforms.normalize(image,glob_mean,glob_std,1e-11)
         return image
-
 
 class toImage(torch.nn.Module): 
 
@@ -59,15 +55,15 @@ class toImage(torch.nn.Module):
 
     def forward(self,kspace):
         image = fastmri.ifft2c(kspace)
-        image = fastmri.complex_abs(image)
-        image = fastmri.rss(image,dim=1).unsqueeze(1)
-        image = transforms.normalize(image,glob_mean,glob_std,1e-11)
+        image = torch.sqrt(torch.sum(torch.sum(torch.mul(image,image),4),1)).unsqueeze(1)
+        #image = transforms.normalize(image,glob_mean,glob_std,1e-11)
         return image
 
 
 # %% sampling
 factor = 8
-sigma = 1e-4
+sigma = 2
+print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
 toIm = toImage()
@@ -100,7 +96,7 @@ recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
 Loss = torch.nn.MSELoss()
 # %% training
 step = 1e-1
-max_epochs = 30
+max_epochs = 10
 val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
@@ -117,12 +113,12 @@ for epoch in range(max_epochs):
         recon = recon_model(image_noise.to(device))
         ground_truth = toIm(train_batch)
         support = torch.ge(ground_truth,0.06*ground_truth.max())
-        image_noise = torch.mul(image_noise,support)
+        recon = torch.mul(recon,support)
         ground_truth = torch.mul(ground_truth,support)
 
         loss = Loss(recon.to(device),ground_truth.to(device))
         if batch_count%100 == 0:
-            print("batch:",batch_count,"train MSE:",loss.item(),"Original MSE:", Loss(image_noise,ground_truth))
+            print("batch:",batch_count,"train MSE:",loss.item(),"Original MSE:", Loss(recon,ground_truth))
  
    
         loss.backward()
@@ -152,15 +148,15 @@ for epoch in range(max_epochs):
             recon = recon_model(image_noise.to(device))
             ground_truth = toIm(val_batch)
             support = torch.ge(ground_truth,0.06*ground_truth.max())
-            image_noise = torch.mul(image_noise,support)
+            recon = torch.mul(recon,support)
             ground_truth = torch.mul(ground_truth,support)
 
             loss += Loss(recon.to(device),ground_truth.to(device))
-            orig_loss += Loss(image_noise.to(device),ground_truth.to(device))
+            orig_loss += Loss(recon.to(device),ground_truth.to(device))
 
         val_loss[epoch] = loss/len(val_dataloader)
         print("epoch:",epoch+1,"validation MSE:",val_loss[epoch],"original MSE:",orig_loss/len(val_dataloader))
 
-    torch.save(val_loss,"./unet_model_val_loss")
-    torch.save(recon_model,"./unet_model")
-    torch.save(sample_model.mask,"./unet_mask")
+    torch.save(val_loss,"./unet_model_val_loss_noise"+str(sigma))
+    torch.save(recon_model,"./unet_model_noise"+str(sigma))
+    torch.save(sample_model.mask,"./unet_mask_noise"+str(sigma))

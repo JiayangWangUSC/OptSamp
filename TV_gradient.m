@@ -4,8 +4,8 @@ clc;
 
 %% load data
 
-%datapath = '/home/wjy/Project/fastmri_dataset/test/';
-datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/train/';
+datapath = '/home/wjy/Project/fastmri_dataset/test/';
+%datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/train/';
 dirname = dir(datapath);
 %data = h5read('file_brain_AXT2_200_6002217.h5','/home/wjy/Project/fastmri_dataset/test');
 %kspace = h5read([datapath,dirname(3).name],'/kspace');
@@ -32,8 +32,8 @@ batch_size = 8;
 batch_num = datalen/batch_size;
 
 %%
-fft2c = @(x) fftshift(fft2(ifftshift(x)));
-ifft2c = @(x) fftshift(ifft2(ifftshift(x)));
+fft2c = @(x) fftshift(fft2(ifftshift(x)))/sqrt(size(x(:),1))*4;
+ifft2c = @(x) fftshift(ifft2(ifftshift(x)))*sqrt(size(x(:),1))/4; 
 
 %% difference 
 d1 = diag(ones(N1,1));
@@ -58,24 +58,27 @@ sigma = 1;
 noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
 factor = 8;
 weight = factor*ones(N1,N2);
-rho = 6;
+rho = 5;
 beta = 1e-3;
 
 MaxIter = 5;
 
 %%
-
-% kspace = h5read([datapath,dirname(3).name],'/kspace');
-% kspace = complex(kspace.r,kspace.i);
-% kspace = permute(kspace,[4,2,1,3]);
-% kData = undersample(reshape(kspace(1,:,:,:),2*N1,N2,Nc))/1e-4;
-% kMask = repmat(sqrt(weight),[1,1,Nc]);
-% usData = kMask.*kData+noise;
-% recon = TV(usData,kMask,rho,beta,MaxIter,D,Dh,DhD);
-% imr = ifft2c(reshape(recon,N1,N2,Nc));
-% ImR = sqrt(sum(abs(imr).^2,3));
-% Im = sqrt(sum(abs(ifft2c(reshape(kData,N1,N2,Nc))).^2,3));
-% ImN= sqrt(sum(abs(ifft2c(reshape(usData./kMask,N1,N2,Nc))).^2,3));
+%load('/home/wjy/mask_TV.mat');
+kspace = h5read([datapath,dirname(3).name],'/kspace');
+kspace = complex(kspace.r,kspace.i);
+kspace = permute(kspace,[4,2,1,3]);
+kData = undersample(reshape(kspace(1,:,:,:),2*N1,N2,Nc))/1e-4;
+kMask = repmat(sqrt(weight),[1,1,Nc]);
+usData = kMask.*kData+noise;
+recon = TV(usData,kMask,rho,beta,MaxIter,D,Dh,DhD);
+imr = ifft2c(reshape(recon,N1,N2,Nc));
+ImR = sqrt(sum(abs(imr).^2,3));
+Im = sqrt(sum(abs(ifft2c(reshape(kData,N1,N2,Nc))).^2,3));
+ImN= sqrt(sum(abs(ifft2c(reshape(usData./kMask,N1,N2,Nc))).^2,3));
+support = zeros(N1,N2);
+support(Im>0.06*max(Im(:))) = 1;
+image_norm(support.*(ImR-Im))/image_norm(support.*Im)
 % 
 % 
 %%
@@ -159,7 +162,7 @@ for epoch = 1:epoch_max
             Grad = sum(real(Grad)+imag(Grad),3);
             Gradient(:,:,datanum) = Grad;
             
-            mse(datanum) = norm(support.*(ImR-Im))^2;
+            mse(datanum) = image_norm(support.*(ImR-Im))^2;
     
         end
         
@@ -257,9 +260,14 @@ end
 
 %% 
 function kspace = undersample(kspace)
-    fft2c = @(x) fftshift(fft2(ifftshift(x)));
-    ifft2c = @(x) fftshift(ifft2(ifftshift(x)));    
+    fft2c = @(x) fftshift(fft2(ifftshift(x)))/sqrt(size(x(:),1))*4;
+    ifft2c = @(x) fftshift(ifft2(ifftshift(x)))*sqrt(size(x(:),1))/4;   
     im = ifft2c(kspace);
     im = im(192:575,:,:);
     kspace = fft2c(im);
+end
+
+%%
+function value = image_norm(image)
+    value = norm(image(:));
 end

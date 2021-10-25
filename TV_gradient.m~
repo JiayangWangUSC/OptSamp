@@ -32,8 +32,8 @@ batch_size = 8;
 batch_num = datalen/batch_size;
 
 %%
-fft2c = @(x) fftshift(fft2(ifftshift(x)));
-ifft2c = @(x) fftshift(ifft2(ifftshift(x)));
+fft2c = @(x) fftshift(fft2(ifftshift(x)))/sqrt(N1*N2);
+ifft2c = @(x) fftshift(ifft2(ifftshift(x)))*sqrt(N1*N2);
 
 %% difference 
 d1 = diag(ones(N1,1));
@@ -58,30 +58,30 @@ sigma = 1;
 noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
 factor = 8;
 weight = factor*ones(N1,N2);
-rho = 6;
+rho = 5;
 beta = 1e-3;
 
 MaxIter = 5;
 
-
-
 %%
-
-% kspace = h5read([datapath,dirname(3).name],'/kspace');
-% kspace = complex(kspace.r,kspace.i);
-% kspace = permute(kspace,[4,2,1,3]);
-% kData = undersample(reshape(kspace(1,:,:,:),2*N1,N2,Nc))/1e-4;
-% kMask = repmat(sqrt(weight),[1,1,Nc]);
-% usData = kMask.*kData+noise;
-% recon = TV(usData,kMask,rho,beta,MaxIter,D,Dh,DhD);
-% imr = ifft2c(reshape(recon,N1,N2,Nc));
-% ImR = sqrt(sum(abs(imr).^2,3));
-% Im = sqrt(sum(abs(ifft2c(reshape(kData,N1,N2,Nc))).^2,3));
-% ImN= sqrt(sum(abs(ifft2c(reshape(usData./kMask,N1,N2,Nc))).^2,3));
+%load('/home/wjy/mask_TV.mat');
+kspace = h5read([datapath,dirname(3).name],'/kspace');
+kspace = complex(kspace.r,kspace.i);
+kspace = permute(kspace,[4,2,1,3]);
+kData = undersample(reshape(kspace(1,:,:,:),2*N1,N2,Nc))/1e-4;
+kMask = repmat(sqrt(weight),[1,1,Nc]);
+usData = kMask.*kData+noise;
+recon = TV(usData,kMask,rho,beta,MaxIter,D,Dh,DhD);
+imr = ifft2c(reshape(recon,N1,N2,Nc));
+ImR = sqrt(sum(abs(imr).^2,3));
+Im = sqrt(sum(abs(ifft2c(reshape(kData,N1,N2,Nc))).^2,3));
+ImN= sqrt(sum(abs(ifft2c(reshape(usData./kMask,N1,N2,Nc))).^2,3));
+support = zeros(N1,N2);
+support(Im>0.06*max(Im(:))) = 1;
 % 
 % 
 %%
-epoch_max = 10;
+epoch_max = 3;
 step = 1;
 train_loss = zeros(1,epoch_max);
 for epoch = 1:epoch_max
@@ -133,13 +133,10 @@ for epoch = 1:epoch_max
             
             support = zeros(N1,N2);
             support(Im>0.06*max(Im(:))) = 1;
-
-            ImR = support.*ImR;
-            Im = support
             
             %% backward propagation
             Grad = 0;
-            dx = (ImR-Im)./Im;
+            dx = (support.*(ImR-Im))./Im;
             dx = fft2c(repmat(dx,[1,1,Nc]).*imr);
             dx = dx(:);
             for k = MaxIter:-1:1
@@ -164,7 +161,7 @@ for epoch = 1:epoch_max
             Grad = sum(real(Grad)+imag(Grad),3);
             Gradient(:,:,datanum) = Grad;
             
-            mse(datanum) = norm(ImR-Im)^2;
+            mse(datanum) = norm(support.*(ImR-Im))^2;
     
         end
         
