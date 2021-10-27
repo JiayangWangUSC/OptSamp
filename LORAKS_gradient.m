@@ -105,7 +105,7 @@ MaxIter = 10;
 % image_norm(support.*(ImN-Im))/image_norm(support.*Im)
 % image_norm(support.*(ImR-Im))/image_norm(support.*Im)
 %%
-epoch_max = 10;
+epoch_max = 100;
 step = 10;
 train_loss = zeros(1,epoch_max);
 for epoch = 1:epoch_max
@@ -218,8 +218,8 @@ for epoch = 1:epoch_max
     train_loss(epoch) = loss/batch_num;
 end
 
-save train_loss_LORAKS train_loss
-save mask_LORAKS weight
+save LORAKS_train_loss_noise0.5 train_loss
+save LORAKS_mask_noise0.5 weight
 
 %% 
 function result = sigmoid(x)
