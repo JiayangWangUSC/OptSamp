@@ -105,7 +105,7 @@ MaxIter = 10;
 % image_norm(support.*(ImN-Im))/image_norm(support.*Im)
 % image_norm(support.*(ImR-Im))/image_norm(support.*Im)
 %%
-epoch_max = 100;
+epoch_max = 10;
 step = 10;
 train_loss = zeros(1,epoch_max);
 for epoch = 1:epoch_max
@@ -210,7 +210,7 @@ for epoch = 1:epoch_max
             weight = weight - mean(weight(:)) + factor;
         end
         weight(weight<1) = 1;
-        if mod(batch,10) == 0
+        if mod(batch,100) == 0
             disp(['epoch:',num2str(epoch),' batch:',num2str(batch),' train loss:',num2str(mean(mse))]);
         end
         loss = loss + mean(mse);

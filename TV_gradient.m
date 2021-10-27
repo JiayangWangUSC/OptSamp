@@ -177,7 +177,7 @@ for epoch = 1:epoch_max
             weight = weight - mean(weight(:)) + factor;
         end
         weight(weight<1) = 1;
-        if mod(batch,2) == 0
+        if mod(batch,100) == 0
             disp(['epoch:',num2str(epoch),' batch:',num2str(batch),' train loss:',num2str(mean(mse))]);
         end
         loss = loss + mean(mse);
@@ -185,8 +185,8 @@ for epoch = 1:epoch_max
     train_loss(epoch) = loss/batch_num;
 end
 
-save TV_train_loss_noise0.5 train_loss
-save TV_mask_noise0.5 weight
+%save TV_train_loss_noise0.5 train_loss
+%save TV_mask_noise0.5 weight
 
 
 %%
