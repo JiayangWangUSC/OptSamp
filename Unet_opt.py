@@ -62,7 +62,7 @@ class toImage(torch.nn.Module):
 
 # %% sampling
 factor = 8
-sigma = 1.5
+sigma = 0.5
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -95,8 +95,8 @@ toIm.to(device)
 recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
 Loss = torch.nn.MSELoss()
 # %% training
-step = 1e-1
-max_epochs = 10
+step = 1
+max_epochs = 20
 val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
@@ -118,7 +118,7 @@ for epoch in range(max_epochs):
 
         loss = Loss(recon,ground_truth)
         if batch_count%100 == 0:
-            print("batch:",batch_count,"train MSE:",loss.item(),"Original MSE:", Loss(recon,ground_truth))
+            print("batch:",batch_count,"train MSE:",loss.item(),"Original MSE:", Loss(image_noise,ground_truth))
  
    
         loss.backward()

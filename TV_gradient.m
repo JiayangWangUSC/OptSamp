@@ -57,19 +57,19 @@ DhD = reshape(real(Dh(D(ones(N1,N2,Nc)))),N1,N2,Nc);
 sigma = 1;
 noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
 factor = 8;
-weight = factor*ones(N1,N2);
-rho = 5;
-beta = 1e-3;
+weight = factor*ones(1,N2);
+rho = 2;
+beta = 1;
 
-MaxIter = 5;
+MaxIter = 10;
 
 %%
-%load('/home/wjy/mask_TV.mat');
+load('/home/wjy/mask_TV.mat');
 kspace = h5read([datapath,dirname(3).name],'/kspace');
 kspace = complex(kspace.r,kspace.i);
 kspace = permute(kspace,[4,2,1,3]);
 kData = undersample(reshape(kspace(1,:,:,:),2*N1,N2,Nc))/1e-4;
-kMask = repmat(sqrt(weight),[1,1,Nc]);
+kMask = repmat(sqrt(weight),[N1,1,Nc]);
 usData = kMask.*kData+noise;
 recon = TV(usData,kMask,rho,beta,MaxIter,D,Dh,DhD);
 imr = ifft2c(reshape(recon,N1,N2,Nc));
@@ -78,18 +78,19 @@ Im = sqrt(sum(abs(ifft2c(reshape(kData,N1,N2,Nc))).^2,3));
 ImN= sqrt(sum(abs(ifft2c(reshape(usData./kMask,N1,N2,Nc))).^2,3));
 support = zeros(N1,N2);
 support(Im>0.06*max(Im(:))) = 1;
-image_norm(support.*(ImR-Im))/image_norm(support.*Im)
-% 
-% 
 %%
-epoch_max = 3;
-step = 1;
+ image_norm(support.*(ImN-Im))/image_norm(support.*Im)
+ image_norm(support.*(ImR-Im))/image_norm(support.*Im)
+ 
+%%
+epoch_max = 100;
+step = 10;
 train_loss = zeros(1,epoch_max);
 for epoch = 1:epoch_max
     disp(epoch);
     loss = 0;
     for batch = 1:batch_num
-        kMask = repmat(sqrt(weight),[1,1,Nc]);
+        kMask = repmat(sqrt(weight),[N1,1,Nc]);
         AhA = kMask.*kMask + rho*DhD;
         AhA_dagger = AhA;
         AhA_dagger(find(AhA)) = 1./AhA(find(AhA));
@@ -166,7 +167,7 @@ for epoch = 1:epoch_max
     
         end
         
-        Gradient = sum(Gradient,3);
+        Gradient = sum(sum(Gradient,3),1);
         Gradient = Gradient-mean(Gradient(:));
         Gradient = Gradient/norm(Gradient(:));
 
@@ -176,7 +177,7 @@ for epoch = 1:epoch_max
             weight = weight - mean(weight(:)) + factor;
         end
         weight(weight<1) = 1;
-        if mod(batch,100) == 0
+        if mod(batch,2) == 0
             disp(['epoch:',num2str(epoch),' batch:',num2str(batch),' train loss:',num2str(mean(mse))]);
         end
         loss = loss + mean(mse);

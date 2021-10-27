@@ -38,13 +38,13 @@ class Sample(torch.nn.Module):
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = factor*torch.ones(384,396)
+        self.mask = factor*torch.ones(396)
         self.sigma = sigma
 
     def forward(self,kspace):
 
         noise = self.sigma*torch.randn_like(kspace)
-        kspace_noise = kspace + torch.div(noise,torch.sqrt(self.mask).unsqueeze(0).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,1,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
+        kspace_noise = kspace + torch.div(noise,torch.sqrt(self.mask).unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
         image = fastmri.ifft2c(kspace_noise)
         image = torch.sqrt(torch.sum(torch.sum(torch.mul(image,image),4),1)).unsqueeze(1)
         #image = transforms.normalize(image,glob_mean,glob_std,1e-11)
@@ -64,7 +64,7 @@ class toImage(torch.nn.Module):
 
 # %% sampling
 factor = 8
-sigma = 2
+sigma = 1.5
 sample_model = Sample(sigma,factor)
 
 toIm = toImage()
@@ -72,9 +72,9 @@ toIm = toImage()
 
 # %% load uniform-unet model
 #val_uniform_loss = torch.load('/home/wjy/unet_model_val_loss')
-#mask = torch.load('/home/wjy/unet_mask')
+mask = torch.load('/home/wjy/unet_mask_noise1.5')
 #sample_model.mask = mask
-model = torch.load('/home/wjy/uniform_model',map_location=torch.device('cpu'))
+model = torch.load('/home/wjy/uniform_model_noise1.5',map_location=torch.device('cpu'))
 # %%
 #plt.plot(val_loss)
 # %%
@@ -92,7 +92,7 @@ support = torch.ge(Im,0.06*Im.max())
 ImR = torch.mul(ImR,support)
 Im = torch.mul(Im,support)
 Error = torch.abs(ImR-Im)
-plt.imshow(ImR[0,0,:,:],cmap='gray')
+plt.imshow(Error[0,0,:,:],cmap='gray')
 # %%
 
 #val_unet_loss = torch.load('/home/wjy/unet_model_val_loss')

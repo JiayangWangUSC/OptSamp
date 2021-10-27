@@ -32,8 +32,8 @@ batch_size = 8;
 batch_num = datalen/batch_size;
 
 %%
-fft2c = @(x) fftshift(fft2(ifftshift(x)))/sqrt(N1*N2);
-ifft2c = @(x) fftshift(ifft2(ifftshift(x)))*sqrt(N1*N2);
+fft2c = @(x) fftshift(fft2(ifftshift(x)))/sqrt(size(x(:),1))*4;
+ifft2c = @(x) fftshift(ifft2(ifftshift(x)))*sqrt(size(x(:),1))/4; 
 
 %% difference 
 d1 = diag(ones(N1,1));
@@ -58,10 +58,10 @@ sigma = 1;
 noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
 factor = 8;
 weight = factor*ones(N1,N2);
-rho = 5;
-beta = 1e-3;
+rho = 3;
+beta = 0.8;
 
-MaxIter = 5;
+MaxIter = 10;
 
 %%
 %load('/home/wjy/mask_TV.mat');
@@ -78,7 +78,9 @@ Im = sqrt(sum(abs(ifft2c(reshape(kData,N1,N2,Nc))).^2,3));
 ImN= sqrt(sum(abs(ifft2c(reshape(usData./kMask,N1,N2,Nc))).^2,3));
 support = zeros(N1,N2);
 support(Im>0.06*max(Im(:))) = 1;
-% 
+%%
+image_norm(support.*(ImN-Im))/image_norm(support.*Im)
+image_norm(support.*(ImR-Im))/image_norm(support.*Im)
 % 
 %%
 epoch_max = 3;
@@ -161,7 +163,7 @@ for epoch = 1:epoch_max
             Grad = sum(real(Grad)+imag(Grad),3);
             Gradient(:,:,datanum) = Grad;
             
-            mse(datanum) = norm(support.*(ImR-Im))^2;
+            mse(datanum) = image_norm(support.*(ImR-Im))^2;
     
         end
         
@@ -259,9 +261,14 @@ end
 
 %% 
 function kspace = undersample(kspace)
-    fft2c = @(x) fftshift(fft2(ifftshift(x)));
-    ifft2c = @(x) fftshift(ifft2(ifftshift(x)));    
+    fft2c = @(x) fftshift(fft2(ifftshift(x)))/sqrt(size(x(:),1))*4;
+    ifft2c = @(x) fftshift(ifft2(ifftshift(x)))*sqrt(size(x(:),1))/4;   
     im = ifft2c(kspace);
     im = im(192:575,:,:);
     kspace = fft2c(im);
+end
+
+%%
+function value = image_norm(image)
+    value = norm(image(:));
 end
