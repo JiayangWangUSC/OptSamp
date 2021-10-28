@@ -62,7 +62,7 @@ class toImage(torch.nn.Module):
 
 # %% sampling
 factor = 8
-sigma = 0.5
+sigma = 1
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
