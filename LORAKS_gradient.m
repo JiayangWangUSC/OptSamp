@@ -52,12 +52,12 @@ mm_reg(mm_reg>max(mm(:))) = max(mm(:));
         
 rank = 45;
 %% reconstruction parameters initialization
-sigma = 0.5;
+sigma = 1;
 noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
 factor = 8;
 weight = factor*ones(1,N2);
 
-lambda = 0.1; % (noise_level,lambda): (0.5, 0.1),(1,0.2)
+lambda = 0.2; % (noise_level,lambda): (0.5, 0.1),(1,0.2)
 
 MaxIter = 10;
 
@@ -219,8 +219,8 @@ for epoch = 1:epoch_max
     train_loss(epoch) = loss/batch_num;
 end
 
-save LORAKS_noise05_train_loss train_loss
-save LORAKS_noise05_mask weight
+save LORAKS_noise10_train_loss train_loss
+save LORAKS_noise10_mask weight
 
 %% 
 function result = sigmoid(x)
