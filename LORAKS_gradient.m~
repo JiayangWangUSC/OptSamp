@@ -52,12 +52,12 @@ mm_reg(mm_reg>max(mm(:))) = max(mm(:));
         
 rank = 45;
 %% reconstruction parameters initialization
-sigma = 0.5;
+sigma = 1;
 noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
 factor = 8;
 weight = factor*ones(1,N2);
 
-lambda = 0.3; % (noise_level,lambda): (0.5, )
+lambda = 0.2; % (noise_level,lambda): (0.5, 0.1)
 
 MaxIter = 10;
 
@@ -105,14 +105,14 @@ support(Im>0.06*max(Im(:))) = 1;
 image_norm(support.*(ImN-Im))/image_norm(support.*Im)
 image_norm(support.*(ImR-Im))/image_norm(support.*Im)
 %%
-epoch_max = 10;
+epoch_max = 3;
 step = 10;
 train_loss = zeros(1,epoch_max);
 for epoch = 1:epoch_max
     disp(epoch);
     loss = 0;
     for batch = 1:batch_num
-        kMask = repmat(sqrt(weight),[1,1,Nc]);
+        kMask = repmat(sqrt(weight),[N1,1,Nc]);
         AhA = kMask(:).*kMask(:) + lambda*mm_reg;
         AhA_dagger = AhA;
         AhA_dagger(find(AhA)) = 1./AhA(find(AhA));
@@ -147,9 +147,7 @@ for epoch = 1:epoch_max
                 MMr = Ph_M(pmm*pmm'*MM);
                 x = AhA_dagger.*(fd + lambda*MMr);
     
-                %W(:,:,iter) = MM;
-                %Q(:,iter) = MMr;
-                X(:,iter) = x;
+                X(:,iter) = x_prev;
                 V(:,:,iter) = pmm;
                 S = repmat(S,[1,rank])-repmat(S',[rank,1]);
                 S(find(S)) = 1./(S(find(S)));
@@ -171,7 +169,7 @@ for epoch = 1:epoch_max
             df = df(:);
             for iter = MaxIter:-1:1
                 
-                W = PM(X(:,iter));
+                W = P_M(X(:,iter));
                 tempV = V(:,:,iter);
                 Q = Ph_M(tempV*temp'*W);
                 
@@ -202,7 +200,7 @@ for epoch = 1:epoch_max
     
         end
         
-        Gradient = sum(Gradient,3);
+        Gradient = sum(sum(Gradient,3),1);
         Gradient = Gradient-mean(Gradient(:));
         Gradient = Gradient/norm(Gradient(:));
 
@@ -212,7 +210,7 @@ for epoch = 1:epoch_max
             weight = weight - mean(weight(:)) + factor;
         end
         weight(weight<1) = 1;
-        if mod(batch,10) == 0
+        if mod(batch,100) == 0
             disp(['epoch:',num2str(epoch),' batch:',num2str(batch),' train loss:',num2str(mean(mse))]);
         end
         loss = loss + mean(mse);
@@ -220,8 +218,8 @@ for epoch = 1:epoch_max
     train_loss(epoch) = loss/batch_num;
 end
 
-save train_loss_LORAKS train_loss
-save mask_LORAKS weight
+save LORAKS_train_loss_noise0.5 train_loss
+save LORAKS_mask_noise0.5 weight
 
 %% 
 function result = sigmoid(x)

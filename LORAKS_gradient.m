@@ -4,8 +4,8 @@ clc;
 
 %% load data
 
-%datapath = '/home/wjy/Project/fastmri_dataset/test/';
-datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/val/';
+datapath = '/home/wjy/Project/fastmri_dataset/test/';
+%datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/val/';
 dirname = dir(datapath);
 %data = h5read('file_brain_AXT2_200_6002217.h5','/home/wjy/Project/fastmri_dataset/test');
 %kspace = h5read([datapath,dirname(3).name],'/kspace');
@@ -57,55 +57,55 @@ noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
 factor = 8;
 weight = factor*ones(1,N2);
 
-lambda = 0.1; % (noise_level,lambda): (0.5, 0.1)
+lambda = 0.1; % (noise_level,lambda): (0.5, 0.1),(1,0.2)
 
 MaxIter = 10;
 
 %%
-%  kspace = h5read([datapath,dirname(3).name],'/kspace');
-%  kspace = complex(kspace.r,kspace.i);
-%  kspace = permute(kspace,[4,2,1,3]);
-%  kData = undersample(reshape(kspace(1,:,:,:),2*N1,N2,Nc))/1e-4;
-%  kMask = repmat(sqrt(weight),[N1,1,Nc]);
-%  usData = kMask.*kData+noise;
-% 
-% x = usData./kMask;
-% x = x(:);
-% AhA = kMask(:).*kMask(:) + lambda*mm_reg;
-% AhA_dagger = 1./AhA;
-% 
-% fd = kMask(:).*usData(:);
-% 
-% X = [];  
-% V = [];
-% K = [];
-% 
-% for iter = 1:MaxIter
-%     x_prev = x;
-%     MM = P_M(x);
-%     [pmm,S] = svd_left(MM,rank);
-%     MMr = Ph_M(pmm*pmm'*MM);
-%     x = AhA_dagger.*(fd + lambda*MMr);
-%     
-%     X(:,iter) = x;
-%     V(:,:,iter) = pmm;
-%     S = repmat(S,[1,rank])-repmat(S',[rank,1]);
-%     S(find(S)) = 1./(S(find(S)));
-%     K(:,:,iter) = S;
-% end
-% recon = x;
-% imr = ifft2c(reshape(recon,N1,N2,Nc));
-% ImR = sqrt(sum(abs(imr).^2,3));
-% Im = sqrt(sum(abs(ifft2c(reshape(kData,N1,N2,Nc))).^2,3));
-% ImN= sqrt(sum(abs(ifft2c(reshape(usData./kMask,N1,N2,Nc))).^2,3));
+ kspace = h5read([datapath,dirname(3).name],'/kspace');
+ kspace = complex(kspace.r,kspace.i);
+ kspace = permute(kspace,[4,2,1,3]);
+ kData = undersample(reshape(kspace(1,:,:,:),2*N1,N2,Nc))/1e-4;
+ kMask = repmat(sqrt(weight),[N1,1,Nc]);
+ usData = kMask.*kData+noise;
+
+x = usData./kMask;
+x = x(:);
+AhA = kMask(:).*kMask(:) + lambda*mm_reg;
+AhA_dagger = 1./AhA;
+
+fd = kMask(:).*usData(:);
+
+X = [];  
+V = [];
+K = [];
+
+for iter = 1:MaxIter
+    x_prev = x;
+    MM = P_M(x);
+    [pmm,S] = svd_left(MM,rank);
+    MMr = Ph_M(pmm*pmm'*MM);
+    x = AhA_dagger.*(fd + lambda*MMr);
+    
+    X(:,iter) = x;
+    V(:,:,iter) = pmm;
+    S = repmat(S,[1,rank])-repmat(S',[rank,1]);
+    S(find(S)) = 1./(S(find(S)));
+    K(:,:,iter) = S;
+end
+recon = x;
+imr = ifft2c(reshape(recon,N1,N2,Nc));
+ImR = sqrt(sum(abs(imr).^2,3));
+Im = sqrt(sum(abs(ifft2c(reshape(kData,N1,N2,Nc))).^2,3));
+ImN= sqrt(sum(abs(ifft2c(reshape(usData./kMask,N1,N2,Nc))).^2,3));
 
 %%
-% support = zeros(N1,N2);
-% support(Im>0.06*max(Im(:))) = 1;
-% image_norm(support.*(ImN-Im))/image_norm(support.*Im)
-% image_norm(support.*(ImR-Im))/image_norm(support.*Im)
+support = zeros(N1,N2);
+support(Im>0.06*max(Im(:))) = 1;
+image_norm(support.*(ImN-Im))/image_norm(support.*Im)
+image_norm(support.*(ImR-Im))/image_norm(support.*Im)
 %%
-epoch_max = 10;
+epoch_max = 3;
 step = 10;
 train_loss = zeros(1,epoch_max);
 for epoch = 1:epoch_max
