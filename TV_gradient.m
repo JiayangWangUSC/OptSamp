@@ -83,7 +83,7 @@ support(Im>0.06*max(Im(:))) = 1;
  image_norm(support.*(ImR-Im))/image_norm(support.*Im)
  
 %%
-epoch_max = 100;
+epoch_max = 10;
 step = 10;
 train_loss = zeros(1,epoch_max);
 for epoch = 1:epoch_max
