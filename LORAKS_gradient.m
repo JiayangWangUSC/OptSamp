@@ -119,6 +119,7 @@ for epoch = 1:epoch_max
         Gradient = zeros(N1,N2,batch_size);
         mse = zeros(1,batch_size);
         parfor (datanum = 1:batch_size, batch_size)
+        %for datanum = 1:batch_size
             % data load
             fname = subject(batch_size*(batch-1)+datanum,:);
             slicenum = slice(batch_size*(batch-1)+datanum);
@@ -178,7 +179,7 @@ for epoch = 1:epoch_max
                 Grad = Grad + complex_odot(dM,df);
                 
                 dX = P_M(lambda*AhA_dagger.* df_prev);
-                dH = dX*W;
+                dH = dX*W';
                 
                 dW1 = tempV*tempV'*dX;
                 dV = (dH + dH')*tempV;

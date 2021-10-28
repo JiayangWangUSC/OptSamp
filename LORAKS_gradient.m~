@@ -4,7 +4,7 @@ clc;
 
 %% load data
 
-datapath = '/home/wjy/Project/fastmri_dataset/test/';
+%datapath = '/home/wjy/Project/fastmri_dataset/test/';
 %datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/val/';
 dirname = dir(datapath);
 %data = h5read('file_brain_AXT2_200_6002217.h5','/home/wjy/Project/fastmri_dataset/test');
@@ -52,12 +52,12 @@ mm_reg(mm_reg>max(mm(:))) = max(mm(:));
         
 rank = 45;
 %% reconstruction parameters initialization
-sigma = 1;
+sigma = 0.5;
 noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
 factor = 8;
 weight = factor*ones(1,N2);
 
-lambda = 0.2; % (noise_level,lambda): (0.5, 0.1)
+lambda = 0.1; % (noise_level,lambda): (0.5, 0.1),(1,0.2)
 
 MaxIter = 10;
 
@@ -119,6 +119,7 @@ for epoch = 1:epoch_max
         Gradient = zeros(N1,N2,batch_size);
         mse = zeros(1,batch_size);
         parfor (datanum = 1:batch_size, batch_size)
+        %for datanum = 1:batch_size
             % data load
             fname = subject(batch_size*(batch-1)+datanum,:);
             slicenum = slice(batch_size*(batch-1)+datanum);
@@ -171,14 +172,14 @@ for epoch = 1:epoch_max
                 
                 W = P_M(X(:,iter));
                 tempV = V(:,:,iter);
-                Q = Ph_M(tempV*temp'*W);
+                Q = Ph_M(tempV*tempV'*W);
                 
                 df_prev = df;
                 dM = AhA_dagger.*AhA_dagger.*(2*lambda*kMask(:).*(mm_reg.*kData(:)-Q)+(mm_reg-lambda*kMask(:).*kMask(:)).*noise(:));
                 Grad = Grad + complex_odot(dM,df);
                 
                 dX = P_M(lambda*AhA_dagger.* df_prev);
-                dH = dX*W;
+                dH = dX*W';
                 
                 dW1 = tempV*tempV'*dX;
                 dV = (dH + dH')*tempV;
@@ -218,8 +219,8 @@ for epoch = 1:epoch_max
     train_loss(epoch) = loss/batch_num;
 end
 
-save LORAKS_train_loss_noise0.5 train_loss
-save LORAKS_mask_noise0.5 weight
+save LORAKS_noise05_train_loss train_loss
+save LORAKS_noise05_mask weight
 
 %% 
 function result = sigmoid(x)
