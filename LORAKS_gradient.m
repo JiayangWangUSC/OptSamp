@@ -171,7 +171,7 @@ for epoch = 1:epoch_max
                 
                 W = P_M(X(:,iter));
                 tempV = V(:,:,iter);
-                Q = Ph_M(tempV*temp'*W);
+                Q = Ph_M(tempV*tempV'*W);
                 
                 df_prev = df;
                 dM = AhA_dagger.*AhA_dagger.*(2*lambda*kMask(:).*(mm_reg.*kData(:)-Q)+(mm_reg-lambda*kMask(:).*kMask(:)).*noise(:));
