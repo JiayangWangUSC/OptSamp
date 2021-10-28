@@ -169,7 +169,7 @@ for epoch = 1:epoch_max
             df = df(:);
             for iter = MaxIter:-1:1
                 
-                W = PM(X(:,iter));
+                W = P_M(X(:,iter));
                 tempV = V(:,:,iter);
                 Q = Ph_M(tempV*temp'*W);
                 
