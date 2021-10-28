@@ -4,8 +4,8 @@ clc;
 
 %% load data
 
-datapath = '/home/wjy/Project/fastmri_dataset/test/';
-%datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/val/';
+%datapath = '/home/wjy/Project/fastmri_dataset/test/';
+datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/val/';
 dirname = dir(datapath);
 %data = h5read('file_brain_AXT2_200_6002217.h5','/home/wjy/Project/fastmri_dataset/test');
 %kspace = h5read([datapath,dirname(3).name],'/kspace');
@@ -218,8 +218,8 @@ for epoch = 1:epoch_max
     train_loss(epoch) = loss/batch_num;
 end
 
-save LORAKS_train_loss_noise0.5 train_loss
-save LORAKS_mask_noise0.5 weight
+save LORAKS_train_loss_noise1.0 train_loss
+save LORAKS_mask_noise1.0 weight
 
 %% 
 function result = sigmoid(x)

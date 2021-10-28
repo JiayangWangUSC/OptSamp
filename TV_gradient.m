@@ -185,8 +185,8 @@ for epoch = 1:epoch_max
     train_loss(epoch) = loss/batch_num;
 end
 
-%save TV_train_loss_noise0.5 train_loss
-%save TV_mask_noise0.5 weight
+save TV_train_loss_noise1.0 train_loss
+save TV_mask_noise1.0 weight
 
 
 %%
