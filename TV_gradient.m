@@ -64,23 +64,23 @@ beta = 1; % (noise_level,rho,beta): (0.5, 1, 0.5),(1, 2, 1)
 MaxIter = 10;
 
 %%
-%load('/home/wjy/Project/OptSamp/TV_mask_noise0.5.mat');
-kspace = h5read([datapath,dirname(3).name],'/kspace');
-kspace = complex(kspace.r,kspace.i);
-kspace = permute(kspace,[4,2,1,3]);
-kData = undersample(reshape(kspace(1,:,:,:),2*N1,N2,Nc))/1e-4;
-kMask = repmat(sqrt(weight),[N1,1,Nc]);
-usData = kMask.*kData+noise;
-recon = TV(usData,kMask,rho,beta,MaxIter,D,Dh,DhD);
-imr = ifft2c(reshape(recon,N1,N2,Nc));
-ImR = sqrt(sum(abs(imr).^2,3));
-Im = sqrt(sum(abs(ifft2c(reshape(kData,N1,N2,Nc))).^2,3));
-ImN= sqrt(sum(abs(ifft2c(reshape(usData./kMask,N1,N2,Nc))).^2,3));
-support = zeros(N1,N2);
-support(Im>0.06*max(Im(:))) = 1;
+% load('/home/wjy/Project/OptSamp/TV_mask_noise1.0.mat');
+% kspace = h5read([datapath,dirname(3).name],'/kspace');
+% kspace = complex(kspace.r,kspace.i);
+% kspace = permute(kspace,[4,2,1,3]);
+% kData = undersample(reshape(kspace(1,:,:,:),2*N1,N2,Nc))/1e-4;
+% kMask = repmat(sqrt(weight),[N1,1,Nc]);
+% usData = kMask.*kData+noise;
+% recon = TV(usData,kMask,rho,beta,MaxIter,D,Dh,DhD);
+% imr = ifft2c(reshape(recon,N1,N2,Nc));
+% ImR = sqrt(sum(abs(imr).^2,3));
+% Im = sqrt(sum(abs(ifft2c(reshape(kData,N1,N2,Nc))).^2,3));
+% ImN= sqrt(sum(abs(ifft2c(reshape(usData./kMask,N1,N2,Nc))).^2,3));
+% support = zeros(N1,N2);
+% support(Im>0.06*max(Im(:))) = 1;
 %%
- image_norm(support.*(ImN-Im))/image_norm(support.*Im)
- image_norm(support.*(ImR-Im))/image_norm(support.*Im)
+%  image_norm(support.*(ImN-Im))/image_norm(support.*Im)
+%  image_norm(support.*(ImR-Im))/image_norm(support.*Im)
  
 %%
 epoch_max = 3;
@@ -185,8 +185,8 @@ for epoch = 1:epoch_max
     train_loss(epoch) = loss/batch_num;
 end
 
-save TV_train_loss_noise1.0 train_loss
-save TV_mask_noise1.0 weight
+save TV_noise10_train_loss train_loss
+save TV_noise10_mask.mat weight
 
 
 %%

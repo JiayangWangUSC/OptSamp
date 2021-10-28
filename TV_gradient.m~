@@ -64,7 +64,7 @@ beta = 1; % (noise_level,rho,beta): (0.5, 1, 0.5),(1, 2, 1)
 MaxIter = 10;
 
 %%
-%load('/home/wjy/Project/OptSamp/TV_mask_noise0.5.mat');
+load('/home/wjy/Project/OptSamp/TV_mask_noise1.0.mat');
 kspace = h5read([datapath,dirname(3).name],'/kspace');
 kspace = complex(kspace.r,kspace.i);
 kspace = permute(kspace,[4,2,1,3]);
@@ -185,8 +185,8 @@ for epoch = 1:epoch_max
     train_loss(epoch) = loss/batch_num;
 end
 
-%save TV_train_loss_noise0.5 train_loss
-%save TV_mask_noise0.5 weight
+%save TV_train_loss_noise1.0 train_loss
+%save TV_mask_noise1.0 weight
 
 
 %%

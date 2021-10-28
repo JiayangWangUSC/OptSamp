@@ -218,8 +218,8 @@ for epoch = 1:epoch_max
     train_loss(epoch) = loss/batch_num;
 end
 
-save LORAKS_train_loss_noise1.0 train_loss
-save LORAKS_mask_noise1.0 weight
+save LORAKS_noise10_train_loss train_loss
+save LORAKS_noise1.0_mask weight
 
 %% 
 function result = sigmoid(x)
