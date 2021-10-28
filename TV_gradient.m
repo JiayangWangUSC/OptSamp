@@ -4,8 +4,8 @@ clc;
 
 %% load data
 
-datapath = '/home/wjy/Project/fastmri_dataset/test/';
-%datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/val/';
+%datapath = '/home/wjy/Project/fastmri_dataset/test/';
+datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/val/';
 dirname = dir(datapath);
 %data = h5read('file_brain_AXT2_200_6002217.h5','/home/wjy/Project/fastmri_dataset/test');
 %kspace = h5read([datapath,dirname(3).name],'/kspace');
@@ -83,7 +83,7 @@ MaxIter = 10;
 %  image_norm(support.*(ImR-Im))/image_norm(support.*Im)
  
 %%
-epoch_max = 100;
+epoch_max = 3;
 step = 10;
 train_loss = zeros(1,epoch_max);
 for epoch = 1:epoch_max
