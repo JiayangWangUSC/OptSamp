@@ -4,8 +4,8 @@ clc;
 
 %% load data
 
-%datapath = '/home/wjy/Project/fastmri_dataset/test/';
-datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/val/';
+datapath = '/home/wjy/Project/fastmri_dataset/test/';
+%datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/val/';
 dirname = dir(datapath);
 %data = h5read('file_brain_AXT2_200_6002217.h5','/home/wjy/Project/fastmri_dataset/test');
 %kspace = h5read([datapath,dirname(3).name],'/kspace');
@@ -105,7 +105,7 @@ support(Im>0.06*max(Im(:))) = 1;
 image_norm(support.*(ImN-Im))/image_norm(support.*Im)
 image_norm(support.*(ImR-Im))/image_norm(support.*Im)
 %%
-epoch_max = 3;
+epoch_max = 50;
 step = 10;
 train_loss = zeros(1,epoch_max);
 for epoch = 1:epoch_max
@@ -165,7 +165,7 @@ for epoch = 1:epoch_max
             
             %% backward propagation
             Grad = 0;
-            df = (support.*(ImR-Im))./Im;
+            df  = support.*((ImR-Im)./Im);
             df = fft2c(repmat(df,[1,1,Nc]).*imr);
             df = df(:);
             for iter = MaxIter:-1:1
@@ -219,8 +219,8 @@ for epoch = 1:epoch_max
     train_loss(epoch) = loss/batch_num;
 end
 
-save LORAKS_noise10_train_loss train_loss
-save LORAKS_noise10_mask weight
+%save LORAKS_noise10_train_loss train_loss
+%save LORAKS_noise10_mask weight
 
 %% 
 function result = sigmoid(x)
