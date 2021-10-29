@@ -1,6 +1,7 @@
 # %%
 import pathlib
 import torch
+import numpy as np
 import math
 import torch.optim as optim
 import fastmri
@@ -8,6 +9,7 @@ from fastmri.models import Unet
 from fastmri.data import transforms, mri_data
 import matplotlib.pyplot as plt
 from torchvision.utils import save_image
+from PIL import Image
 # %% data loader
 def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     # Transform the kspace to tensor format
@@ -64,7 +66,7 @@ class toImage(torch.nn.Module):
 
 # %% sampling
 factor = 8
-sigma = 1.5
+sigma = 0.5
 sample_model = Sample(sigma,factor)
 
 toIm = toImage()
@@ -72,9 +74,9 @@ toIm = toImage()
 
 # %% load uniform-unet model
 #val_uniform_loss = torch.load('/home/wjy/unet_model_val_loss')
-mask = torch.load('/home/wjy/unet_mask_noise1.5')
+#mask = torch.load('/home/wjy/unet_mask_noise0.5')
 #sample_model.mask = mask
-model = torch.load('/home/wjy/uniform_model_noise1.5',map_location=torch.device('cpu'))
+model = torch.load('/home/wjy/uniform_model_noise0.5',map_location=torch.device('cpu'))
 # %%
 #plt.plot(val_loss)
 # %%
@@ -92,7 +94,13 @@ support = torch.ge(Im,0.06*Im.max())
 ImR = torch.mul(ImR,support)
 Im = torch.mul(Im,support)
 Error = torch.abs(ImR-Im)
-plt.imshow(Error[0,0,:,:],cmap='gray')
+plt.imshow(Error[0,0,:,:]/torch.max(Im)*10,cmap='hot')
+# %%
+cmhot = plt.cm.get_cmap('hot')
+Error = cmhot(np.array(Error.squeeze()/torch.max(Im)*10))
+Error = np.uint8(Error*255)
+Error = Image.fromarray(Error)
+Error.save('/home/wjy/Project/OptSamp/result_local/NN_error_uni_noise05.png')
 # %%
 
 #val_unet_loss = torch.load('/home/wjy/unet_model_val_loss')
