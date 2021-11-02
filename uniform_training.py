@@ -65,7 +65,7 @@ factor = 8
 #mask = torch.ones_like(train_data[0])
 #mask = factor*mask[0,:,:,0].squeeze() 
 #mask.requires_grad = True
-sigma = 1
+sigma = 0.8
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -80,7 +80,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/warmup_model')
+#recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/warmup_model')
 
 # %% GPU 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -111,7 +111,7 @@ recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
 Loss = torch.nn.MSELoss()
 
 # %% training
-max_epochs = 30
+max_epochs = 20
 val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
