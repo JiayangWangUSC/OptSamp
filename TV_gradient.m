@@ -4,8 +4,8 @@ clc;
 
 %% load data
 
-datapath = '/home/wjy/Project/fastmri_dataset/test/';
-%datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/val/';
+%datapath = '/home/wjy/Project/fastmri_dataset/test/';
+datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/val/';
 dirname = dir(datapath);
 %data = h5read('file_brain_AXT2_200_6002217.h5','/home/wjy/Project/fastmri_dataset/test');
 %kspace = h5read([datapath,dirname(3).name],'/kspace');
@@ -185,8 +185,8 @@ for epoch = 1:epoch_max
     train_loss(epoch) = loss/batch_num;
 end
 
-save TV_noise10_train_loss train_loss
-save TV_noise10_mask.mat weight
+save TV_noise08_train_loss train_loss
+save TV_noise08_mask.mat weight
 
 
 %%
