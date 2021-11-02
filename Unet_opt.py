@@ -95,11 +95,15 @@ toIm.to(device)
 recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
 Loss = torch.nn.MSELoss()
 # %% training
-step = 1e-2
-max_epochs = 50
+step = 1e-1
+max_epochs = 20
 val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
+    if epoch == 0:
+        step = 0
+    else:
+        step = 1e-1
 
     batch_count = 0
     for train_batch in train_dataloader:

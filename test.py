@@ -75,13 +75,13 @@ toIm = toImage()
 # %% load uniform-unet model
 #val_uniform_loss = torch.load('/home/wjy/unet_model_val_loss')
 #mask = torch.load('/home/wjy/unet_mask_noise1')
-#sample_model.mask = mask
+#ample_model.mask = mask
 model = torch.load('/home/wjy/uniform_model_noise1',map_location=torch.device('cpu'))
 # %%
 #plt.plot(val_loss)
 # %%
 
-kspace = test_data[3]
+kspace = test_data[2]
 kspace = kspace.unsqueeze(0)
 Im  = toIm(kspace)
 #plt.imshow(Im[0,0,:,:],cmap='gray')
@@ -100,7 +100,7 @@ cmhot = plt.cm.get_cmap('hot')
 Error = cmhot(np.array(Error.squeeze()/torch.max(Im)*10))
 Error = np.uint8(Error*255)
 Error = Image.fromarray(Error)
-Error.save('/home/wjy/Project/OptSamp/result_local/NN_error_uni_noise05.png')
+Error.save('/home/wjy/Project/OptSamp/result_local/NN_error_opt_noise05.png')
 # %%
 
 #val_unet_loss = torch.load('/home/wjy/unet_model_val_loss')

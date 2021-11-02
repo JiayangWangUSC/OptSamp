@@ -68,7 +68,7 @@ load('/home/wjy/TV_noise10_mask.mat');
 kspace = h5read([datapath,dirname(3).name],'/kspace');
 kspace = complex(kspace.r,kspace.i);
 kspace = permute(kspace,[4,2,1,3]);
-kData = undersample(reshape(kspace(1,:,:,:),2*N1,N2,Nc))/1e-4;
+kData = undersample(reshape(kspace(3,:,:,:),2*N1,N2,Nc))/1e-4;
 kMask = repmat(sqrt(weight),[N1,1,Nc]);
 usData = kMask.*kData+noise;
 recon = TV(usData,kMask,rho,beta,MaxIter,D,Dh,DhD);
