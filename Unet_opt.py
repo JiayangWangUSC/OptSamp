@@ -62,10 +62,11 @@ class toImage(torch.nn.Module):
 
 # %% sampling
 factor = 8
-sigma = 1
+sigma = 0.5
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
-
+mask = torch.load('/project/jhaldar_118/jiayangw/OptSamp/unet_mask_noise0.5')
+sample_model.mask = mask
 toIm = toImage()
 
 # %% unet loader
@@ -77,7 +78,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-#recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/warmup_model')
+recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/unet_model_noise0.5')
 
 # %% 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -96,14 +97,14 @@ recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
 Loss = torch.nn.MSELoss()
 # %% training
 step = 1e-1
-max_epochs = 20
+max_epochs = 30
 val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-    if epoch == 0:
-        step = 0
-    else:
-        step = 1e-1
+    #if epoch == 0:
+    #    step = 0
+    #else:
+    #    step = 1e-1
 
     batch_count = 0
     for train_batch in train_dataloader:

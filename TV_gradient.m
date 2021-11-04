@@ -4,8 +4,8 @@ clc;
 
 %% load data
 
-%datapath = '/home/wjy/Project/fastmri_dataset/test/';
-datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/val/';
+datapath = '/home/wjy/Project/fastmri_dataset/test/';
+%datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/val/';
 dirname = dir(datapath);
 %data = h5read('file_brain_AXT2_200_6002217.h5','/home/wjy/Project/fastmri_dataset/test');
 %kspace = h5read([datapath,dirname(3).name],'/kspace');
@@ -64,7 +64,7 @@ beta = 0.8; % (noise_level,rho,beta): (0.5, 1, 0.5),(1, 2, 1)
 MaxIter = 10;
 
 %%
-%load('/home/wjy/TV_noise10_mask.mat');
+%load('/home/wjy/TV_noise08_mask.mat');
 kspace = h5read([datapath,dirname(3).name],'/kspace');
 kspace = complex(kspace.r,kspace.i);
 kspace = permute(kspace,[4,2,1,3]);
