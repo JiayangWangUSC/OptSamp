@@ -74,7 +74,7 @@ toIm = toImage()
 
 # %% load uniform-unet model
 #val_uniform_loss = torch.load('/home/wjy/unet_model_val_loss')
-mask = torch.load('/home/wjy/unet_mask_noise0.5')
+mask = torch.load('/home/wjy/unet_mask_noise1')
 sample_model.mask = mask
 model = torch.load('/home/wjy/unet_model_noise1',map_location=torch.device('cpu'))
 # %%
