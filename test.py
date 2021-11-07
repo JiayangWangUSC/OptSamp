@@ -66,7 +66,7 @@ class toImage(torch.nn.Module):
 
 # %% sampling
 factor = 8
-sigma = 1
+sigma = 0.8
 sample_model = Sample(sigma,factor)
 
 toIm = toImage()
@@ -74,9 +74,9 @@ toIm = toImage()
 
 # %% load uniform-unet model
 #val_uniform_loss = torch.load('/home/wjy/unet_model_val_loss')
-mask = torch.load('/home/wjy/unet_mask_noise1')
-sample_model.mask = mask
-model = torch.load('/home/wjy/unet_model_noise1',map_location=torch.device('cpu'))
+#mask = torch.load('/home/wjy/unet_mask_noise0.8')
+#ample_model.mask = mask
+model = torch.load('/home/wjy/uniform_model_noise0.8',map_location=torch.device('cpu'))
 # %%
 #plt.plot(val_loss)
 # %%
