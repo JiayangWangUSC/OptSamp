@@ -80,7 +80,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/uniform_model_noise0.3')
+recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/uniform_model_noise0.5')
 
 # %% GPU 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -156,5 +156,5 @@ for epoch in range(max_epochs):
         val_loss[epoch] = loss/len(val_dataloader)
         print("epoch:",epoch+1,"validation MSE:",val_loss[epoch],"original MSE:",orig_loss/len(val_dataloader))
 
-    torch.save(val_loss,"./uniform_model_val_loss_noise"+str(sigma))
-    torch.save(recon_model,"./uniform_model_noise"+str(sigma))
+   # torch.save(val_loss,"./uniform_model_val_loss_noise"+str(sigma))
+    torch.save(recon_model,"./uniform_model_L2_noise"+str(sigma))
