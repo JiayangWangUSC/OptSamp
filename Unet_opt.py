@@ -94,7 +94,8 @@ toIm.to(device)
 
 # %% optimizer
 recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
-Loss = torch.nn.MSELoss()
+#Loss = torch.nn.MSELoss()
+Loss = torch.nn.L1Loss()
 # %% training
 step = 1e-1
 max_epochs = 10
@@ -163,5 +164,5 @@ for epoch in range(max_epochs):
         print("epoch:",epoch+1,"validation MSE:",val_loss[epoch],"original MSE:",orig_loss/len(val_dataloader))
 
    # torch.save(val_loss,"./unet_model_val_loss_noise"+str(sigma))
-    torch.save(recon_model,"./unet_model_L2_noise"+str(sigma))
-    torch.save(sample_model.mask,"./unet_mask_L2_noise"+str(sigma))
+    torch.save(recon_model,"./unet_model_L1_noise"+str(sigma))
+    torch.save(sample_model.mask,"./unet_mask_L1_noise"+str(sigma))
