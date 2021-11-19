@@ -65,7 +65,7 @@ factor = 8
 #mask = torch.ones_like(train_data[0])
 #mask = factor*mask[0,:,:,0].squeeze() 
 #mask.requires_grad = True
-sigma = 0.5
+sigma = 0.8
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -80,7 +80,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/uniform_model_noise0.5')
+recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/uniform_model_noise0.8')
 
 # %% GPU 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
