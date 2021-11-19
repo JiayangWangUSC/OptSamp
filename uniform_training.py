@@ -80,7 +80,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/uniform_model_L1_noise0.3')
+#recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/uniform_model_L1_noise0.3')
 
 # %% GPU 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -112,7 +112,7 @@ recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
 Loss = torch.nn.L1Loss()
 
 # %% training
-max_epochs = 10
+max_epochs = 30
 val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
