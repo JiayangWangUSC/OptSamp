@@ -65,7 +65,7 @@ factor = 8
 sigma = 0.8
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
-mask = torch.load('/project/jhaldar_118/jiayangw/OptSamp/unet_mask_noise0.8')
+mask = torch.load('/project/jhaldar_118/jiayangw/OptSamp/unet_mask_L1_noise0.8')
 sample_model.mask = mask
 toIm = toImage()
 
@@ -78,7 +78,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/unet_model_noise0.8')
+recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/unet_model_L1_noise0.8')
 
 # %% 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
