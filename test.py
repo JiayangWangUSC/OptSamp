@@ -66,7 +66,7 @@ class toImage(torch.nn.Module):
 
 # %% sampling
 factor = 8
-sigma = 0.5
+sigma = 0.3
 sample_model = Sample(sigma,factor)
 
 toIm = toImage()
@@ -74,11 +74,10 @@ toIm = toImage()
 
 # %% load uniform-unet model
 #val_uniform_loss = torch.load('/home/wjy/unet_model_val_loss')
-mask = torch.load('/home/wjy/unet_mask_L1_noise0.5')
-sample_model.mask = mask
-model = torch.load('/home/wjy/unet_model_L1_noise0.5',map_location=torch.device('cpu'))
-# %%
-#plt.plot(val_loss)
+#mask = torch.load('/home/wjy/unet_mask_L1_noise0.5')
+#sample_model.mask = mask
+model = torch.load('/home/wjy/unet_model_L1_noise0.3',map_location=torch.device('cpu'))
+
 # %%
 
 kspace = test_data[2]
@@ -100,7 +99,7 @@ cmhot = plt.cm.get_cmap('hot')
 Error = cmhot(np.array(Error.squeeze()/torch.max(Im)*10))
 Error = np.uint8(Error*255)
 Error = Image.fromarray(Error)
-Error.save('/home/wjy/Project/OptSamp/result_local/NN_error_opt_L1_noise03.png')
+Error.save('/home/wjy/Project/OptSamp/result_local/NN_error_opt_L1_noise05.png')
 # %%
 cmhot = plt.cm.get_cmap('jet')
 Mask = cmhot(np.array(mask.unsqueeze(0).repeat([384,1])/6-1))

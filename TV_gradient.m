@@ -4,8 +4,8 @@ clc;
 
 %% load data
 
-datapath = '/home/wjy/Project/fastmri_dataset/test/';
-%datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/val/';
+%datapath = '/home/wjy/Project/fastmri_dataset/test/';
+datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/val/';
 dirname = dir(datapath);
 %data = h5read('file_brain_AXT2_200_6002217.h5','/home/wjy/Project/fastmri_dataset/test');
 %kspace = h5read([datapath,dirname(3).name],'/kspace');
@@ -111,7 +111,7 @@ support(Im>0.06*max(Im(:))) = 1;
 %Im1 = sqrt(sum(abs(ifft2c(reshape(kData+ptb,N1,N2,Nc))).^2,3));
 
 %%
-epoch_max = 30;
+epoch_max = 1;
 step = 10;
 train_loss = zeros(1,epoch_max);
 for epoch = 1:epoch_max
@@ -166,7 +166,7 @@ for epoch = 1:epoch_max
             
             %% backward propagation
             Grad = 0;
-            dx = support.*((ImR-Im)./Im);
+            dx = support.*(sign(ImR-Im)./Im);
             dx = fft2c(repmat(dx,[1,1,Nc]).*imr);
             dx = dx(:);
             for k = MaxIter:-1:1
@@ -214,7 +214,7 @@ for epoch = 1:epoch_max
 end
 
 %save TV_noise08_train_loss train_loss
-save ./result_local/TV_noise03_mask.mat weight
+save ./result_local/TV_L1_noise03_mask.mat weight
 
 
 %%
@@ -232,6 +232,7 @@ fd = kMask(:).*usData(:);
 for k = 1:MaxIter
     x = AhA_dagger(:).*(fd+rho*Dh(z-u));
     Dx = D(x);
+
     z = threshold(Dx+u,beta);
     u = u + Dx - z; 
     %norm(x-kData(:))
