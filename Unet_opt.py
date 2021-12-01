@@ -5,6 +5,7 @@ import torch.optim as optim
 import fastmri
 from fastmri.models import Unet
 from fastmri.data import transforms, mri_data
+from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 
 # %% data loader
 def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
@@ -62,7 +63,7 @@ class toImage(torch.nn.Module):
 
 # %% sampling
 factor = 8
-sigma = 0.8
+sigma = 0.3
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 #mask = torch.load('/project/jhaldar_118/jiayangw/OptSamp/unet_mask_L1_noise0.3')
@@ -95,7 +96,8 @@ toIm.to(device)
 # %% optimizer
 recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
 #Loss = torch.nn.MSELoss()
-Loss = torch.nn.L1Loss()
+L1Loss = torch.nn.L1Loss()
+ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 # %% training
 step = 1e-1
 max_epochs = 30
@@ -122,9 +124,11 @@ for epoch in range(max_epochs):
         recon = torch.mul(recon,support).to(device)
         ground_truth = torch.mul(ground_truth,support).to(device)
 
-        loss = Loss(recon,ground_truth)
+        #loss = Loss(recon,ground_truth)
+        loss = 1- ms_ssim_module(recon*25,recon*25)
+
         if batch_count%100 == 0:
-            print("batch:",batch_count,"train MSE:",loss.item(),"Original MSE:", Loss(image_noise,ground_truth))
+            print("batch:",batch_count,"train loss:",loss.item())
  
    
         loss.backward()
@@ -157,12 +161,12 @@ for epoch in range(max_epochs):
             recon = torch.mul(recon,support).to(device)
             ground_truth = torch.mul(ground_truth,support).to(device)
 
-            loss += Loss(recon,ground_truth)
-            orig_loss += Loss(image_noise,ground_truth)
+            loss += L1Loss(recon,ground_truth)
+            orig_loss += L1Loss(image_noise,ground_truth)
 
         val_loss[epoch] = loss/len(val_dataloader)
         print("epoch:",epoch+1,"validation MSE:",val_loss[epoch],"original MSE:",orig_loss/len(val_dataloader))
 
    # torch.save(val_loss,"./unet_model_val_loss_noise"+str(sigma))
-    torch.save(recon_model,"./unet_model_L1_noise"+str(sigma))
-    torch.save(sample_model.mask,"./unet_mask_L1_noise"+str(sigma))
+    torch.save(recon_model,"./unet_model_ssim_noise"+str(sigma))
+    torch.save(sample_model.mask,"./unet_mask_ssim_noise"+str(sigma))

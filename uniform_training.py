@@ -5,7 +5,7 @@ import torch.optim as optim
 import fastmri
 from fastmri.models import Unet
 from fastmri.data import transforms, mri_data
-
+from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
 def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     # Transform the kspace to tensor format
@@ -65,7 +65,7 @@ factor = 8
 #mask = torch.ones_like(train_data[0])
 #mask = factor*mask[0,:,:,0].squeeze() 
 #mask.requires_grad = True
-sigma = 0.8
+sigma = 0.5
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -109,7 +109,8 @@ toIm.to(device)
 # %% optimizer
 recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
 #Loss = torch.nn.MSELoss()
-Loss = torch.nn.L1Loss()
+L1Loss = torch.nn.L1Loss()
+ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 
 # %% training
 max_epochs = 30
@@ -129,10 +130,12 @@ for epoch in range(max_epochs):
         support = torch.ge(ground_truth,0.06*ground_truth.max()).to(device)
         recon = torch.mul(recon,support).to(device)
         ground_truth = torch.mul(ground_truth,support).to(device)
+        
+        #loss = Loss(recon,ground_truth)
+        loss = 1- ms_ssim_module(recon*25,recon*25)
 
-        loss = Loss(recon,ground_truth)
         if batch_count%100 == 0:
-            print("batch:",batch_count,"train MSE:",loss.item(),"Original MSE:", Loss(image_noise,ground_truth))
+            print("batch:",batch_count,"train loss:",loss.item())
         
         loss.backward()
         recon_optimizer.step()
@@ -151,11 +154,11 @@ for epoch in range(max_epochs):
             recon = torch.mul(recon,support).to(device)
             ground_truth = torch.mul(ground_truth,support).to(device)
             
-            loss += Loss(recon,ground_truth)
-            orig_loss += Loss(image_noise,ground_truth)
+            loss += L1Loss(recon,ground_truth)
+            orig_loss += L1Loss(image_noise,ground_truth)
 
         val_loss[epoch] = loss/len(val_dataloader)
-        print("epoch:",epoch+1,"validation MSE:",val_loss[epoch],"original MSE:",orig_loss/len(val_dataloader))
+        print("epoch:",epoch+1,"validation Loss:",val_loss[epoch])
 
    # torch.save(val_loss,"./uniform_model_val_loss_noise"+str(sigma))
-    torch.save(recon_model,"./uniform_model_L1_noise"+str(sigma))
+    torch.save(recon_model,"./uniform_model_ssim_noise"+str(sigma))
