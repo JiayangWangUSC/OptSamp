@@ -227,7 +227,7 @@ for epoch in range(max_epochs):
         
         image_noise = sample_model(train_batch).to(device)
         recon = recon_model(image_noise).to(device)
-        loss = L2Loss(torch.mul(recon,support),torch.mul(gt,support)) + L1Loss(torch.mul(recon,gradmap),torch.mul(gt,gradmap))
+        loss = L2Loss(torch.mul(recon,support).to(device),torch.mul(gt,support).to(device)) + L1Loss(torch.mul(recon,gradmap).to(device),torch.mul(gt,gradmap).to(device))
         #loss = 1- ms_ssim_module(recon*25,recon*25)
 
         if batch_count%100 == 0:
