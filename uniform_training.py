@@ -137,7 +137,7 @@ def support_extraction(Batch):
 
 # %% sampling
 factor = 8
-sigma = 0.5
+sigma = 0.4
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
