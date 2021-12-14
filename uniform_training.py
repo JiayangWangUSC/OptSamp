@@ -137,7 +137,7 @@ def support_extraction(Batch):
 
 # %% sampling
 factor = 8
-sigma = 0.4
+sigma = 0.5
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -221,13 +221,13 @@ for epoch in range(max_epochs):
         
         train_batch.to(device)
 
-        gt = toIm(train_batch).to(device)
-        support = torch.ge(gt,0.1*torch.max(gt)).to(device)
-        gradmap = GradMap(gt,support,D1,D2).to(device) 
+        gt = toIm(train_batch)
+        support = torch.ge(gt,0.1*torch.max(gt))
+        gradmap = GradMap(gt,support,D1,D2)
         
         image_noise = sample_model(train_batch).to(device)
         recon = recon_model(image_noise)
-        loss = L2Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device)))
+        loss = L2Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device))) + L1Loss(torch.mul(recon.to(device),gradmap.to(device)),torch.mul(gt.to(device),gradmap.to(device)))
         #loss = 1- ms_ssim_module(recon*25,recon*25)
 
         if batch_count%100 == 0:

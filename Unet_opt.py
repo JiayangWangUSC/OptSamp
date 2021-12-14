@@ -65,7 +65,7 @@ class toImage(torch.nn.Module):
 
 # %% sampling
 factor = 8
-sigma = 0.4
+sigma = 0.5
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 #mask = torch.load('/project/jhaldar_118/jiayangw/OptSamp/unet_mask_L1_noise0.3')
@@ -151,13 +151,13 @@ for epoch in range(max_epochs):
 
         train_batch.to(device)
 
-        gt = toIm(train_batch).to(device)
-        support = torch.ge(gt,0.1*torch.max(gt)).to(device)
-        gradmap = GradMap(gt,support,D1,D2).to(device)    
+        gt = toIm(train_batch)
+        support = torch.ge(gt,0.1*torch.max(gt))
+        gradmap = GradMap(gt,support,D1,D2)  
             
         image_noise = sample_model(train_batch).to(device)
         recon = recon_model(image_noise)
-        loss = L2Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device)))
+        loss = L2Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device))) + L1Loss(torch.mul(recon.to(device),gradmap.to(device)),torch.mul(gt.to(device),gradmap.to(device)))
 
 
         if batch_count%100 == 0:
