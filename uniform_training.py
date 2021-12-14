@@ -134,6 +134,37 @@ def support_extraction(Batch):
         inner_mask = torch.ge(inner_mask,2)
         result[batch,0,:,:] = inner_mask
     return result
+
+# %% sampling
+factor = 8
+sigma = 0.4
+print("noise level:", sigma)
+sample_model = Sample(sigma,factor)
+
+toIm = toImage()
+
+# %% unet loader
+recon_model = Unet(
+  in_chans = 1,
+  out_chans = 1,
+  chans = 32,
+  num_pool_layers = 4,
+  drop_prob = 0.0
+)
+
+#recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/uniform_model_L1_noise0.3')
+
+# %% GPU 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
+val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
+
+sample_model.to(device)
+recon_model.to(device)
+toIm.to(device)
+
+
 # %% gradient computation
 N1 = 384
 N2 = 396
@@ -170,35 +201,6 @@ def GradMap(Batch,support,D1,D2):
         gradmap[batch,0,:,:] = torch.reshape(torch.ge(G,th),(N1,N2))
 
     return gradmap
-# %% sampling
-factor = 8
-sigma = 0.4
-print("noise level:", sigma)
-sample_model = Sample(sigma,factor)
-
-toIm = toImage()
-
-# %% unet loader
-recon_model = Unet(
-  in_chans = 1,
-  out_chans = 1,
-  chans = 32,
-  num_pool_layers = 4,
-  drop_prob = 0.0
-)
-
-#recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/uniform_model_L1_noise0.3')
-
-# %% GPU 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
-val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
-
-sample_model.to(device)
-recon_model.to(device)
-toIm.to(device)
-
 
 # %% optimizer
 recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)

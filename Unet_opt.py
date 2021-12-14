@@ -62,6 +62,38 @@ class toImage(torch.nn.Module):
         #image = transforms.normalize(image,glob_mean,glob_std,1e-11)
         return image
 
+
+# %% sampling
+factor = 8
+sigma = 0.4
+print("noise level:", sigma)
+sample_model = Sample(sigma,factor)
+#mask = torch.load('/project/jhaldar_118/jiayangw/OptSamp/unet_mask_L1_noise0.3')
+#sample_model.mask = mask
+toIm = toImage()
+
+# %% unet loader
+recon_model = Unet(
+  in_chans = 1,
+  out_chans = 1,
+  chans = 32,
+  num_pool_layers = 4,
+  drop_prob = 0.0
+)
+
+#recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/unet_model_L1_noise0.3')
+
+# %% 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+batch_size = 8
+
+train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
+val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
+
+sample_model.to(device)
+recon_model.to(device)
+toIm.to(device)
 # %% gradient computation
 N1 = 384
 N2 = 396
@@ -98,38 +130,6 @@ def GradMap(Batch,support,D1,D2):
         gradmap[batch,0,:,:] = torch.reshape(torch.ge(G,th),(N1,N2))
 
     return gradmap
-
-# %% sampling
-factor = 8
-sigma = 0.4
-print("noise level:", sigma)
-sample_model = Sample(sigma,factor)
-#mask = torch.load('/project/jhaldar_118/jiayangw/OptSamp/unet_mask_L1_noise0.3')
-#sample_model.mask = mask
-toIm = toImage()
-
-# %% unet loader
-recon_model = Unet(
-  in_chans = 1,
-  out_chans = 1,
-  chans = 32,
-  num_pool_layers = 4,
-  drop_prob = 0.0
-)
-
-#recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/unet_model_L1_noise0.3')
-
-# %% 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-batch_size = 8
-
-train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
-val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
-
-sample_model.to(device)
-recon_model.to(device)
-toIm.to(device)
 
 # %% optimizer
 recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
