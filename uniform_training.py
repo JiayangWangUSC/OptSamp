@@ -16,18 +16,18 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     return kspace
 
 train_data = mri_data.SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
+    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/test/'),
     root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
     transform=data_transform,
     challenge='multicoil'
 )
 
-val_data = mri_data.SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/val/'),
-    transform=data_transform,
-    challenge='multicoil'
-)
+#val_data = mri_data.SliceDataset(
+#    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
+#    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/val/'),
+#    transform=data_transform,
+#    challenge='multicoil'
+#)
 
 # %% noise generator and transform to image
 batch_size = 8
@@ -158,7 +158,7 @@ recon_model = Unet(
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
-val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
+#val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
 
 sample_model.to(device)
 recon_model.to(device)
@@ -223,7 +223,7 @@ for epoch in range(max_epochs):
 
         gt = toIm(train_batch).to(device)
         support = torch.ge(gt,0.1*torch.max(gt)).to(device)
-        gradmap = GradMap(train_batch,support,D1,D2).to(device) 
+        gradmap = GradMap(gt,support,D1,D2).to(device) 
         
         image_noise = sample_model(train_batch).to(device)
         recon = recon_model(image_noise)

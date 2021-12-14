@@ -153,7 +153,7 @@ for epoch in range(max_epochs):
 
         gt = toIm(train_batch).to(device)
         support = torch.ge(gt,0.1*torch.max(gt)).to(device)
-        gradmap = GradMap(train_batch,support,D1,D2).to(device)    
+        gradmap = GradMap(gt,support,D1,D2).to(device)    
             
         image_noise = sample_model(train_batch).to(device)
         recon = recon_model(image_noise)
