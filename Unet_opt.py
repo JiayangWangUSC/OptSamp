@@ -65,7 +65,7 @@ class toImage(torch.nn.Module):
 
 # %% sampling
 factor = 8
-sigma = 0.5
+sigma = 0.4
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 #mask = torch.load('/project/jhaldar_118/jiayangw/OptSamp/unet_mask_L1_noise0.3')
