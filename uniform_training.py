@@ -172,7 +172,7 @@ def GradMap(Batch,support,D1,D2):
     return gradmap
 # %% sampling
 factor = 8
-sigma = 0.5
+sigma = 0.4
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -208,7 +208,7 @@ L2Loss = torch.nn.MSELoss()
 #ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 
 # %% training
-max_epochs = 5
+max_epochs = 10
 val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
@@ -217,11 +217,11 @@ for epoch in range(max_epochs):
     for train_batch in train_dataloader:
         batch_count = batch_count + 1
         
-        gt = toIm(train_batch)
-        support = support_extraction(gt)
-        gradmap = GradMap(gt,support,D1,D2)
-
         train_batch.to(device)
+
+        gt = toIm(train_batch).to(device)
+        support = torch.ge(gt,0.1*torch.max(gt)).to(device)
+        gradmap = GradMap(train_batch,support,D1,D2).to(device) 
         
         image_noise = sample_model(train_batch).to(device)
         recon = recon_model(image_noise)
@@ -259,4 +259,4 @@ for epoch in range(max_epochs):
 #        print("epoch:",epoch+1,"validation Loss:",val_loss[epoch])
 
    # torch.save(val_loss,"./uniform_model_val_loss_noise"+str(sigma))
-    torch.save(recon_model,"./uniform_model_ssim_noise"+str(sigma))
+    torch.save(recon_model,"./uniform_model_selfloss_noise"+str(sigma))

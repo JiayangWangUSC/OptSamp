@@ -7,6 +7,7 @@ from fastmri.models import Unet
 from fastmri.data import transforms, mri_data
 from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 
+
 # %% data loader
 def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     # Transform the kspace to tensor format
@@ -14,17 +15,18 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     image = fastmri.ifft2c(kspace)
     image = image[:,torch.arange(191,575),:,:]
     kspace = fastmri.fft2c(image)/1e-4
+
     return kspace
 
 train_data = mri_data.SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
+   # root=pathlib.Path('/home/wjy/Project/fastmri_dataset/test/'),
     root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
     transform=data_transform,
     challenge='multicoil'
 )
 
 val_data = mri_data.SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
+    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/test/'),
     root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/val/'),
     transform=data_transform,
     challenge='multicoil'
@@ -60,84 +62,7 @@ class toImage(torch.nn.Module):
         #image = transforms.normalize(image,glob_mean,glob_std,1e-11)
         return image
 
-#%%
-def support_extraction(Batch):
-    result = Batch.clone()
-    N1 = Batch.size(2)
-    N2 = Batch.size(3)
-    for batch in range(Batch.size(0)):
-        Im = Batch[batch,0,:,:].squeeze()
-        support = torch.ge(Im,0.1*Im.max())
-        out_mask = torch.zeros(N1,N2)
-
-        for n1 in range(N1):
-            if torch.sum(support[n1,:])==0:
-                continue;
-            head, tail, n2_head, n2_tail = N2,-1,-1, N2 
-            while head>N2-1:
-                n2_head += 1
-                if support[n1,n2_head]==1:
-                    head = n2_head
-            while tail<0:
-                n2_tail -= 1
-                if support[n1,n2_tail]==1:
-                    tail = n2_tail
-            for n2 in range(head,tail+1):
-                out_mask[n1,n2] += 1
-
-        for n2 in range(N2):
-            if torch.sum(support[:,n2])==0:
-                continue;
-            head, tail, n1_head, n1_tail = N1,-1,-1, N1 
-            while head>N1-1:
-                n1_head += 1
-                if support[n1_head,n2]==1:
-                    head = n1_head
-            while tail<0:
-                n1_tail -= 1
-                if support[n1_tail,n2]==1:
-                    tail = n1_tail
-            for n1 in range(head,tail+1):
-                out_mask[n1,n2] += 1
-        out_mask = torch.ge(out_mask,2)
-
-        inner_mask = torch.zeros(N1,N2)
-        inv_support = torch.mul(~support,out_mask)
-
-        for n1 in range(N1):
-            if torch.sum(inv_support[n1,:])==0:
-                continue;
-            head, tail, n2_head, n2_tail = N2,-1,-1, N2 
-            while head>N2-1:
-                n2_head += 1
-                if inv_support[n1,n2_head]==1:
-                    head = n2_head
-            while tail<0:
-                n2_tail -= 1
-                if inv_support[n1,n2_tail]==1:
-                    tail = n2_tail
-            for n2 in range(head,tail+1):
-                inner_mask[n1,n2] += 1
-
-        for n2 in range(N2):
-            if torch.sum(inv_support[:,n2])==0:
-                continue;
-            head, tail, n1_head, n1_tail = N1,-1,-1, N1 
-            while head>N1-1:
-                n1_head += 1
-                if inv_support[n1_head,n2]==1:
-                    head = n1_head
-            while tail<0:
-                n1_tail -= 1
-                if inv_support[n1_tail,n2]==1:
-                    tail = n1_tail
-            for n1 in range(head,tail+1):
-                inner_mask[n1,n2] += 1
-        inner_mask = torch.ge(inner_mask,2)
-        result[batch,0,:,:] = inner_mask
-    return result
-
-# %%
+# %% gradient computation
 N1 = 384
 N2 = 396
 D1 = torch.zeros(N1,N1)
@@ -173,9 +98,10 @@ def GradMap(Batch,support,D1,D2):
         gradmap[batch,0,:,:] = torch.reshape(torch.ge(G,th),(N1,N2))
 
     return gradmap
+
 # %% sampling
 factor = 8
-sigma = 0.5
+sigma = 0.4
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 #mask = torch.load('/project/jhaldar_118/jiayangw/OptSamp/unet_mask_L1_noise0.3')
@@ -213,20 +139,21 @@ L2Loss = torch.nn.MSELoss()
 #ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 # %% training
 step = 1e-1
-max_epochs = 5
+max_epochs = 10
 val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-    step = step * 0.9
+    step = step * 0.8
     batch_count = 0
     for train_batch in train_dataloader:
         batch_count = batch_count + 1
         sample_model.mask.requires_grad = True
 
-        gt = toIm(train_batch)
-        support = support_extraction(gt)
-        gradmap = GradMap(gt,support,D1,D2)
         train_batch.to(device)
+
+        gt = toIm(train_batch).to(device)
+        support = torch.ge(gt,0.1*torch.max(gt)).to(device)
+        gradmap = GradMap(train_batch,support,D1,D2).to(device)    
             
         image_noise = sample_model(train_batch).to(device)
         recon = recon_model(image_noise)
