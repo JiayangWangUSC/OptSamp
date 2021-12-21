@@ -484,7 +484,7 @@ L2Loss = torch.nn.MSELoss()
 #ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 
 # %% training
-max_epochs = 1
+max_epochs = 20
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
@@ -496,7 +496,7 @@ for epoch in range(max_epochs):
         train_batch.to(device)
 
         gt = toIm(train_batch)
-        support = torch.ge(gt,0.1*torch.max(gt))
+        support = torch.ge(gt,0.06*torch.max(gt))
         gradmap = GradMap(gt,support,D1,D2)
         
         kspace_noise = sample_model(train_batch).to(device)
