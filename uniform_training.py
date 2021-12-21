@@ -419,10 +419,10 @@ sample_model = Sample(sigma,factor)
 #)
 
 recon_model = VarNet(
-    num_cascades = 12,
+    num_cascades = 8,
     sens_chans = 8,
     sens_pools = 4,
-    chans = 18,
+    chans = 16,
     pools = 4
 )
 
@@ -477,7 +477,7 @@ def GradMap(Batch,support,D1,D2):
     return gradmap
 
 # %% optimizer
-recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-3)
+recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
 #Loss = torch.nn.MSELoss()
 L1Loss = torch.nn.L1Loss()
 L2Loss = torch.nn.MSELoss()
