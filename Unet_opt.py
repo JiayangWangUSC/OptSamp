@@ -498,9 +498,13 @@ for epoch in range(max_epochs):
         support = torch.ge(gt,0.06*torch.max(gt))
         gradmap = GradMap(gt,support,D1,D2)
         
+        acs_kspace = torch.zeros_like(train_batch)
+        acs_kspace[:,:,:,torch.arange(186,210),:] = 1
+        acs_kspace = torch.mul(acs_kspace,train_batch).to(device)
+
         kspace_noise = sample_model(train_batch).to(device)
         mask = torch.ones_like(kspace_noise).to(bool)
-        recon = recon_model(kspace_noise, mask)
+        recon = recon_model(kspace_noise, acs_kspace, mask)
         loss = L2Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device))) + beta*L1Loss(torch.mul(recon.to(device),gradmap.to(device)),torch.mul(gt.to(device),gradmap.to(device)))
         #loss = 1- ms_ssim_module(recon*25,recon*25)
 
