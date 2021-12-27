@@ -172,14 +172,10 @@ class SensitivityModel(nn.Module):
 
     def forward(
         self,
-        masked_kspace: torch.Tensor
+        acs_kspace: torch.Tensor
     ) -> torch.Tensor:
-
-        mask = torch.zeros_like(masked_kspace)
-        mask[:,:,:,torch.arange(186,210),:] = 1
-        masked_kspace = torch.mul(mask,masked_kspace)
         # convert to image space
-        images, batches = self.chans_to_batch_dim(fastmri.ifft2c(masked_kspace))
+        images, batches = self.chans_to_batch_dim(fastmri.ifft2c(acs_kspace))
 
         # estimate sensitivities
         return self.divide_root_sum_of_squares(
@@ -230,9 +226,10 @@ class VarNet(nn.Module):
     def forward(
         self,
         masked_kspace: torch.Tensor,
+        acs_kspace: torch.Tensor,
         mask: torch.Tensor
     ) -> torch.Tensor:
-        sens_maps = self.sens_net(masked_kspace)
+        sens_maps = self.sens_net(acs_kspace)
         kspace_pred = masked_kspace.clone()
 
         for cascade in self.cascades:
@@ -481,6 +478,7 @@ recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
 #Loss = torch.nn.MSELoss()
 L1Loss = torch.nn.L1Loss()
 L2Loss = torch.nn.MSELoss()
+beta = 0.01
 #ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 
 # %% training
@@ -502,7 +500,7 @@ for epoch in range(max_epochs):
         kspace_noise = sample_model(train_batch).to(device)
         mask = torch.ones_like(kspace_noise).to(bool)
         recon = recon_model(kspace_noise, mask)
-        loss = L2Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device))) + L1Loss(torch.mul(recon.to(device),gradmap.to(device)),torch.mul(gt.to(device),gradmap.to(device)))
+        loss = L2Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device))) + beta*L1Loss(torch.mul(recon.to(device),gradmap.to(device)),torch.mul(gt.to(device),gradmap.to(device)))
         #loss = 1- ms_ssim_module(recon*25,recon*25)
 
         if batch_count%100 == 0:
