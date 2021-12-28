@@ -175,15 +175,11 @@ class SensitivityModel(nn.Module):
 
     def forward(
         self,
-        masked_kspace: torch.Tensor
+        acs_kspace: torch.Tensor
     ) -> torch.Tensor:
 
-        mask = torch.zeros_like(masked_kspace)
-        mask[:,:,:,torch.arange(186,210),:] = 1
-        masked_kspace = torch.mul(mask,masked_kspace)
         # convert to image space
-        images, batches = self.chans_to_batch_dim(fastmri.ifft2c(masked_kspace))
-
+        images, batches = self.chans_to_batch_dim(fastmri.ifft2c(acs_kspace))
         # estimate sensitivities
         return self.divide_root_sum_of_squares(
             self.batch_chans_to_chan_dim(self.norm_unet(images), batches)
@@ -233,9 +229,10 @@ class VarNet(nn.Module):
     def forward(
         self,
         masked_kspace: torch.Tensor,
+        acs_kspace:torch.Tensor,
         mask: torch.Tensor
     ) -> torch.Tensor:
-        sens_maps = self.sens_net(masked_kspace)
+        sens_maps = self.sens_net(acs_kspace)
         kspace_pred = masked_kspace.clone()
 
         for cascade in self.cascades:
@@ -335,21 +332,24 @@ sample_model = Sample(sigma,factor)
 
 # %% load uniform-unet model
 #val_uniform_loss = torch.load('/home/wjy/unet_model_val_loss')
-mask = torch.load('/home/wjy/mask_varnet_selfloss_noise0.4')
-sample_model.mask = mask
+#mask = torch.load('/home/wjy/mask_varnet_selfloss_noise0.4')
+#sample_model.mask = mask
 model = torch.load('/home/wjy/uniform_varnet_selfloss_noise0.4',map_location=torch.device('cpu'))
 
 # %%
 
-kspace = test_data[0]
+kspace = test_data[1]
 kspace = kspace.unsqueeze(0)
 Im  = toIm(kspace)
 #plt.imshow(Im[0,0,:,:],cmap='gray')
+acs_kspace = torch.zeros_like(kspace)
+acs_kspace[:,:,:,torch.arange(186,210),:] = 1
+acs_kspace = torch.mul(acs_kspace,kspace)
 kspace_noise = sample_model(kspace)
 #plt.imshow(ImN[0,0,:,:],cmap='gray')
 mask = torch.ones_like(kspace_noise).to(bool)
 with torch.no_grad():
-    ImR = model(kspace_noise,mask)
+    ImR = model(kspace_noise,acs_kspace,mask)
 
 support = torch.ge(Im,0.06*Im.max())
 ImR = torch.mul(ImR,support)

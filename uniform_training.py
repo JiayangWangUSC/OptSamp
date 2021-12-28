@@ -474,16 +474,16 @@ def GradMap(Batch,support,D1,D2):
     return gradmap
 
 # %% optimizer
-recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
+recon_optimizer = optim.Adam(recon_model.parameters(),lr=1e-3)
 #Loss = torch.nn.MSELoss()
 L1Loss = torch.nn.L1Loss()
 L2Loss = torch.nn.MSELoss()
-beta = 0.01
+beta = 0.001
 #ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 
 
 # %% training
-max_epochs = 20
+max_epochs = 10
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
