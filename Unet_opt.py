@@ -311,9 +311,9 @@ class Sample(torch.nn.Module):
 
     def __init__(self,sigma,factor):
         super().__init__()
-        #self.mask = factor*torch.ones(396)
-        self.mask = torch.rand(396)
-        self.mask = self.mask/torch.sum(self.mask)*factor
+        self.mask = factor*torch.ones(396)
+        #self.mask = torch.rand(396)
+        #self.mask = self.mask/torch.sum(self.mask)*factor
         self.sigma = sigma
 
     def forward(self,kspace):
@@ -552,6 +552,6 @@ for epoch in range(max_epochs):
 #        print("epoch:",epoch+1,"validation Loss:",val_loss[epoch])
 
    # torch.save(val_loss,"./uniform_model_val_loss_noise"+str(sigma))
-    torch.save(recon_model,"./randominit_opt_varnet_selfloss_noise"+str(sigma))
-    torch.save(sample_model.mask,"./randominit_mask_varnet_selfloss_noise"+str(sigma))
+    torch.save(recon_model,"./opt_varnet_selfloss_noise"+str(sigma))
+    torch.save(sample_model.mask,"./mask_varnet_selfloss_noise"+str(sigma))
 # %%

@@ -416,7 +416,7 @@ sample_model = Sample(sigma,factor)
 #)
 
 recon_model = VarNet(
-    num_cascades = 8,
+    num_cascades = 4,
     sens_chans = 8,
     sens_pools = 4,
     chans = 16,
