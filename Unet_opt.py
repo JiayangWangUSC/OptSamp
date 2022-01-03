@@ -311,7 +311,9 @@ class Sample(torch.nn.Module):
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = factor*torch.ones(396)
+        #self.mask = factor*torch.ones(396)
+        self.mask = torch.rand(396)
+        self.mask = self.mask/torch.sum(self.mask)*factor
         self.sigma = sigma
 
     def forward(self,kspace):
@@ -401,7 +403,7 @@ def support_extraction(Batch):
 
 # %% sampling
 factor = 8
-sigma = 0.4
+sigma = 0.3
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
