@@ -416,7 +416,7 @@ sample_model = Sample(sigma,factor)
 #)
 
 recon_model = VarNet(
-    num_cascades = 4,
+    num_cascades = 8,
     sens_chans = 8,
     sens_pools = 4,
     chans = 16,
@@ -478,12 +478,12 @@ recon_optimizer = optim.Adam(recon_model.parameters(),lr=1e-3)
 #Loss = torch.nn.MSELoss()
 L1Loss = torch.nn.L1Loss()
 L2Loss = torch.nn.MSELoss()
-beta = 0.001
+beta = 1e-4
 #ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 
 
 # %% training
-max_epochs = 10
+max_epochs = 1
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
