@@ -552,6 +552,6 @@ for epoch in range(max_epochs):
 #        print("epoch:",epoch+1,"validation Loss:",val_loss[epoch])
 
    # torch.save(val_loss,"./uniform_model_val_loss_noise"+str(sigma))
-    torch.save(recon_model,"./opt_varnet_selfloss_noise"+str(sigma))
-    torch.save(sample_model.mask,"./mask_varnet_selfloss_noise"+str(sigma))
+    torch.save(recon_model,"./randominit_opt_varnet_selfloss_noise"+str(sigma))
+    torch.save(sample_model.mask,"./randominit_mask_varnet_selfloss_noise"+str(sigma))
 # %%
