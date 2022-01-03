@@ -478,12 +478,12 @@ recon_optimizer = optim.Adam(recon_model.parameters(),lr=1e-3)
 #Loss = torch.nn.MSELoss()
 L1Loss = torch.nn.L1Loss()
 L2Loss = torch.nn.MSELoss()
-beta = 1e-4
+beta = 3e-4
 #ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 
 
 # %% training
-max_epochs = 1
+max_epochs = 10
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
