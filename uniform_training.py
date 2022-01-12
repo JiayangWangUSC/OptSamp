@@ -400,7 +400,7 @@ def support_extraction(Batch):
 
 # %% sampling
 factor = 8
-sigma = 0.2
+sigma = 0.3
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -501,7 +501,7 @@ for epoch in range(max_epochs):
         acs_kspace[:,:,:,torch.arange(186,210),:] = 1
         acs_kspace = torch.mul(acs_kspace,train_batch).to(device)
         kspace_noise = sample_model(train_batch).to(device)
-        mask = sample_model.mask
+        mask = torch.sqrt(sample_model.mask).unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(train_batch.size(0),16,384,1,2)
         recon = recon_model(kspace_noise, acs_kspace, mask)
         #loss = L2Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device))) + beta*L1Loss(torch.mul(recon.to(device),gradmap.to(device)),torch.mul(gt.to(device),gradmap.to(device)))
         loss = L2Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device)))
