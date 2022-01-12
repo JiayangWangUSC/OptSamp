@@ -504,7 +504,7 @@ for epoch in range(max_epochs):
         mask = torch.sqrt(sample_model.mask).unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(train_batch.size(0),16,384,1,2).to(device)
         recon = recon_model(kspace_noise, acs_kspace, mask)
         #loss = L2Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device))) + beta*L1Loss(torch.mul(recon.to(device),gradmap.to(device)),torch.mul(gt.to(device),gradmap.to(device)))
-        loss = L2Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device)))
+        loss = L1Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device)))
         #loss = 1- ms_ssim_module(recon*25,recon*25)
 
         if batch_count%100 == 0:
@@ -538,6 +538,6 @@ for epoch in range(max_epochs):
 #        print("epoch:",epoch+1,"validation Loss:",val_loss[epoch])
 
    # torch.save(val_loss,"./uniform_model_val_loss_noise"+str(sigma))
-    torch.save(recon_model,"./uniform_varnet_L2loss_noise"+str(sigma))
+    torch.save(recon_model,"./uniform_varnet_L1loss_noise"+str(sigma))
 
 # %%
