@@ -327,18 +327,18 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 0.3
+sigma = 0.2
 sample_model = Sample(sigma,factor)
 
 # %% load uniform-unet model
 #val_uniform_loss = torch.load('/home/wjy/unet_model_val_loss')
-mask = torch.load('/home/wjy/mask_varnet_selfloss_noise0.3')
+mask = torch.load('/home/wjy/mask_varnet_selfloss_noise0.2')
 sample_model.mask = mask
-model = torch.load('/home/wjy/opt_varnet_selfloss_noise0.3',map_location=torch.device('cpu'))
+model = torch.load('/home/wjy/opt_varnet_selfloss_noise0.2',map_location=torch.device('cpu'))
 
 # %%
 
-kspace = test_data[1]
+kspace = test_data[4]
 kspace = kspace.unsqueeze(0)
 Im  = toIm(kspace)
 #plt.imshow(Im[0,0,:,:],cmap='gray')
@@ -352,6 +352,7 @@ with torch.no_grad():
     ImR = model(kspace_noise,acs_kspace,mask)
 
 support = torch.ge(Im,0.06*Im.max())
+ImN = toIm(kspace_noise)
 ImR = torch.mul(ImR,support)
 Im = torch.mul(Im,support)
 Error = torch.abs(ImR-Im)

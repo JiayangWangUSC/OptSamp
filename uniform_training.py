@@ -230,7 +230,7 @@ class VarNet(nn.Module):
         mask: torch.Tensor
     ) -> torch.Tensor:
         sens_maps = self.sens_net(acs_kspace)
-        kspace_pred = masked_kspace.clone()
+        kspace_pred = torch.div(masked_kspace.clone(),mask)
 
         for cascade in self.cascades:
             kspace_pred = cascade(kspace_pred, masked_kspace, mask, sens_maps)
@@ -272,13 +272,12 @@ class VarNetBlock(nn.Module):
         mask: torch.Tensor,
         sens_maps: torch.Tensor,
     ) -> torch.Tensor:
-        zero = torch.zeros(1, 1, 1, 1, 1).to(current_kspace)
-        soft_dc = torch.where(mask, current_kspace - ref_kspace, zero) * self.dc_weight
+        soft_dc = torch.mul(mask,(torch.mul(mask, current_kspace) - ref_kspace)) * self.dc_weight
         model_term = self.sens_expand(
             self.model(self.sens_reduce(current_kspace, sens_maps)), sens_maps
         )
 
-        return current_kspace - soft_dc - model_term
+        return current_kspace - soft_dc + model_term
 
 #from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
@@ -316,7 +315,7 @@ class Sample(torch.nn.Module):
 
     def forward(self,kspace):
         noise = self.sigma*torch.randn_like(kspace)
-        kspace_noise = kspace + torch.div(noise,torch.sqrt(self.mask).unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
+        kspace_noise = noise + torch.mul(kspace,torch.sqrt(self.mask).unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
         return kspace_noise
 
 def toIm(kspace): 
@@ -502,9 +501,10 @@ for epoch in range(max_epochs):
         acs_kspace[:,:,:,torch.arange(186,210),:] = 1
         acs_kspace = torch.mul(acs_kspace,train_batch).to(device)
         kspace_noise = sample_model(train_batch).to(device)
-        mask = torch.ones_like(kspace_noise).to(bool)
+        mask = sample_model.mask
         recon = recon_model(kspace_noise, acs_kspace, mask)
-        loss = L2Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device))) + beta*L1Loss(torch.mul(recon.to(device),gradmap.to(device)),torch.mul(gt.to(device),gradmap.to(device)))
+        #loss = L2Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device))) + beta*L1Loss(torch.mul(recon.to(device),gradmap.to(device)),torch.mul(gt.to(device),gradmap.to(device)))
+        loss = L2Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device)))
         #loss = 1- ms_ssim_module(recon*25,recon*25)
 
         if batch_count%100 == 0:
@@ -538,6 +538,6 @@ for epoch in range(max_epochs):
 #        print("epoch:",epoch+1,"validation Loss:",val_loss[epoch])
 
    # torch.save(val_loss,"./uniform_model_val_loss_noise"+str(sigma))
-    torch.save(recon_model,"./uniform_varnet_selfloss_noise"+str(sigma))
+    torch.save(recon_model,"./uniform_varnet_L2loss_noise"+str(sigma))
 
 # %%
