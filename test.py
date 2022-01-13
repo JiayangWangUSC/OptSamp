@@ -233,7 +233,7 @@ class VarNet(nn.Module):
         mask: torch.Tensor
     ) -> torch.Tensor:
         sens_maps = self.sens_net(acs_kspace)
-        kspace_pred = masked_kspace.clone()
+        kspace_pred = torch.div(masked_kspace.clone(),mask)
 
         for cascade in self.cascades:
             kspace_pred = cascade(kspace_pred, masked_kspace, mask, sens_maps)
@@ -275,13 +275,12 @@ class VarNetBlock(nn.Module):
         mask: torch.Tensor,
         sens_maps: torch.Tensor,
     ) -> torch.Tensor:
-        zero = torch.zeros(1, 1, 1, 1, 1).to(current_kspace)
-        soft_dc = torch.where(mask, current_kspace - ref_kspace, zero) * self.dc_weight
+        soft_dc = torch.mul(mask,(torch.mul(mask, current_kspace) - ref_kspace)) * self.dc_weight
         model_term = self.sens_expand(
             self.model(self.sens_reduce(current_kspace, sens_maps)), sens_maps
         )
 
-        return current_kspace - soft_dc - model_term
+        return current_kspace - soft_dc + model_term
 # %% data loader
 def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     # Transform the kspace to tensor format
@@ -317,7 +316,7 @@ class Sample(torch.nn.Module):
 
     def forward(self,kspace):
         noise = self.sigma*torch.randn_like(kspace)
-        kspace_noise = kspace + torch.div(noise,torch.sqrt(self.mask).unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
+        kspace_noise = noise + torch.mul(kspace,torch.sqrt(self.mask).unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
         return kspace_noise
 
 def toIm(kspace): 
@@ -327,14 +326,14 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 0.2
+sigma = 0.3
 sample_model = Sample(sigma,factor)
 
 # %% load uniform-unet model
 #val_uniform_loss = torch.load('/home/wjy/unet_model_val_loss')
-mask = torch.load('/home/wjy/mask_varnet_selfloss_noise0.2')
-sample_model.mask = mask
-model = torch.load('/home/wjy/opt_varnet_selfloss_noise0.2',map_location=torch.device('cpu'))
+mask = torch.load('/home/wjy/mask_varnet_L12loss_noise0.3')
+#sample_model.mask = mask
+model = torch.load('/home/wjy/uniform_varnet_L2loss_noise0.3',map_location=torch.device('cpu'))
 
 # %%
 
@@ -346,8 +345,8 @@ acs_kspace = torch.zeros_like(kspace)
 acs_kspace[:,:,:,torch.arange(186,210),:] = 1
 acs_kspace = torch.mul(acs_kspace,kspace)
 kspace_noise = sample_model(kspace)
+mask = torch.sqrt(sample_model.mask).unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2)
 #plt.imshow(ImN[0,0,:,:],cmap='gray')
-mask = torch.ones_like(kspace_noise).to(bool)
 with torch.no_grad():
     ImR = model(kspace_noise,acs_kspace,mask)
 
