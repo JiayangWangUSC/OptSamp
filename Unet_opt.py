@@ -505,7 +505,7 @@ for epoch in range(max_epochs):
 
         kspace_noise = sample_model(train_batch).to(device)
         mask = torch.sqrt(sample_model.mask).unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(train_batch.size(0),16,384,1,2).to(device)
-        acs_kspace = torch.mul(acs_kspace,torch.div(kspace_noise,mask)).to(device)
+        acs_kspace = torch.mul(acs_kspace.to(device),torch.div(kspace_noise,mask)).to(device)
 
         recon = recon_model(kspace_noise, acs_kspace, mask)
         #loss = L2Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device))) + beta*L1Loss(torch.mul(recon.to(device),gradmap.to(device)),torch.mul(gt.to(device),gradmap.to(device)))
