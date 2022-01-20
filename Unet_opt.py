@@ -214,11 +214,11 @@ class VarNet(nn.Module):
         """
         super().__init__()
 
-        self.sens_net = SensitivityModel(
-            chans=sens_chans,
-            num_pools=sens_pools,
-            mask_center=mask_center,
-        )
+      #  self.sens_net = SensitivityModel(
+      #      chans=sens_chans,
+      #      num_pools=sens_pools,
+      #      mask_center=mask_center,
+      #  )
         self.cascades = nn.ModuleList(
             [VarNetBlock(NormUnet(chans, pools)) for _ in range(num_cascades)]
         )
@@ -226,10 +226,9 @@ class VarNet(nn.Module):
     def forward(
         self,
         masked_kspace: torch.Tensor,
-        acs_kspace:torch.Tensor,
+        sens_maps:torch.Tensor,
         mask: torch.Tensor
     ) -> torch.Tensor:
-        sens_maps = self.sens_net(acs_kspace)
         kspace_pred = torch.div(masked_kspace.clone(),mask)
 
         for cascade in self.cascades:
@@ -474,6 +473,114 @@ def GradMap(Batch,support,D1,D2):
 
     return gradmap
 
+# %% ESPIRit
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+fft  = lambda x, ax : np.fft.fftshift(np.fft.fftn(np.fft.ifftshift(x, axes=ax), axes=ax, norm='ortho'), axes=ax) 
+ifft = lambda X, ax : np.fft.fftshift(np.fft.ifftn(np.fft.ifftshift(X, axes=ax), axes=ax, norm='ortho'), axes=ax) 
+
+def espirit(X, k, r, t, c):
+    """
+    Derives the ESPIRiT operator.
+    Arguments:
+      X: Multi channel k-space data. Expected dimensions are (sx, sy, sz, nc), where (sx, sy, sz) are volumetric 
+         dimensions and (nc) is the channel dimension.
+      k: Parameter that determines the k-space kernel size. If X has dimensions (1, 256, 256, 8), then the kernel 
+         will have dimensions (1, k, k, 8)
+      r: Parameter that determines the calibration region size. If X has dimensions (1, 256, 256, 8), then the 
+         calibration region will have dimensions (1, r, r, 8)
+      t: Parameter that determines the rank of the auto-calibration matrix (A). Singular values below t times the
+         largest singular value are set to zero.
+      c: Crop threshold that determines eigenvalues "=1".
+    Returns:
+      maps: This is the ESPIRiT operator. It will have dimensions (sx, sy, sz, nc, nc) with (sx, sy, sz, :, idx)
+            being the idx'th set of ESPIRiT maps.
+    """
+
+    sx = np.shape(X)[0]
+    sy = np.shape(X)[1]
+    sz = np.shape(X)[2]
+    nc = np.shape(X)[3]
+
+    sxt = (sx//2-r//2, sx//2+r//2) if (sx > 1) else (0, 1)
+    syt = (sy//2-r//2, sy//2+r//2) if (sy > 1) else (0, 1)
+    szt = (sz//2-r//2, sz//2+r//2) if (sz > 1) else (0, 1)
+
+    # Extract calibration region.    
+    C = X[sxt[0]:sxt[1], syt[0]:syt[1], szt[0]:szt[1], :].astype(np.complex64)
+
+    # Construct Hankel matrix.
+    p = (sx > 1) + (sy > 1) + (sz > 1)
+    A = np.zeros([(r-k+1)**p, k**p * nc]).astype(np.complex64)
+
+    idx = 0
+    for xdx in range(max(1, C.shape[0] - k + 1)):
+      for ydx in range(max(1, C.shape[1] - k + 1)):
+        for zdx in range(max(1, C.shape[2] - k + 1)):
+          # numpy handles when the indices are too big
+          block = C[xdx:xdx+k, ydx:ydx+k, zdx:zdx+k, :].astype(np.complex64) 
+          A[idx, :] = block.flatten()
+          idx = idx + 1
+
+    # Take the Singular Value Decomposition.
+    U, S, VH = np.linalg.svd(A, full_matrices=True)
+    V = VH.conj().T
+
+    # Select kernels.
+    n = np.sum(S >= t * S[0])
+    V = V[:, 0:n]
+
+    kxt = (sx//2-k//2, sx//2+k//2) if (sx > 1) else (0, 1)
+    kyt = (sy//2-k//2, sy//2+k//2) if (sy > 1) else (0, 1)
+    kzt = (sz//2-k//2, sz//2+k//2) if (sz > 1) else (0, 1)
+
+    # Reshape into k-space kernel, flips it and takes the conjugate
+    kernels = np.zeros(np.append(np.shape(X), n)).astype(np.complex64)
+    kerdims = [(sx > 1) * k + (sx == 1) * 1, (sy > 1) * k + (sy == 1) * 1, (sz > 1) * k + (sz == 1) * 1, nc]
+    for idx in range(n):
+        kernels[kxt[0]:kxt[1],kyt[0]:kyt[1],kzt[0]:kzt[1], :, idx] = np.reshape(V[:, idx], kerdims)
+
+    # Take the iucfft
+    axes = (0, 1, 2)
+    kerimgs = np.zeros(np.append(np.shape(X), n)).astype(np.complex64)
+    for idx in range(n):
+        for jdx in range(nc):
+            ker = kernels[::-1, ::-1, ::-1, jdx, idx].conj()
+            kerimgs[:,:,:,jdx,idx] = fft(ker, axes) * np.sqrt(sx * sy * sz)/np.sqrt(k**p)
+
+    # Take the point-wise eigenvalue decomposition and keep eigenvalues greater than c
+    maps = np.zeros(np.append(np.shape(X), nc)).astype(np.complex64)
+    for idx in range(0, sx):
+        for jdx in range(0, sy):
+            for kdx in range(0, sz):
+
+                Gq = kerimgs[idx,jdx,kdx,:,:]
+
+                u, s, vh = np.linalg.svd(Gq, full_matrices=True)
+                for ldx in range(0, nc):
+                    if (s[ldx]**2 > c):
+                        maps[idx, jdx, kdx, :, ldx] = u[:, ldx]
+
+    return maps
+
+
+
+
+def Sense(batch):
+    sens_maps = batch.clone()
+    for num in range(batch.size(0)):
+        X = batch[num].squeeze().unsqueeze(0).permute((0,2,3,1,4)).detach().cpu().numpy()
+        X = X[:,:,:,:,0] + 1j * X[:,:,:,:,1]
+        esp = espirit(X, 4, 12, 0.01, 0.95)
+        esp = torch.from_numpy(esp[0,:,:,:,0]).permute((2,0,1))
+        sens_maps[num,:,:,:,0] = esp.real
+        sens_maps[num,:,:,:,1] = esp.imag
+    return sens_maps
+
+
+
 # %% optimizer
 recon_optimizer = optim.Adam(recon_model.parameters(),lr=1e-3)
 #Loss = torch.nn.MSELoss()
@@ -484,7 +591,7 @@ beta = 1e-3
 
 # %% training
 step = 1e-1
-max_epochs = 10
+max_epochs = 5
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
@@ -499,17 +606,17 @@ for epoch in range(max_epochs):
         support = torch.ge(gt,0.06*torch.max(gt))
         gradmap = GradMap(gt,support,D1,D2)
         
-        acs_kspace = torch.zeros_like(train_batch)
-        acs_kspace[:,:,:,torch.arange(186,210),:] = 1
+       # acs_kspace = torch.zeros_like(train_batch)
+       # acs_kspace[:,:,:,torch.arange(186,210),:] = 1
         #acs_kspace = torch.mul(acs_kspace,train_batch).to(device)
-
+        sens_maps = Sense(train_batch).to(device)
         kspace_noise = sample_model(train_batch).to(device)
         mask = torch.sqrt(sample_model.mask).unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(train_batch.size(0),16,384,1,2).to(device)
-        acs_kspace = torch.mul(acs_kspace.to(device),torch.div(kspace_noise,mask)).to(device)
+      #  acs_kspace = torch.mul(acs_kspace.to(device),torch.div(kspace_noise,mask)).to(device)
 
-        recon = recon_model(kspace_noise, acs_kspace, mask)
+        recon = recon_model(kspace_noise, sens_maps, mask)
         #loss = L2Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device))) + beta*L1Loss(torch.mul(recon.to(device),gradmap.to(device)),torch.mul(gt.to(device),gradmap.to(device)))
-        loss = L2Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device)))
+        loss = L1Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device)))
         #loss = 1- ms_ssim_module(recon*25,recon*25)
 
         if batch_count%100 == 0:
@@ -554,6 +661,6 @@ for epoch in range(max_epochs):
 #        print("epoch:",epoch+1,"validation Loss:",val_loss[epoch])
 
    # torch.save(val_loss,"./uniform_model_val_loss_noise"+str(sigma))
-    torch.save(recon_model,"./opt_varnet_noacs_L2loss_noise"+str(sigma))
-    torch.save(sample_model.mask,"./mask_varnet_noacs_L2loss_noise"+str(sigma))
+    torch.save(recon_model,"./opt_varnet_L1loss_noise"+str(sigma))
+    torch.save(sample_model.mask,"./mask_varnet_L1loss_noise"+str(sigma))
 # %%

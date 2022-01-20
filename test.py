@@ -332,12 +332,12 @@ sample_model = Sample(sigma,factor)
 # %% load uniform-unet model
 #val_uniform_loss = torch.load('/home/wjy/unet_model_val_loss')
 mask = torch.load('/home/wjy/mask_varnet_L12loss_noise0.3')
-#sample_model.mask = mask
-model = torch.load('/home/wjy/uniform_varnet_L2loss_noise0.3',map_location=torch.device('cpu'))
+sample_model.mask = mask
+model = torch.load('/home/wjy/opt_varnet_L12loss_noise0.3',map_location=torch.device('cpu'))
 
 # %%
 
-kspace = test_data[4]
+kspace = test_data[3]
 kspace = kspace.unsqueeze(0)
 Im  = toIm(kspace)
 #plt.imshow(Im[0,0,:,:],cmap='gray')
@@ -367,7 +367,7 @@ cmhot = plt.cm.get_cmap('jet')
 Mask = cmhot(np.array(mask.unsqueeze(0).repeat([384,1])/6-1))
 Mask = np.uint8(Mask*255)
 Mask = Image.fromarray(Mask)
-Mask.save('/home/wjy/Project/OptSamp/result_local/varnet_mask_noise04.png')
+Mask.save('/home/wjy/Project/OptSamp/result_local/varnet_mask_L12_noise03.png')
 # %%
 
 ImR = ImR.squeeze().numpy()
