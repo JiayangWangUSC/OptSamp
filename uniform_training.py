@@ -562,8 +562,8 @@ def espirit(X, k, r, t, c):
 
                 u, s, vh = np.linalg.svd(Gq, full_matrices=True)
                 #for ldx in range(0, nc):
-                #   if (s[ldx]**2 > c):
-                maps[idx, jdx, kdx, :, 0] = u[:, 0]
+                if (s[0]**2 > c):
+                    maps[idx, jdx, kdx, :, 0] = u[:, 0]
 
     return maps
 
@@ -593,7 +593,7 @@ beta = 1e-3
 
 
 # %% training
-max_epochs = 5
+max_epochs = 1
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
