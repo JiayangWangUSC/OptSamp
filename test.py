@@ -436,9 +436,9 @@ sample_model = Sample(sigma,factor)
 
 # %% load uniform-unet model
 #val_uniform_loss = torch.load('/home/wjy/unet_model_val_loss')
-#mask = torch.load('/home/wjy/mask_varnet_L1loss_noise0.3')
-#sample_model.mask = mask
-model = torch.load('/home/wjy/uniform_varnet_L1loss_noise0.3',map_location=torch.device('cpu'))
+mask = torch.load('/home/wjy/mask_varnet_L1loss_noise0.3')
+sample_model.mask = mask
+model = torch.load('/home/wjy/opt_varnet_L1loss_noise0.3',map_location=torch.device('cpu'))
 
 # %%
 

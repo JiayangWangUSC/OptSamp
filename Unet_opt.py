@@ -276,7 +276,7 @@ class VarNetBlock(nn.Module):
             self.model(self.sens_reduce(current_kspace, sens_maps)), sens_maps
         )
 
-        return current_kspace - soft_dc + model_term
+        return current_kspace - soft_dc - model_term
 
 #from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
@@ -289,8 +289,8 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     return kspace
 
 train_data = mri_data.SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/test/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/test/'),
+    #root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -309,14 +309,16 @@ class Sample(torch.nn.Module):
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = factor*torch.ones(396)
+        self.mask = torch.ones(396)
+        self.factor = factor
         #self.mask = torch.rand(396)
         #self.mask = self.mask/torch.mean(self.mask)*factor
         self.sigma = sigma
 
     def forward(self,kspace):
+        sample_mask = torch.sqrt(F.softmax(self.mask)*(self.factor-1)*396+1)
         noise = self.sigma*torch.randn_like(kspace)
-        kspace_noise = noise + torch.mul(kspace,torch.sqrt(self.mask).unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
+        kspace_noise = noise + torch.mul(kspace,sample_mask.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
         return kspace_noise
 
 def toIm(kspace): 
@@ -582,6 +584,7 @@ def Sense(batch):
 
 
 # %% optimizer
+#sample_optimizer = optim.Adam(sample_model.parameters(), lr = 1e-3 )
 recon_optimizer = optim.Adam(recon_model.parameters(),lr=1e-3)
 #Loss = torch.nn.MSELoss()
 L1Loss = torch.nn.L1Loss()
@@ -590,7 +593,7 @@ beta = 1e-3
 #ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 
 # %% training
-step = 1e-1
+step = 1e-3
 max_epochs = 1
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
@@ -603,7 +606,7 @@ for epoch in range(max_epochs):
         train_batch.to(device)
 
         gt = toIm(train_batch)
-        support = torch.ge(gt,0.06*torch.max(gt))
+        support = torch.ge(gt,0.05*torch.max(gt))
         gradmap = GradMap(gt,support,D1,D2)
         
        # acs_kspace = torch.zeros_like(train_batch)
@@ -611,7 +614,7 @@ for epoch in range(max_epochs):
         #acs_kspace = torch.mul(acs_kspace,train_batch).to(device)
         sens_maps = Sense(train_batch).to(device)
         kspace_noise = sample_model(train_batch).to(device)
-        mask = torch.sqrt(sample_model.mask).unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(train_batch.size(0),16,384,1,2).to(device)
+        mask = torch.sqrt(F.softmax(sample_model.mask)*(factor-1)*396+1).unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(train_batch.size(0),16,384,1,2).to(device)
       #  acs_kspace = torch.mul(acs_kspace.to(device),torch.div(kspace_noise,mask)).to(device)
 
         recon = recon_model(kspace_noise, sens_maps, mask)
@@ -626,16 +629,14 @@ for epoch in range(max_epochs):
 
         with torch.no_grad():
             grad = sample_model.mask.grad
-            grad = (grad - torch.mean(grad))/torch.std(grad)
             temp = sample_model.mask.clone()
-            temp = temp - step * grad
-            for p in range(10):
-                temp = torch.relu(temp-1)+1
-                temp = temp - torch.mean(temp) + factor
-            sample_model.mask = torch.relu(temp-1)+1
+            sample_model.mask = temp - step * grad
 
+        #sample_optimizer.step()
+        #sample_optimizer.zero_grad()
         recon_optimizer.step()
         recon_optimizer.zero_grad()
+
 
   #  with torch.no_grad():
   #      loss = 0

@@ -280,7 +280,7 @@ class VarNetBlock(nn.Module):
             self.model(self.sens_reduce(current_kspace, sens_maps)), sens_maps
         )
 
-        return current_kspace - soft_dc + model_term
+        return current_kspace - soft_dc - model_term
 
 #from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
@@ -293,8 +293,8 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     return kspace
 
 train_data = mri_data.SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/test/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/test/'),
+    #root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -605,7 +605,7 @@ for epoch in range(max_epochs):
         train_batch.to(device)
 
         gt = toIm(train_batch)
-        support = torch.ge(gt,0.06*torch.max(gt))
+        support = torch.ge(gt,0.05*torch.max(gt))
         gradmap = GradMap(gt,support,D1,D2)
         
      #   acs_kspace = torch.zeros_like(train_batch)
