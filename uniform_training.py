@@ -593,7 +593,7 @@ beta = 1e-3
 
 
 # %% training
-max_epochs = 1
+max_epochs = 5
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
