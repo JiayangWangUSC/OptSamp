@@ -16,271 +16,7 @@ import matplotlib.pyplot as plt
 from torchvision.utils import save_image
 from PIL import Image
 import numpy as np
-#%%
-class NormUnet(nn.Module):
-    """
-    Normalized U-Net model.
-    This is the same as a regular U-Net, but with normalization applied to the
-    input before the U-Net. This keeps the values more numerically stable
-    during training.
-    """
 
-    def __init__(
-        self,
-        chans: int,
-        num_pools: int,
-        in_chans: int = 2,
-        out_chans: int = 2,
-        drop_prob: float = 0.0,
-    ):
-        """
-        Args:
-            chans: Number of output channels of the first convolution layer.
-            num_pools: Number of down-sampling and up-sampling layers.
-            in_chans: Number of channels in the input to the U-Net model.
-            out_chans: Number of channels in the output to the U-Net model.
-            drop_prob: Dropout probability.
-        """
-        super().__init__()
-
-        self.unet = Unet(
-            in_chans=in_chans,
-            out_chans=out_chans,
-            chans=chans,
-            num_pool_layers=num_pools,
-            drop_prob=drop_prob,
-        )
-
-    def complex_to_chan_dim(self, x: torch.Tensor) -> torch.Tensor:
-        b, c, h, w, two = x.shape
-        assert two == 2
-        return x.permute(0, 4, 1, 2, 3).reshape(b, 2 * c, h, w)
-
-    def chan_complex_to_last_dim(self, x: torch.Tensor) -> torch.Tensor:
-        b, c2, h, w = x.shape
-        assert c2 % 2 == 0
-        c = c2 // 2
-        return x.view(b, 2, c, h, w).permute(0, 2, 3, 4, 1).contiguous()
-
-    def norm(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        # group norm
-        b, c, h, w = x.shape
-        x = x.view(b, 2, c // 2 * h * w)
-
-        mean = x.mean(dim=2).view(b, 2, 1, 1)
-        std = x.std(dim=2).view(b, 2, 1, 1)
-
-        x = x.view(b, c, h, w)
-
-        return (x - mean) / std, mean, std
-
-    def unnorm(
-        self, x: torch.Tensor, mean: torch.Tensor, std: torch.Tensor
-    ) -> torch.Tensor:
-        return x * std + mean
-
-    def pad(
-        self, x: torch.Tensor
-    ) -> Tuple[torch.Tensor, Tuple[List[int], List[int], int, int]]:
-        _, _, h, w = x.shape
-        w_mult = ((w - 1) | 15) + 1
-        h_mult = ((h - 1) | 15) + 1
-        w_pad = [math.floor((w_mult - w) / 2), math.ceil((w_mult - w) / 2)]
-        h_pad = [math.floor((h_mult - h) / 2), math.ceil((h_mult - h) / 2)]
-        # TODO: fix this type when PyTorch fixes theirs
-        # the documentation lies - this actually takes a list
-        # https://github.com/pytorch/pytorch/blob/master/torch/nn/functional.py#L3457
-        # https://github.com/pytorch/pytorch/pull/16949
-        x = F.pad(x, w_pad + h_pad)
-
-        return x, (h_pad, w_pad, h_mult, w_mult)
-
-    def unpad(
-        self,
-        x: torch.Tensor,
-        h_pad: List[int],
-        w_pad: List[int],
-        h_mult: int,
-        w_mult: int,
-    ) -> torch.Tensor:
-        return x[..., h_pad[0] : h_mult - h_pad[1], w_pad[0] : w_mult - w_pad[1]]
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        if not x.shape[-1] == 2:
-            raise ValueError("Last dimension must be 2 for complex.")
-
-        # get shapes for unet and normalize
-        x = self.complex_to_chan_dim(x)
-        x, mean, std = self.norm(x)
-        x, pad_sizes = self.pad(x)
-
-        x = self.unet(x)
-
-        # get shapes back and unnormalize
-        x = self.unpad(x, *pad_sizes)
-        x = self.unnorm(x, mean, std)
-        x = self.chan_complex_to_last_dim(x)
-
-        return x
-
-
-class SensitivityModel(nn.Module):
-    """
-    Model for learning sensitivity estimation from k-space data.
-    This model applies an IFFT to multichannel k-space data and then a U-Net
-    to the coil images to estimate coil sensitivities. It can be used with the
-    end-to-end variational network.
-    """
-
-    def __init__(
-        self,
-        chans: int,
-        num_pools: int,
-        in_chans: int = 2,
-        out_chans: int = 2,
-        drop_prob: float = 0.0,
-        mask_center: bool = True,
-    ):
-        """
-        Args:
-            chans: Number of output channels of the first convolution layer.
-            num_pools: Number of down-sampling and up-sampling layers.
-            in_chans: Number of channels in the input to the U-Net model.
-            out_chans: Number of channels in the output to the U-Net model.
-            drop_prob: Dropout probability.
-            mask_center: Whether to mask center of k-space for sensitivity map
-                calculation.
-        """
-        super().__init__()
-        self.mask_center = mask_center
-        self.norm_unet = NormUnet(
-            chans,
-            num_pools,
-            in_chans=in_chans,
-            out_chans=out_chans,
-            drop_prob=drop_prob,
-        )
-
-    def batch_chans_to_chan_dim(self, x: torch.Tensor, batch_size: int) -> torch.Tensor:
-        bc, _, h, w, comp = x.shape
-        c = bc // batch_size
-        return x.view(batch_size, c, h, w, comp)
-    
-    def chans_to_batch_dim(self, x: torch.Tensor) -> Tuple[torch.Tensor, int]:
-        b, c, h, w, comp = x.shape
-        return x.view(b * c, 1, h, w, comp), b
-
-    def divide_root_sum_of_squares(self, x: torch.Tensor) -> torch.Tensor:
-        return x / fastmri.rss_complex(x, dim=1).unsqueeze(-1).unsqueeze(1)
-
-    def forward(
-        self,
-        acs_kspace: torch.Tensor
-    ) -> torch.Tensor:
-
-        # convert to image space
-        images, batches = self.chans_to_batch_dim(fastmri.ifft2c(acs_kspace))
-        # estimate sensitivities
-        return self.divide_root_sum_of_squares(
-            self.batch_chans_to_chan_dim(self.norm_unet(images), batches)
-        )
-
-
-class VarNet(nn.Module):
-    """
-    A full variational network model.
-    This model applies a combination of soft data consistency with a U-Net
-    regularizer. To use non-U-Net regularizers, use VarNetBlock.
-    """
-
-    def __init__(
-        self,
-        num_cascades: int = 12,
-        sens_chans: int = 8,
-        sens_pools: int = 4,
-        chans: int = 18,
-        pools: int = 4,
-        mask_center: bool = True,
-    ):
-        """
-        Args:
-            num_cascades: Number of cascades (i.e., layers) for variational
-                network.
-            sens_chans: Number of channels for sensitivity map U-Net.
-            sens_pools Number of downsampling and upsampling layers for
-                sensitivity map U-Net.
-            chans: Number of channels for cascade U-Net.
-            pools: Number of downsampling and upsampling layers for cascade
-                U-Net.
-            mask_center: Whether to mask center of k-space for sensitivity map
-                calculation.
-        """
-        super().__init__()
-
-        self.sens_net = SensitivityModel(
-            chans=sens_chans,
-            num_pools=sens_pools,
-            mask_center=mask_center,
-        )
-        self.cascades = nn.ModuleList(
-            [VarNetBlock(NormUnet(chans, pools)) for _ in range(num_cascades)]
-        )
-
-    def forward(
-        self,
-        masked_kspace: torch.Tensor,
-        acs_kspace:torch.Tensor,
-        mask: torch.Tensor
-    ) -> torch.Tensor:
-        sens_maps = self.sens_net(acs_kspace)
-        kspace_pred = torch.div(masked_kspace.clone(),mask)
-
-        for cascade in self.cascades:
-            kspace_pred = cascade(kspace_pred, masked_kspace, mask, sens_maps)
-
-        return fastmri.rss(fastmri.complex_abs(fastmri.ifft2c(kspace_pred)), dim=1)
-
-
-class VarNetBlock(nn.Module):
-    """
-    Model block for end-to-end variational network.
-    This model applies a combination of soft data consistency with the input
-    model as a regularizer. A series of these blocks can be stacked to form
-    the full variational network.
-    """
-
-    def __init__(self, model: nn.Module):
-        """
-        Args:
-            model: Module for "regularization" component of variational
-                network.
-        """
-        super().__init__()
-
-        self.model = model
-        self.dc_weight = nn.Parameter(torch.ones(1))
-
-    def sens_expand(self, x: torch.Tensor, sens_maps: torch.Tensor) -> torch.Tensor:
-        return fastmri.fft2c(fastmri.complex_mul(x, sens_maps))
-
-    def sens_reduce(self, x: torch.Tensor, sens_maps: torch.Tensor) -> torch.Tensor:
-        return fastmri.complex_mul(
-            fastmri.ifft2c(x), fastmri.complex_conj(sens_maps)
-        ).sum(dim=1, keepdim=True)
-
-    def forward(
-        self,
-        current_kspace: torch.Tensor,
-        ref_kspace: torch.Tensor,
-        mask: torch.Tensor,
-        sens_maps: torch.Tensor,
-    ) -> torch.Tensor:
-        soft_dc = torch.mul(mask,(torch.mul(mask, current_kspace) - ref_kspace)) * self.dc_weight
-        model_term = self.sens_expand(
-            self.model(self.sens_reduce(current_kspace, sens_maps)), sens_maps
-        )
-
-        return current_kspace - soft_dc + model_term
 # %% data loader
 def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     # Transform the kspace to tensor format
@@ -311,157 +47,61 @@ class Sample(torch.nn.Module):
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = factor*torch.ones(396)
+        self.mask = torch.ones(396)
+        self.factor = factor
         self.sigma = sigma
 
     def forward(self,kspace):
+        sample_mask = torch.sqrt(F.softmax(self.mask)*(self.factor-1)*396+1)
         noise = self.sigma*torch.randn_like(kspace)
-        kspace_noise = noise + torch.mul(kspace,torch.sqrt(self.mask).unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
+        kspace_noise = kspace + torch.div(noise,sample_mask.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
         return kspace_noise
 
 def toIm(kspace): 
     image = fastmri.rss(fastmri.complex_abs(fastmri.ifft2c(kspace)), dim=1)
     return image
 
-# %% ESPIRit
-
-import matplotlib.pyplot as plt
-import numpy as np
-
-fft  = lambda x, ax : np.fft.fftshift(np.fft.fftn(np.fft.ifftshift(x, axes=ax), axes=ax, norm='ortho'), axes=ax) 
-ifft = lambda X, ax : np.fft.fftshift(np.fft.ifftn(np.fft.ifftshift(X, axes=ax), axes=ax, norm='ortho'), axes=ax) 
-
-def espirit(X, k, r, t, c):
-    """
-    Derives the ESPIRiT operator.
-    Arguments:
-      X: Multi channel k-space data. Expected dimensions are (sx, sy, sz, nc), where (sx, sy, sz) are volumetric 
-         dimensions and (nc) is the channel dimension.
-      k: Parameter that determines the k-space kernel size. If X has dimensions (1, 256, 256, 8), then the kernel 
-         will have dimensions (1, k, k, 8)
-      r: Parameter that determines the calibration region size. If X has dimensions (1, 256, 256, 8), then the 
-         calibration region will have dimensions (1, r, r, 8)
-      t: Parameter that determines the rank of the auto-calibration matrix (A). Singular values below t times the
-         largest singular value are set to zero.
-      c: Crop threshold that determines eigenvalues "=1".
-    Returns:
-      maps: This is the ESPIRiT operator. It will have dimensions (sx, sy, sz, nc, nc) with (sx, sy, sz, :, idx)
-            being the idx'th set of ESPIRiT maps.
-    """
-
-    sx = np.shape(X)[0]
-    sy = np.shape(X)[1]
-    sz = np.shape(X)[2]
-    nc = np.shape(X)[3]
-
-    sxt = (sx//2-r//2, sx//2+r//2) if (sx > 1) else (0, 1)
-    syt = (sy//2-r//2, sy//2+r//2) if (sy > 1) else (0, 1)
-    szt = (sz//2-r//2, sz//2+r//2) if (sz > 1) else (0, 1)
-
-    # Extract calibration region.    
-    C = X[sxt[0]:sxt[1], syt[0]:syt[1], szt[0]:szt[1], :].astype(np.complex64)
-
-    # Construct Hankel matrix.
-    p = (sx > 1) + (sy > 1) + (sz > 1)
-    A = np.zeros([(r-k+1)**p, k**p * nc]).astype(np.complex64)
-
-    idx = 0
-    for xdx in range(max(1, C.shape[0] - k + 1)):
-      for ydx in range(max(1, C.shape[1] - k + 1)):
-        for zdx in range(max(1, C.shape[2] - k + 1)):
-          # numpy handles when the indices are too big
-          block = C[xdx:xdx+k, ydx:ydx+k, zdx:zdx+k, :].astype(np.complex64) 
-          A[idx, :] = block.flatten()
-          idx = idx + 1
-
-    # Take the Singular Value Decomposition.
-    U, S, VH = np.linalg.svd(A, full_matrices=True)
-    V = VH.conj().T
-
-    # Select kernels.
-    n = np.sum(S >= t * S[0])
-    V = V[:, 0:n]
-
-    kxt = (sx//2-k//2, sx//2+k//2) if (sx > 1) else (0, 1)
-    kyt = (sy//2-k//2, sy//2+k//2) if (sy > 1) else (0, 1)
-    kzt = (sz//2-k//2, sz//2+k//2) if (sz > 1) else (0, 1)
-
-    # Reshape into k-space kernel, flips it and takes the conjugate
-    kernels = np.zeros(np.append(np.shape(X), n)).astype(np.complex64)
-    kerdims = [(sx > 1) * k + (sx == 1) * 1, (sy > 1) * k + (sy == 1) * 1, (sz > 1) * k + (sz == 1) * 1, nc]
-    for idx in range(n):
-        kernels[kxt[0]:kxt[1],kyt[0]:kyt[1],kzt[0]:kzt[1], :, idx] = np.reshape(V[:, idx], kerdims)
-
-    # Take the iucfft
-    axes = (0, 1, 2)
-    kerimgs = np.zeros(np.append(np.shape(X), n)).astype(np.complex64)
-    for idx in range(n):
-        for jdx in range(nc):
-            ker = kernels[::-1, ::-1, ::-1, jdx, idx].conj()
-            kerimgs[:,:,:,jdx,idx] = fft(ker, axes) * np.sqrt(sx * sy * sz)/np.sqrt(k**p)
-
-    # Take the point-wise eigenvalue decomposition and keep eigenvalues greater than c
-    maps = np.zeros(np.append(np.shape(X), nc)).astype(np.complex64)
-    for idx in range(0, sx):
-        for jdx in range(0, sy):
-            for kdx in range(0, sz):
-
-                Gq = kerimgs[idx,jdx,kdx,:,:]
-
-                u, s, vh = np.linalg.svd(Gq, full_matrices=True)
-                
-                if (s[0]**2 > c):
-                    maps[idx, jdx, kdx, :, 0] = u[:, 0]
-
-    return maps
-
-
-
-
-def Sense(batch):
-    sens_maps = batch.clone()
-    for num in range(batch.size(0)):
-        X = batch[num].squeeze().unsqueeze(0).permute((0,2,3,1,4)).detach().cpu().numpy()
-        X = X[:,:,:,:,0] + 1j * X[:,:,:,:,1]
-        esp = espirit(X, 4, 12, 0.01, 0.95)
-        esp = torch.from_numpy(esp[0,:,:,:,0]).permute((2,0,1))
-        sens_maps[num,:,:,:,0] = esp.real
-        sens_maps[num,:,:,:,1] = esp.imag
-    return sens_maps
 
 # %% sampling
 factor = 8
 sigma = 0.3
 sample_model = Sample(sigma,factor)
 
-# %% load uniform-unet model
-#val_uniform_loss = torch.load('/home/wjy/unet_model_val_loss')
-mask = torch.load('/home/wjy/mask_varnet_L1loss_noise0.3')
+# %% image unet
+mask = torch.load('/home/wjy/mask_image_unet_L1loss_noise0.3')
 sample_model.mask = mask
-model = torch.load('/home/wjy/opt_varnet_L1loss_noise0.3',map_location=torch.device('cpu'))
-
-# %%
+Mask = torch.sqrt(F.softmax(mask)*(factor-1)*396+1)
+recon_model = torch.load('/home/wjy/uniform_image_unet_L1loss_noise0.3',map_location=torch.device('cpu'))
 
 kspace = test_data[3]
 kspace = kspace.unsqueeze(0)
 Im  = toIm(kspace)
-#plt.imshow(Im[0,0,:,:],cmap='gray')
-#acs_kspace = torch.zeros_like(kspace)
-#acs_kspace[:,:,:,torch.arange(186,210),:] = 1
-#acs_kspace = torch.mul(acs_kspace,kspace)
-sens_maps = Sense(kspace)
-kspace_noise = sample_model(kspace)
-mask = torch.sqrt(sample_model.mask).unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2)
-#plt.imshow(ImN[0,0,:,:],cmap='gray')
+support = torch.ge(Im,0.05*torch.max(Im))
 with torch.no_grad():
-    ImR = model(kspace_noise,sens_maps,mask)
+    kspace_noise = sample_model(kspace)
+    image_noise = fastmri.ifft2c(kspace_noise)
+    image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1) 
+    image_output = recon_model(image_input)
+    image_recon = torch.cat((image_output[:,torch.arange(16),:,:].unsqueeze(4),image_output[:,torch.arange(16,32),:,:].unsqueeze(4)),4)
+    recon = fastmri.rss(fastmri.complex_abs(image_recon), dim=1)
+#Error = torch.abs(ImR-Im)
+#plt.imshow(Error[0,:,:]/torch.max(Im)*10,cmap='hot')
+#%% kspace unet
+mask = torch.load('/home/wjy/mask_kspace_unet_L1loss_noise0.3')
+sample_model.mask = mask
+recon_model = torch.load('/home/wjy/uniform_kspace_unet_L1loss_noise0.3',map_location=torch.device('cpu'))
 
-support = torch.ge(Im,0.06*Im.max())
-ImN = toIm(kspace_noise)
-ImR = torch.mul(ImR,support)
-Im = torch.mul(Im,support)
-Error = torch.abs(ImR-Im)
-plt.imshow(Error[0,:,:]/torch.max(Im)*10,cmap='hot')
+kspace = test_data[3]
+kspace = kspace.unsqueeze(0)
+Im  = toIm(kspace)
+support = torch.ge(Im,0.05*torch.max(Im))
+with torch.no_grad():
+    kspace_noise = sample_model(kspace)
+    image_noise = fastmri.ifft2c(kspace_noise)
+    image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1) 
+    image_output = recon_model(image_input)
+    image_recon = torch.cat((image_output[:,torch.arange(16),:,:].unsqueeze(4),image_output[:,torch.arange(16,32),:,:].unsqueeze(4)),4)
+    recon = fastmri.rss(fastmri.complex_abs(image_recon), dim=1)
 # %%
 cmhot = plt.cm.get_cmap('hot')
 Error = cmhot(np.array(Error.squeeze()/torch.max(Im)*10))
