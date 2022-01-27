@@ -92,7 +92,7 @@ L1Loss = torch.nn.L1Loss()
 #beta = 1e-3
 #ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 
-step = 1e2 # sampling weight optimization step size
+step = 1e3 # sampling weight optimization step size
 
 # %% training
 max_epochs = 20
