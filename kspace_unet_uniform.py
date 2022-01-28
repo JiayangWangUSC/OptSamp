@@ -110,7 +110,8 @@ for epoch in range(max_epochs):
         kspace_recon = torch.cat((kspace_output[:,torch.arange(16),:,:].unsqueeze(4),kspace_output[:,torch.arange(16,32),:,:].unsqueeze(4)),4).to(device)
         recon = toIm(kspace_recon)
         #loss = L2Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device))) + beta*L1Loss(torch.mul(recon.to(device),gradmap.to(device)),torch.mul(gt.to(device),gradmap.to(device)))
-        loss = L1Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device)))
+        #loss = L1Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device)))
+        loss = L1Loss(recon.to(device),gt.to(device))
 
         if batch_count%100 == 0:
             print("batch:",batch_count,"train loss:",loss.item())
