@@ -65,7 +65,7 @@ sample_model = Sample(sigma,factor)
 recon_model = Unet(
   in_chans = 32,
   out_chans = 32,
-  chans = 160,
+  chans = 256,
   num_pool_layers = 4,
   drop_prob = 0.0
 )
