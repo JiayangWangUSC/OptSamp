@@ -65,7 +65,7 @@ sample_model = Sample(sigma,factor)
 recon_model = Unet(
   in_chans = 32,
   out_chans = 32,
-  chans = 32,
+  chans = 160,
   num_pool_layers = 4,
   drop_prob = 0.0
 )
@@ -92,7 +92,7 @@ L1Loss = torch.nn.L1Loss()
 
 
 # %% training
-max_epochs = 20
+max_epochs = 1
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)

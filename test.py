@@ -53,6 +53,7 @@ class Sample(torch.nn.Module):
 
     def forward(self,kspace):
         sample_mask = torch.sqrt(F.softmax(self.mask)*(self.factor-1)*396+1)
+        torch.manual_seed(10)
         noise = self.sigma*torch.randn_like(kspace)
         kspace_noise = kspace + torch.div(noise,sample_mask.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
         return kspace_noise
@@ -68,17 +69,19 @@ sigma = 0.3
 sample_model = Sample(sigma,factor)
 
 # %% image unet
-mask = torch.load('/home/wjy/mask_image_unet_L1loss_noise0.3')
-sample_model.mask = mask
-Mask = torch.sqrt(F.softmax(mask)*(factor-1)*396+1)
-recon_model = torch.load('/home/wjy/uniform_image_unet_L1loss_noise0.3',map_location=torch.device('cpu'))
-
+sample_model = Sample(sigma,factor)
+#mask = torch.load('/home/wjy/mask_image_unet_L1loss_noise0.3')
+#sample_model.mask = mask
+#Mask = F.softmax(mask)*(factor-1)*396+1
+recon_model = torch.load('/home/wjy/opt_image_unet_L1loss_noise0.3',map_location=torch.device('cpu'))
+# %%
 kspace = test_data[3]
 kspace = kspace.unsqueeze(0)
 Im  = toIm(kspace)
 support = torch.ge(Im,0.05*torch.max(Im))
 with torch.no_grad():
     kspace_noise = sample_model(kspace)
+    ImN = toIm(kspace_noise)
     image_noise = fastmri.ifft2c(kspace_noise)
     image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1) 
     image_output = recon_model(image_input)
@@ -86,22 +89,27 @@ with torch.no_grad():
     recon = fastmri.rss(fastmri.complex_abs(image_recon), dim=1)
 #Error = torch.abs(ImR-Im)
 #plt.imshow(Error[0,:,:]/torch.max(Im)*10,cmap='hot')
+
+
 #%% kspace unet
+sample_model = Sample(sigma,factor)
 mask = torch.load('/home/wjy/mask_kspace_unet_L1loss_noise0.3')
 sample_model.mask = mask
-recon_model = torch.load('/home/wjy/uniform_kspace_unet_L1loss_noise0.3',map_location=torch.device('cpu'))
-
-kspace = test_data[3]
+Mask = F.softmax(mask)*(factor-1)*396+1
+recon_model = torch.load('/home/wjy/opt_kspace_unet_L1loss_noise0.3',map_location=torch.device('cpu'))
+# %%
+kspace = test_data[1]
 kspace = kspace.unsqueeze(0)
 Im  = toIm(kspace)
 support = torch.ge(Im,0.05*torch.max(Im))
 with torch.no_grad():
     kspace_noise = sample_model(kspace)
-    image_noise = fastmri.ifft2c(kspace_noise)
-    image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1) 
-    image_output = recon_model(image_input)
-    image_recon = torch.cat((image_output[:,torch.arange(16),:,:].unsqueeze(4),image_output[:,torch.arange(16,32),:,:].unsqueeze(4)),4)
-    recon = fastmri.rss(fastmri.complex_abs(image_recon), dim=1)
+    kspace_input = torch.cat((kspace_noise[:,:,:,:,0],kspace_noise[:,:,:,:,1]),1) 
+    kspace_output = recon_model(kspace_input)
+    kspace_recon = torch.cat((kspace_output[:,torch.arange(16),:,:].unsqueeze(4),kspace_output[:,torch.arange(16,32),:,:].unsqueeze(4)),4)
+    recon = toIm(kspace_recon)
+
+
 # %%
 cmhot = plt.cm.get_cmap('hot')
 Error = cmhot(np.array(Error.squeeze()/torch.max(Im)*10))
@@ -110,10 +118,11 @@ Error = Image.fromarray(Error)
 Error.save('/home/wjy/Project/OptSamp/result_local/NN_error_opt_L1_noise05.png')
 # %%
 cmhot = plt.cm.get_cmap('jet')
-Mask = cmhot(np.array(mask.unsqueeze(0).repeat([384,1])/6-1))
+Mask = F.softmax(mask)*(factor-1)*396+1
+Mask = cmhot(np.array(Mask.unsqueeze(0).repeat([384,1])/15))
 Mask = np.uint8(Mask*255)
 Mask = Image.fromarray(Mask)
-Mask.save('/home/wjy/Project/OptSamp/result_local/varnet_mask_L12_noise03.png')
+Mask.save('/home/wjy/Project/OptSamp/result_local/kspaceunet_mask_L1_noise03.png')
 # %%
 
 ImR = ImR.squeeze().numpy()
