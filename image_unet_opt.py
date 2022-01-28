@@ -42,7 +42,7 @@ class Sample(torch.nn.Module):
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = torch.ones(396)
+        self.mask = torch.zeros(396)
         self.factor = factor
         self.sigma = sigma
 
@@ -95,7 +95,7 @@ L1Loss = torch.nn.L1Loss()
 step = 1e2 # sampling weight optimization step size
 
 # %% training
-max_epochs = 1
+max_epochs = 20
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)

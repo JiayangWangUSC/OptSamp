@@ -70,9 +70,9 @@ sample_model = Sample(sigma,factor)
 
 # %% image unet
 sample_model = Sample(sigma,factor)
-#mask = torch.load('/home/wjy/mask_image_unet_L1loss_noise0.3')
+mask = torch.load('/home/wjy/mask_image_unet_L1loss_noise0.3')
 #sample_model.mask = mask
-#Mask = F.softmax(mask)*(factor-1)*396+1
+Mask = F.softmax(mask)*(factor-1)*396+1
 recon_model = torch.load('/home/wjy/opt_image_unet_L1loss_noise0.3',map_location=torch.device('cpu'))
 # %%
 kspace = test_data[3]
