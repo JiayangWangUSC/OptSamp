@@ -71,7 +71,7 @@ sample_model = Sample(sigma,factor)
 # %% image unet
 sample_model = Sample(sigma,factor)
 mask = torch.load('/home/wjy/mask_image_unet_L1loss_noise0.3')
-#sample_model.mask = mask
+sample_model.mask = mask
 Mask = F.softmax(mask)*(factor-1)*396+1
 recon_model = torch.load('/home/wjy/opt_image_unet_L1loss_noise0.3',map_location=torch.device('cpu'))
 # %%
@@ -93,10 +93,10 @@ with torch.no_grad():
 
 #%% kspace unet
 sample_model = Sample(sigma,factor)
-mask = torch.load('/home/wjy/mask_kspace_unet_L1loss_noise0.3')
-sample_model.mask = mask
-Mask = F.softmax(mask)*(factor-1)*396+1
-recon_model = torch.load('/home/wjy/opt_kspace_unet_L1loss_noise0.3',map_location=torch.device('cpu'))
+#mask = torch.load('/home/wjy/mask_kspace_unet_L1loss_noise0.3')
+#sample_model.mask = mask
+#Mask = F.softmax(mask)*(factor-1)*396+1
+recon_model = torch.load('/home/wjy/uniform_kspace_unet_L1loss_noise0.3',map_location=torch.device('cpu'))
 # %%
 kspace = test_data[1]
 kspace = kspace.unsqueeze(0)

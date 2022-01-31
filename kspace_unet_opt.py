@@ -95,10 +95,13 @@ L1Loss = torch.nn.L1Loss()
 step = 1e3 # sampling weight optimization step size
 
 # %% training
-max_epochs = 20
+max_epochs = 40
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
+    if epoch%10 == 0:
+        step = 0.5 * step
+        
     batch_count = 0
     for train_batch in train_dataloader:
         batch_count = batch_count + 1
