@@ -92,16 +92,16 @@ L1Loss = torch.nn.L1Loss()
 #beta = 1e-3
 #ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 
-step = 1e3 # sampling weight optimization step size
+step = 2e2 # sampling weight optimization step size
 
 # %% training
-max_epochs = 40
+max_epochs = 50
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
     if epoch%10 == 0:
         step = 0.5 * step
-        
+
     batch_count = 0
     for train_batch in train_dataloader:
         batch_count = batch_count + 1
@@ -133,6 +133,6 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"./opt_image_unet_L1loss_noise"+str(sigma))
-    torch.save(sample_model.mask,"./mask_image_unet_L1loss_noise"+str(sigma))
+    torch.save(recon_model,"./opt_step1e2_image_unet_L1loss_noise"+str(sigma))
+    torch.save(sample_model.mask,"./mask_step_1e2_image_unet_L1loss_noise"+str(sigma))
 # %%

@@ -75,7 +75,7 @@ sample_model.mask = mask
 Mask = F.softmax(mask)*(factor-1)*396+1
 recon_model = torch.load('/home/wjy/opt_image_unet_L1loss_noise0.3',map_location=torch.device('cpu'))
 # %%
-kspace = test_data[3]
+kspace = test_data[1]
 kspace = kspace.unsqueeze(0)
 Im  = toIm(kspace)
 support = torch.ge(Im,0.05*torch.max(Im))
