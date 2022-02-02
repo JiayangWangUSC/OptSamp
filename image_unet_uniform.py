@@ -92,7 +92,7 @@ L1Loss = torch.nn.L1Loss()
 
 
 # %% training
-max_epochs = 40
+max_epochs = 50
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
