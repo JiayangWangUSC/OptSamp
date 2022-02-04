@@ -70,12 +70,15 @@ sample_model = Sample(sigma,factor)
 
 # %% image unet
 sample_model = Sample(sigma,factor)
-mask = torch.load('/home/wjy/mask_image_unet_L1loss_noise0.3')
+recon_model = torch.load('/home/wjy/uniform_image_unet_L1loss_noise0.3',map_location=torch.device('cpu'))
+
+mask = torch.load('/home/wjy/mask_step1e2_image_unet_L1loss_noise0.3')
 sample_model.mask = mask
 Mask = F.softmax(mask)*(factor-1)*396+1
 recon_model = torch.load('/home/wjy/opt_image_unet_L1loss_noise0.3',map_location=torch.device('cpu'))
+
 # %%
-kspace = test_data[1]
+kspace = test_data[0]
 kspace = kspace.unsqueeze(0)
 Im  = toIm(kspace)
 support = torch.ge(Im,0.05*torch.max(Im))
@@ -93,10 +96,12 @@ with torch.no_grad():
 
 #%% kspace unet
 sample_model = Sample(sigma,factor)
-#mask = torch.load('/home/wjy/mask_kspace_unet_L1loss_noise0.3')
-#sample_model.mask = mask
-#Mask = F.softmax(mask)*(factor-1)*396+1
 recon_model = torch.load('/home/wjy/uniform_kspace_unet_L1loss_noise0.3',map_location=torch.device('cpu'))
+
+mask = torch.load('/home/wjy/mask_step1e2_kspace_unet_L1loss_noise0.3')
+sample_model.mask = mask
+Mask = F.softmax(mask)*(factor-1)*396+1
+recon_model = torch.load('/home/wjy/opt_kspace_unet_L1loss_noise0.3',map_location=torch.device('cpu'))
 # %%
 kspace = test_data[1]
 kspace = kspace.unsqueeze(0)
@@ -119,7 +124,7 @@ Error.save('/home/wjy/Project/OptSamp/result_local/NN_error_opt_L1_noise05.png')
 # %%
 cmhot = plt.cm.get_cmap('jet')
 Mask = F.softmax(mask)*(factor-1)*396+1
-Mask = cmhot(np.array(Mask.unsqueeze(0).repeat([384,1])/15))
+Mask = cmhot(np.array(Mask.unsqueeze(0).repeat([384,1])/18))
 Mask = np.uint8(Mask*255)
 Mask = Image.fromarray(Mask)
 Mask.save('/home/wjy/Project/OptSamp/result_local/kspaceunet_mask_L1_noise03.png')
