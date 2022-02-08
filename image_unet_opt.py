@@ -58,7 +58,7 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 0.7
+sigma = 0.1
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -92,15 +92,15 @@ L1Loss = torch.nn.L1Loss()
 #beta = 1e-3
 #ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 
-step = 2e3 # sampling weight optimization step size
+step = 1e3 # sampling weight optimization step size
 
 # %% training
 max_epochs = 50
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-    if epoch%10 == 0:
-        step = 0.5 * step
+    #if epoch%10 == 0:
+    #    step = 0.5 * step
 
     batch_count = 0
     for train_batch in train_dataloader:

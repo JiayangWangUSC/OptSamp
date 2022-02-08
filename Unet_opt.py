@@ -14,6 +14,8 @@ import pathlib
 import torch.optim as optim
 from fastmri.data import  mri_data
 # %%
+
+# %%
 class NormUnet(nn.Module):
     """
     Normalized U-Net model.
