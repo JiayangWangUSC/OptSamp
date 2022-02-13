@@ -56,7 +56,7 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 0.7
+sigma = 0.3
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -83,7 +83,7 @@ recon_model.to(device)
 
 
 # %% optimizer
-recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
+recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
 #Loss = torch.nn.MSELoss()
 L1Loss = torch.nn.L1Loss()
 #L2Loss = torch.nn.MSELoss()
@@ -92,7 +92,7 @@ L1Loss = torch.nn.L1Loss()
 
 
 # %% training
-max_epochs = 50
+max_epochs = 20
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)

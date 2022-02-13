@@ -65,20 +65,20 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 0.3
+sigma = 0.5
 sample_model = Sample(sigma,factor)
 
 # %% image unet
 sample_model = Sample(sigma,factor)
-recon_model = torch.load('/home/wjy/uniform_image_unet_L1loss_noise0.3',map_location=torch.device('cpu'))
-
-mask = torch.load('/home/wjy/mask_step1e2_image_unet_L1loss_noise0.3')
+recon_model = torch.load('/home/wjy/uniform_image_unet_L1loss_noise0.5',map_location=torch.device('cpu'))
+# %%
+mask = torch.load('/home/wjy/mask_image_unet_L1loss_noise0.3')
 sample_model.mask = mask
 Mask = F.softmax(mask)*(factor-1)*396+1
-recon_model = torch.load('/home/wjy/opt_image_unet_L1loss_noise0.3',map_location=torch.device('cpu'))
+recon_model = torch.load('/home/wjy/opt_image_unet_L1loss_noise0.1',map_location=torch.device('cpu'))
 
 # %%
-kspace = test_data[0]
+kspace = test_data[1]
 kspace = kspace.unsqueeze(0)
 Im  = toIm(kspace)
 support = torch.ge(Im,0.05*torch.max(Im))
@@ -93,28 +93,14 @@ with torch.no_grad():
 #Error = torch.abs(ImR-Im)
 #plt.imshow(Error[0,:,:]/torch.max(Im)*10,cmap='hot')
 
-
-#%% kspace unet
-sample_model = Sample(sigma,factor)
-recon_model = torch.load('/home/wjy/uniform_kspace_unet_L1loss_noise0.3',map_location=torch.device('cpu'))
-
-mask = torch.load('/home/wjy/mask_step1e2_kspace_unet_L1loss_noise0.3')
-sample_model.mask = mask
-Mask = F.softmax(mask)*(factor-1)*396+1
-recon_model = torch.load('/home/wjy/opt_kspace_unet_L1loss_noise0.3',map_location=torch.device('cpu'))
 # %%
-kspace = test_data[1]
-kspace = kspace.unsqueeze(0)
-Im  = toIm(kspace)
-support = torch.ge(Im,0.05*torch.max(Im))
-with torch.no_grad():
-    kspace_noise = sample_model(kspace)
-    kspace_input = torch.cat((kspace_noise[:,:,:,:,0],kspace_noise[:,:,:,:,1]),1) 
-    kspace_output = recon_model(kspace_input)
-    kspace_recon = torch.cat((kspace_output[:,torch.arange(16),:,:].unsqueeze(4),kspace_output[:,torch.arange(16,32),:,:].unsqueeze(4)),4)
-    recon = toIm(kspace_recon)
+from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 
+ssim_module = SSIM(data_range=255, size_average=True, channel=1)
 
+print(ssim_module(torch.mul(Im,support).unsqueeze(0)/torch.max(Im)*255,torch.mul(recon,support).unsqueeze(0)/torch.max(Im)*255))
+print(torch.norm(torch.mul(Im-recon,support))/torch.norm(torch.mul(support,Im)))
+print(torch.sum(torch.abs(torch.mul(Im-recon,support)))/torch.sum(torch.abs(torch.mul(support,Im))))
 # %%
 cmhot = plt.cm.get_cmap('hot')
 Error = cmhot(np.array(Error.squeeze()/torch.max(Im)*10))
@@ -127,7 +113,7 @@ Mask = F.softmax(mask)*(factor-1)*396+1
 Mask = cmhot(np.array(Mask.unsqueeze(0).repeat([384,1])/18))
 Mask = np.uint8(Mask*255)
 Mask = Image.fromarray(Mask)
-Mask.save('/home/wjy/Project/OptSamp/result_local/kspaceunet_mask_L1_noise03.png')
+Mask.save('/home/wjy/Project/OptSamp/result_local/mask_L1_noise03.png')
 # %%
 
 ImR = ImR.squeeze().numpy()
