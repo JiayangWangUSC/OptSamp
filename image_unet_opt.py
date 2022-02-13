@@ -58,7 +58,11 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
+<<<<<<< HEAD
 sigma = 0.3
+=======
+sigma = 0.5
+>>>>>>> 645f03051010650f7b6e9cca64e133ac18492804
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -99,8 +103,13 @@ max_epochs = 50
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
+<<<<<<< HEAD
     if epoch%20 == 0:
         step = 0.5 * step
+=======
+    #if epoch%10 == 0:
+    #    step = 0.5 * step
+>>>>>>> 645f03051010650f7b6e9cca64e133ac18492804
 
     batch_count = 0
     for train_batch in train_dataloader:

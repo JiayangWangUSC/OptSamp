@@ -120,6 +120,6 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"./uniform_image_unet_L1loss_noise"+str(sigma))
+    torch.save(recon_model,"./uni_model_noise"+str(sigma))
 
 # %%
