@@ -58,11 +58,7 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-<<<<<<< HEAD
 sigma = 0.3
-=======
-sigma = 0.5
->>>>>>> 645f03051010650f7b6e9cca64e133ac18492804
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -89,7 +85,7 @@ recon_model.to(device)
 
 
 # %% optimizer
-recon_optimizer = optim.RMSprop(recon_model.parameters(),lr=1e-3)
+recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
 #Loss = torch.nn.MSELoss()
 L1Loss = torch.nn.L1Loss()
 #L2Loss = torch.nn.MSELoss()
@@ -99,17 +95,13 @@ L1Loss = torch.nn.L1Loss()
 step = 1e3 # sampling weight optimization step size
 
 # %% training
-max_epochs = 50
+max_epochs = 10
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-<<<<<<< HEAD
-    if epoch%20 == 0:
+
+    if epoch%10 == 0:
         step = 0.5 * step
-=======
-    #if epoch%10 == 0:
-    #    step = 0.5 * step
->>>>>>> 645f03051010650f7b6e9cca64e133ac18492804
 
     batch_count = 0
     for train_batch in train_dataloader:
@@ -142,6 +134,6 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"./opt_image_unet_L1loss_noise"+str(sigma))
-    torch.save(sample_model.mask,"./mask_image_unet_L1loss_noise"+str(sigma))
+    torch.save(recon_model,"./opt_model_noise"+str(sigma))
+    torch.save(sample_model.mask,"./opt_mask_L1loss_noise"+str(sigma))
 # %%
