@@ -58,7 +58,7 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 0.3
+sigma = 0.1
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
