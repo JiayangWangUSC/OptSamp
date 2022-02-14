@@ -65,17 +65,17 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 0.3
+sigma = 0.1
 sample_model = Sample(sigma,factor)
 
 # %% image unet
 sample_model = Sample(sigma,factor)
-recon_model = torch.load('/home/wjy/uniform_image_unet_L1loss_noise0.3',map_location=torch.device('cpu'))
+recon_model = torch.load('/home/wjy/uni_model_noise0.1',map_location=torch.device('cpu'))
 # %%
-mask = torch.load('/home/wjy/mask_image_unet_L1loss_noise0.3')
+mask = torch.load('/home/wjy/opt_mask_L1loss_noise0.3')
 sample_model.mask = mask
 Mask = F.softmax(mask)*(factor-1)*396+1
-recon_model = torch.load('/home/wjy/opt_image_unet_L1loss_noise0.3',map_location=torch.device('cpu'))
+#recon_model = torch.load('/home/wjy/opt_model_noise0.3',map_location=torch.device('cpu'))
 
 # %%
 kspace = test_data[1]
