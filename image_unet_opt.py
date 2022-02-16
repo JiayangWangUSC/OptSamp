@@ -6,7 +6,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from fastmri.data import transforms
 from fastmri.models import Unet
-
 import pathlib
 import torch.optim as optim
 from fastmri.data import  mri_data
@@ -47,9 +46,11 @@ class Sample(torch.nn.Module):
         self.sigma = sigma
 
     def forward(self,kspace):
-        sample_mask = torch.sqrt(F.softmax(self.mask)*(self.factor-1)*396+1)
+        sample_mask = F.relu(F.softmax(self.mask)*self.factor*396 - 0.5)
+        sample_mask = torch.sqrt(sample_mask/torch.mean(sample_mask)*self.factor)
+        sample_mask_inv = torch.mul(torch.reciprocal(sample_mask+1e-10),torch.gt(sample_mask,0))
         noise = self.sigma*torch.randn_like(kspace)
-        kspace_noise = kspace + torch.div(noise,sample_mask.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
+        kspace_noise = kspace + torch.mul(noise,sample_mask_inv.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
         return kspace_noise
 
 def toIm(kspace): 
@@ -58,7 +59,7 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 0.6
+sigma = 0.3
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -72,7 +73,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-#recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/uniform_model_selfloss_noise'+str(sigma))
+recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/uni_model_noise'+str(sigma))
 
 # %% GPU 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -92,7 +93,7 @@ L1Loss = torch.nn.L1Loss()
 #beta = 1e-3
 #ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 
-step = 1e3 # sampling weight optimization step size
+#step = 1e3 # sampling weight optimization step size
 
 # %% training
 max_epochs = 50
@@ -100,8 +101,10 @@ max_epochs = 50
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
 
-    if epoch>0 and epoch%10 == 0:
-        step = 0.1 * step
+    if epoch<20:
+        step = 3e2
+    else: 
+        step = 3e1
 
     batch_count = 0
     for train_batch in train_dataloader:
@@ -134,6 +137,6 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"./opt_model_noise"+str(sigma))
-    torch.save(sample_model.mask,"./opt_mask_noise"+str(sigma))
+    torch.save(recon_model,"./opt_model_new_noise"+str(sigma))
+    torch.save(sample_model.mask,"./opt_mask__new_noise"+str(sigma))
 # %%

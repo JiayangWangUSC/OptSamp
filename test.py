@@ -72,7 +72,8 @@ sample_model = Sample(sigma,factor)
 sample_model = Sample(sigma,factor)
 recon_model = torch.load('/home/wjy/uni_model_noise0.1',map_location=torch.device('cpu'))
 # %%
-mask = torch.load('/home/wjy/opt_mask_L1loss_noise0.3')
+#mask = torch.load('/home/wjy/opt_mask_L1loss_noise0.3')
+mask = torch.load('/Users/jiayangwang/Documents/Project/optsamp_result/opt_mask_noise0.5')
 sample_model.mask = mask
 Mask = F.softmax(mask)*(factor-1)*396+1
 #recon_model = torch.load('/home/wjy/opt_model_noise0.3',map_location=torch.device('cpu'))
