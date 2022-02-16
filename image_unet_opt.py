@@ -73,7 +73,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/uni_model_noise'+str(sigma))
+#recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/uni_model_noise'+str(sigma))
 
 # %% GPU 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -137,6 +137,6 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"./opt_model_ini_noise"+str(sigma))
-    torch.save(sample_model.mask,"./opt_mask_ini_noise"+str(sigma))
+    torch.save(recon_model,"./opt_model_rand_noise"+str(sigma))
+    torch.save(sample_model.mask,"./opt_mask_rand_noise"+str(sigma))
 # %%
