@@ -137,6 +137,6 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"./opt_model_new_noise"+str(sigma))
-    torch.save(sample_model.mask,"./opt_mask__new_noise"+str(sigma))
+    torch.save(recon_model,"./opt_model_ini_noise"+str(sigma))
+    torch.save(sample_model.mask,"./opt_mask_ini_noise"+str(sigma))
 # %%
