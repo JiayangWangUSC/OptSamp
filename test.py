@@ -65,18 +65,19 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 0.1
+sigma = 0.3
 sample_model = Sample(sigma,factor)
 
 # %% image unet
 sample_model = Sample(sigma,factor)
-recon_model = torch.load('/home/wjy/uni_model_noise0.1',map_location=torch.device('cpu'))
+recon_model = torch.load('/home/wjy/Project/optsamp_models/uni_model_noise0.3',map_location=torch.device('cpu'))
 # %%
 #mask = torch.load('/home/wjy/opt_mask_L1loss_noise0.3')
-mask = torch.load('/Users/jiayangwang/Documents/Project/optsamp_result/opt_mask_noise0.5')
+mask = torch.load('/home/wjy/Project/optsamp_models/opt_mask_noise0.3')
 sample_model.mask = mask
-Mask = F.softmax(mask)*(factor-1)*396+1
-#recon_model = torch.load('/home/wjy/opt_model_noise0.3',map_location=torch.device('cpu'))
+Mask = F.relu(F.softmax(mask)*factor*396 - 0.5)
+Mask = torch.sqrt(Mask/torch.mean(Mask)*factor)
+recon_model = torch.load('/home/wjy/Project/optsamp_models/opt_model_noise0.3',map_location=torch.device('cpu'))
 
 # %%
 kspace = test_data[1]
@@ -114,7 +115,7 @@ Mask = F.softmax(mask)*(factor-1)*396+1
 Mask = cmhot(np.array(Mask.unsqueeze(0).repeat([384,1])/18))
 Mask = np.uint8(Mask*255)
 Mask = Image.fromarray(Mask)
-Mask.save('/home/wjy/Project/OptSamp/result_local/mask_L1_noise03.png')
+Mask.save('/home/wjy/Project/OptSamp/result_local/mask_rand_noise03.png')
 # %%
 
 ImR = ImR.squeeze().numpy()

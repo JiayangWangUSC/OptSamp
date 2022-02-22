@@ -59,7 +59,7 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 0.3
+sigma = 0.1
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -73,7 +73,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-#recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/uni_model_noise'+str(sigma))
+recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/uni_model_noise'+str(sigma))
 
 # %% GPU 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -93,18 +93,15 @@ L1Loss = torch.nn.L1Loss()
 #beta = 1e-3
 #ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 
-#step = 1e3 # sampling weight optimization step size
+step = 1e3 # sampling weight optimization step size
 
 # %% training
 max_epochs = 50
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-
-    if epoch<20:
-        step = 3e2
-    else: 
-        step = 3e1
+ 
+    step = 0.9 * step
 
     batch_count = 0
     for train_batch in train_dataloader:
@@ -137,6 +134,6 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"./opt_model_rand_noise"+str(sigma))
-    torch.save(sample_model.mask,"./opt_mask_rand_noise"+str(sigma))
+    torch.save(recon_model,"./opt_model_noise"+str(sigma))
+    torch.save(sample_model.mask,"./opt_mask_noise"+str(sigma))
 # %%
