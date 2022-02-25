@@ -52,10 +52,12 @@ class Sample(torch.nn.Module):
         self.sigma = sigma
 
     def forward(self,kspace):
-        sample_mask = torch.sqrt(F.softmax(self.mask)*(self.factor-1)*396+1)
+        sample_mask = F.hardshrink(F.softmax(self.mask)*self.factor*396, lambd=0.5)
+        sample_mask = torch.sqrt(sample_mask/torch.mean(sample_mask)*self.factor)
+        sample_mask_inv = torch.mul(torch.reciprocal(sample_mask+1e-10),torch.gt(sample_mask,0))
         torch.manual_seed(10)
         noise = self.sigma*torch.randn_like(kspace)
-        kspace_noise = kspace + torch.div(noise,sample_mask.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
+        kspace_noise = kspace + torch.mul(noise,sample_mask_inv.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2)) 
         return kspace_noise
 
 def toIm(kspace): 
@@ -75,8 +77,6 @@ recon_model = torch.load('/home/wjy/Project/optsamp_models/uni_model_noise0.3',m
 #mask = torch.load('/home/wjy/opt_mask_L1loss_noise0.3')
 mask = torch.load('/home/wjy/Project/optsamp_models/opt_mask_noise0.3')
 sample_model.mask = mask
-Mask = F.relu(F.softmax(mask)*factor*396 - 0.5)
-Mask = torch.sqrt(Mask/torch.mean(Mask)*factor)
 recon_model = torch.load('/home/wjy/Project/optsamp_models/opt_model_noise0.3',map_location=torch.device('cpu'))
 
 # %%

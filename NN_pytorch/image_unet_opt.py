@@ -41,16 +41,16 @@ class Sample(torch.nn.Module):
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = torch.zeros(396)
+        self.mask = torch.ones(396)
         self.factor = factor
         self.sigma = sigma
 
     def forward(self,kspace):
-        sample_mask = F.relu(F.softmax(self.mask)*self.factor*396 - 0.5)
+        sample_mask = F.hardshrink(F.softmax(self.mask)*self.factor*396, lambd=0.5)
         sample_mask = torch.sqrt(sample_mask/torch.mean(sample_mask)*self.factor)
         sample_mask_inv = torch.mul(torch.reciprocal(sample_mask+1e-10),torch.gt(sample_mask,0))
         noise = self.sigma*torch.randn_like(kspace)
-        kspace_noise = kspace + torch.mul(noise,sample_mask_inv.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
+        kspace_noise = kspace + torch.mul(noise,sample_mask_inv.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2)) 
         return kspace_noise
 
 def toIm(kspace): 
@@ -59,7 +59,7 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 0.6
+sigma = 0.1
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -134,6 +134,6 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"./opt_model_noise"+str(sigma))
-    torch.save(sample_model.mask,"./opt_mask_noise"+str(sigma))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_model_noise"+str(sigma))
+    torch.save(sample_model.mask,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mask_noise"+str(sigma))
 # %%
