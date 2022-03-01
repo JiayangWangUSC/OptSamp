@@ -93,7 +93,7 @@ L1Loss = torch.nn.L1Loss()
 #beta = 1e-3
 #ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 
-step = 1e3 # sampling weight optimization step size
+step = 3e4 # sampling weight optimization step size
 
 # %% training
 max_epochs = 1
@@ -107,7 +107,7 @@ for epoch in range(max_epochs):
         sample_model.mask.requires_grad = True
         train_batch.to(device)
         gt = toIm(train_batch)
-        support = torch.ge(gt,0.05*torch.max(gt))
+        #support = torch.ge(gt,0.05*torch.max(gt))
         
         kspace_noise = sample_model(train_batch).to(device)
         image_noise = fastmri.ifft2c(kspace_noise).to(device)
