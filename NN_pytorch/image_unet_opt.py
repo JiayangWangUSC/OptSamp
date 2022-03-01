@@ -59,7 +59,7 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 0.6
+sigma = 0.1
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -100,13 +100,17 @@ max_epochs = 50
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
- 
-    step = 0.9 * step
+    
+    if epoch < 20:
+        step = 0.9 * step
+    else:
+        step = 0
 
     batch_count = 0
     for train_batch in train_dataloader:
         batch_count = batch_count + 1
-        sample_model.mask.requires_grad = True
+        if epoch < 20:
+            sample_model.mask.requires_grad = True
         train_batch.to(device)
         gt = toIm(train_batch)
         support = torch.ge(gt,0.05*torch.max(gt))
@@ -125,11 +129,12 @@ for epoch in range(max_epochs):
             print("batch:",batch_count,"train loss:",loss.item())
         
         loss.backward()
-
-        with torch.no_grad():
-            grad = sample_model.mask.grad
-            temp = sample_model.mask.clone()
-            sample_model.mask = temp - step * grad
+        
+        if epoch < 20:
+            with torch.no_grad():
+                grad = sample_model.mask.grad
+                temp = sample_model.mask.clone()
+                sample_model.mask = temp - step * grad
 
         recon_optimizer.step()
         recon_optimizer.zero_grad()
