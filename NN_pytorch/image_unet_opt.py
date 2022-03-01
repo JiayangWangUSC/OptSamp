@@ -96,7 +96,7 @@ L1Loss = torch.nn.L1Loss()
 step = 1e3 # sampling weight optimization step size
 
 # %% training
-max_epochs = 20
+max_epochs = 10
 mask_epochs = 10
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
