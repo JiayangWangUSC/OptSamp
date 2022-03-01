@@ -93,11 +93,10 @@ L1Loss = torch.nn.L1Loss()
 #beta = 1e-3
 #ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 
-step = 1e3 # sampling weight optimization step size
+step = 1e4 # sampling weight optimization step size
 
 # %% training
-max_epochs = 10
-mask_epochs = 10
+max_epochs = 1
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
@@ -105,8 +104,7 @@ for epoch in range(max_epochs):
     batch_count = 0
     for train_batch in train_dataloader:
         batch_count = batch_count + 1
-        if epoch < mask_epochs:
-            sample_model.mask.requires_grad = True
+        sample_model.mask.requires_grad = True
         train_batch.to(device)
         gt = toIm(train_batch)
         support = torch.ge(gt,0.05*torch.max(gt))
@@ -126,11 +124,11 @@ for epoch in range(max_epochs):
         
         loss.backward()
         
-        if epoch < mask_epochs:
-            with torch.no_grad():
-                grad = sample_model.mask.grad
-                temp = sample_model.mask.clone()
-                sample_model.mask = temp - step * grad
+
+        with torch.no_grad():
+            grad = sample_model.mask.grad
+            temp = sample_model.mask.clone()
+            sample_model.mask = temp - step * grad
 
         recon_optimizer.step()
         recon_optimizer.zero_grad()

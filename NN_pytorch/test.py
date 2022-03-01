@@ -75,12 +75,12 @@ sample_model = Sample(sigma,factor)
 recon_model = torch.load('/home/wjy/Project/optsamp_models/uni_model_noise0.1',map_location=torch.device('cpu'))
 # %%
 #mask = torch.load('/home/wjy/opt_mask_L1loss_noise0.3')
-mask = torch.load('/home/wjy/Project/optsamp_models/opt_mask_noise0.2')
+mask = torch.load('/home/wjy/Project/optsamp_models/opt_mask_noise0.3')
 sample_model.mask = mask
 sample_mask = F.hardshrink(F.softmax(mask)*factor*396, lambd=1)
 sample_mask = (sample_mask/torch.mean(sample_mask)*factor)
 #sample_mask_inv = torch.mul(torch.reciprocal(sample_mask+1e-10),torch.gt(sample_mask,0))        
-recon_model = torch.load('/home/wjy/Project/optsamp_models/opt_model_noise0.2',map_location=torch.device('cpu'))
+recon_model = torch.load('/home/wjy/Project/optsamp_models/opt_model_noise0.3',map_location=torch.device('cpu'))
 
 # %%
 kspace = test_data[1]
