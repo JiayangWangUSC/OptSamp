@@ -46,9 +46,9 @@ class Sample(torch.nn.Module):
         self.sigma = sigma
 
     def forward(self,kspace):
-        sample_mask = F.hardshrink(F.softmax(self.mask)*self.factor*396, lambd=0.5)
+        sample_mask = F.hardshrink(F.softmax(self.mask)*self.factor*396, lambd=1)
         sample_mask = torch.sqrt(sample_mask/torch.mean(sample_mask)*self.factor)
-        sample_mask_inv = torch.mul(torch.reciprocal(sample_mask+1e-10),torch.gt(sample_mask,0))
+        sample_mask_inv = torch.mul(torch.reciprocal(sample_mask+1e-10),torch.gt(sample_mask,1))
         noise = self.sigma*torch.randn_like(kspace)
         kspace_noise = kspace + torch.mul(noise,sample_mask_inv.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2)) 
         return kspace_noise
@@ -93,7 +93,7 @@ L1Loss = torch.nn.L1Loss()
 #beta = 1e-3
 #ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 
-step = 3e4 # sampling weight optimization step size
+step = 1e3 # sampling weight optimization step size
 
 # %% training
 max_epochs = 1
