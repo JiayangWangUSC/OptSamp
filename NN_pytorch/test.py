@@ -67,10 +67,10 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 0.1
-sample_model = Sample(sigma,factor)
-
+sigma = 0.3
+L1Loss = torch.nn.L1Loss()
 # %% image unet
+
 sample_model = Sample(sigma,factor)
 recon_model = torch.load('/home/wjy/Project/optsamp_models/uni_model_noise0.1',map_location=torch.device('cpu'))
 # %%

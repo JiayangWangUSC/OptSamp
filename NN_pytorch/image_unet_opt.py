@@ -21,8 +21,8 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     return kspace
 
 train_data = mri_data.SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/test/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/test/'),
+    #root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -59,7 +59,7 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 0.3
+sigma = 0.4
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -93,7 +93,7 @@ L1Loss = torch.nn.L1Loss()
 #beta = 1e-3
 #ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 
-step = 3e4 # sampling weight optimization step size
+step = 1e4 # sampling weight optimization step size
 
 # %% training
 max_epochs = 1
