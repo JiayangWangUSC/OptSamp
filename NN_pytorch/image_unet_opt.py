@@ -22,7 +22,7 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
 
 train_data = mri_data.SliceDataset(
     #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/test/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/val/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -41,17 +41,14 @@ class Sample(torch.nn.Module):
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = torch.zeros(396)
+        self.mask = 2*torch.rand(396)-1
         self.factor = factor
         self.sigma = sigma
 
     def forward(self,kspace):
-        sample_mask = F.hardshrink(F.softmax(self.mask)*self.factor*396, lambd=1)
-        sample_mask = torch.sqrt(sample_mask/torch.mean(sample_mask)*self.factor)
-        sample_mask_inv = torch.nan_to_num(torch.reciprocal(sample_mask),nan=0, posinf=0)
+        sample_mask = torch.sqrt(1 + F.softmax(self.mask)*(self.factor-1)*396)
         noise = self.sigma*torch.randn_like(kspace)
-        kspace_noise = kspace + torch.mul(noise,sample_mask_inv.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2)) 
-        kspace_noise = torch.mul(kspace_noise, torch.ge(sample_mask,1).unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2))
+        kspace_noise = kspace + torch.div(noise,sample_mask.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2)) 
         return kspace_noise
 
 def toIm(kspace): 
@@ -60,7 +57,7 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 0.3
+sigma = 0.1
 print("noise level:", sigma)
 
 
@@ -94,14 +91,14 @@ L1Loss = torch.nn.L1Loss()
 #beta = 1e-3
 #ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 
-step = 1e3 # sampling weight optimization step size
+step = 3e2 # sampling weight optimization step size
 
 # %% training
-max_epochs = 1
+max_epochs = 50
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-
+    step = step * 0.8
     batch_count = 0
     for train_batch in train_dataloader:
         batch_count = batch_count + 1
@@ -120,7 +117,7 @@ for epoch in range(max_epochs):
         #loss = L1Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device)))
         loss = L1Loss(recon.to(device),gt.to(device))
 
-        if batch_count%1 == 0:
+        if batch_count%100 == 0:
             print("batch:",batch_count,"train loss:",loss.item())
         
         loss.backward()
@@ -135,6 +132,6 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-#    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_model_noise"+str(sigma))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_model_noise"+str(sigma))
     torch.save(sample_model.mask,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mask_noise"+str(sigma))
-# %%
+
