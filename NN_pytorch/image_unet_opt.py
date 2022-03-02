@@ -44,13 +44,15 @@ class Sample(torch.nn.Module):
         self.mask = torch.ones(396)
         self.factor = factor
         self.sigma = sigma
+        self.support = torch.ones(396)
 
     def forward(self,kspace):
         sample_mask = F.hardshrink(F.softmax(self.mask)*self.factor*396, lambd=1)
         sample_mask = torch.sqrt(sample_mask/torch.mean(sample_mask)*self.factor)
-        sample_mask_inv = torch.mul(torch.reciprocal(sample_mask+1e-10),torch.gt(sample_mask,1))
+        sample_mask_inv = torch.reciprocal(sample_mask+1e-10)
         noise = self.sigma*torch.randn_like(kspace)
         kspace_noise = kspace + torch.mul(noise,sample_mask_inv.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2)) 
+        kspace_noise = torch.mul(kspace_noise, torch.gt(sample_mask,1).unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2))
         return kspace_noise
 
 def toIm(kspace): 
@@ -59,7 +61,7 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 0.4
+sigma = 0.3
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -73,7 +75,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/uni_model_noise'+str(sigma))
+#recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/uni_model_noise'+str(sigma))
 
 # %% GPU 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -93,7 +95,7 @@ L1Loss = torch.nn.L1Loss()
 #beta = 1e-3
 #ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 
-step = 1e4 # sampling weight optimization step size
+step = 1e3 # sampling weight optimization step size
 
 # %% training
 max_epochs = 1
@@ -119,7 +121,7 @@ for epoch in range(max_epochs):
         #loss = L1Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device)))
         loss = L1Loss(recon.to(device),gt.to(device))
 
-        if batch_count%100 == 0:
+        if batch_count%2 == 0:
             print("batch:",batch_count,"train loss:",loss.item())
         
         loss.backward()
@@ -127,12 +129,13 @@ for epoch in range(max_epochs):
 
         with torch.no_grad():
             grad = sample_model.mask.grad
+            grad = torch.nan_to_num(grad)
             temp = sample_model.mask.clone()
             sample_model.mask = temp - step * grad
 
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_model_noise"+str(sigma))
-    torch.save(sample_model.mask,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mask_noise"+str(sigma))
+#    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_model_noise"+str(sigma))
+    torch.save(sample_model.mask,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mask_step1e3_noise"+str(sigma))
 # %%
