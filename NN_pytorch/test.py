@@ -40,9 +40,18 @@ test_data = mri_data.SliceDataset(
 #    challenge='multicoil'
 #)
 
-# %% noise generator and transform to image
-batch_size = 8
+# to image
+def toIm(kspace): 
+    image = fastmri.rss(fastmri.complex_abs(fastmri.ifft2c(kspace)), dim=1)
+    return image
 
+
+# %% parameters
+factor = 8
+batch_size = 8
+sigma = 0.1
+L1Loss = torch.nn.L1Loss()
+# %% image unet uniform
 class Sample(torch.nn.Module): 
 
     def __init__(self,sigma,factor):
@@ -53,33 +62,23 @@ class Sample(torch.nn.Module):
 
     def forward(self,kspace):
         sample_mask = torch.sqrt(1 + F.softmax(self.mask)*(self.factor-1)*396)
+        torch.manual_seed(20)
         noise = self.sigma*torch.randn_like(kspace)
         kspace_noise = kspace + torch.div(noise,sample_mask.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2)) 
         return kspace_noise
 
-def toIm(kspace): 
-    image = fastmri.rss(fastmri.complex_abs(fastmri.ifft2c(kspace)), dim=1)
-    return image
-
-
-# %% sampling
-factor = 8
-sigma = 0.8
-L1Loss = torch.nn.L1Loss()
-# %% image unet uniform
-
 sample_model = Sample(sigma,factor)
-recon_model = torch.load('/home/wjy/Project/optsamp_models/uni_model_noise0.5',map_location=torch.device('cpu'))
+recon_model = torch.load('/home/wjy/Project/optsamp_models/uni_model_noise'+str(sigma),map_location=torch.device('cpu'))
 
 # %% opt
 sample_model = Sample(sigma,factor)
 #mask = torch.load('/home/wjy/opt_mask_L1loss_noise0.3')
-mask = torch.load('/home/wjy/Project/optsamp_models/opt_mask_noise0.4')
+mask = torch.load('/home/wjy/Project/optsamp_models/opt_mask_noise'+str(sigma))
 sample_model.mask = mask
 sample_mask = 1 + F.softmax(mask)*(factor-1)*396
-recon_model = torch.load('/home/wjy/Project/optsamp_models/opt_model_noise0.4',map_location=torch.device('cpu'))
+recon_model = torch.load('/home/wjy/Project/optsamp_models/opt_model_noise'+str(sigma),map_location=torch.device('cpu'))
 
-# %% low 
+# %% low frequency
 class Sample(torch.nn.Module): 
 
     def __init__(self,sigma,factor):
@@ -88,6 +87,7 @@ class Sample(torch.nn.Module):
         self.sigma = sigma
 
     def forward(self,kspace):
+        torch.manual_seed(10)
         noise = self.sigma*torch.randn_like(kspace)/math.sqrt(self.factor/0.8)
         support = torch.zeros(396)
         support[torch.arange(38,38+320)] = 1
@@ -95,13 +95,12 @@ class Sample(torch.nn.Module):
         return kspace_noise
 
 sample_model = Sample(sigma,factor)
-recon_model = torch.load('/home/wjy/Project/optsamp_models/low_model_noise0.4',map_location=torch.device('cpu'))
+recon_model = torch.load('/home/wjy/Project/optsamp_models/low_model_noise'+str(sigma),map_location=torch.device('cpu'))
 
 # %%
-kspace = test_data[1]
+kspace = test_data[0]
 kspace = kspace.unsqueeze(0)
 Im  = toIm(kspace)
-support = torch.ge(Im,0.05*torch.max(Im))
 with torch.no_grad():
     kspace_noise = sample_model(kspace)
     ImN = toIm(kspace_noise)
@@ -110,23 +109,22 @@ with torch.no_grad():
     image_output = recon_model(image_input)
     image_recon = torch.cat((image_output[:,torch.arange(16),:,:].unsqueeze(4),image_output[:,torch.arange(16,32),:,:].unsqueeze(4)),4)
     recon = fastmri.rss(fastmri.complex_abs(image_recon), dim=1)
-#Error = torch.abs(ImR-Im)
-#plt.imshow(Error[0,:,:]/torch.max(Im)*10,cmap='hot')
 
 # %%
 from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 
 ssim_module = SSIM(data_range=255, size_average=True, channel=1)
 
-print(ssim_module(torch.mul(Im,support).unsqueeze(0)/torch.max(Im)*255,torch.mul(recon,support).unsqueeze(0)/torch.max(Im)*255))
+print(torch.norm(Im-ImN)/torch.norm(Im))
+print(ssim_module(Im.unsqueeze(0)/torch.max(Im)*255,recon.unsqueeze(0)/torch.max(Im)*255))
 print(torch.norm(Im-recon)/torch.norm(Im))
 print(torch.sum(torch.abs(Im-recon))/torch.sum(torch.abs(Im)))
+
+
 # %%
-cmhot = plt.cm.get_cmap('hot')
-Error = cmhot(np.array(Error.squeeze()/torch.max(Im)*10))
-Error = np.uint8(Error*255)
-Error = Image.fromarray(Error)
-Error.save('/home/wjy/Project/OptSamp/result_local/NN_error_opt_L1_noise05.png')
+save_image(recon.squeeze()/torch.max(Im)*2,'/home/wjy/Project/optsamp_result/slice0_noise1_opt.png')
+save_image(torch.abs(recon-Im).squeeze()/torch.max(Im)*15,'/home/wjy/Project/optsamp_result/slice0_noise1_opt_error.png')
+
 # %%
 cmhot = plt.cm.get_cmap('jet')
 Mask = F.softmax(mask)*(factor-1)*396+1
@@ -134,128 +132,31 @@ Mask = cmhot(np.array(Mask.unsqueeze(0).repeat([384,1])/18))
 Mask = np.uint8(Mask*255)
 Mask = Image.fromarray(Mask)
 Mask.save('/home/wjy/Project/OptSamp/result_local/mask_rand_noise03.png')
+
+# %% plot mask
+fig = plt.figure()
+
+low_mask = torch.zeros(396)
+low_mask[torch.arange(38,38+320)] = 10
+uni_mask = 8*torch.ones(396)
+mask1 = torch.load('/home/wjy/Project/optsamp_models/opt_mask_noise0.1')
+mask1 = 1 + F.softmax(mask1)*(factor-1)*396
+mask3 = torch.load('/home/wjy/Project/optsamp_models/opt_mask_noise0.3')
+mask3 = 1 + F.softmax(mask3)*(factor-1)*396
+mask4 = torch.load('/home/wjy/Project/optsamp_models/opt_mask_noise0.4')
+mask4 = 1 + F.softmax(mask4)*(factor-1)*396
+mask6 = torch.load('/home/wjy/Project/optsamp_models/opt_mask_noise0.6')
+mask6 = 1 + F.softmax(mask6)*(factor-1)*396
+
+plt.plot(uni_mask,label='uniform')
+plt.plot(low_mask,label='low frequency')
+plt.plot(mask1,label='Noise 1')
+plt.plot(mask3,label='Noise 3')
+plt.plot(mask4,label='Noise 4')
+plt.plot(mask6,label='Noise 6')
+
+plt.legend()
+plt.show()
+
+fig.savefig('/home/wjy/Project/optsamp_result/mask.png')
 # %%
-
-ImR = ImR.squeeze().numpy()
-import scipy.io
-scipy.io.savemat('/home/wjy/Project/OptSamp/file/NN_uniform_recon_Noise2.mat', {"data":ImR})
-
-#%%
-N1 = 384
-N2 = 396
-# %% mask _extraction
-def support_extraction(Batch):
-    result = Batch.clone()
-    N1 = Batch.size(2)
-    N2 = Batch.size(3)
-    for batch in range(Batch.size(0)):
-        Im = Batch[batch,0,:,:].squeeze()
-        support = torch.ge(Im,0.1*Im.max())
-        out_mask = torch.zeros(N1,N2)
-
-        for n1 in range(N1):
-            if torch.sum(support[n1,:])==0:
-                continue;
-            head, tail, n2_head, n2_tail = N2,-1,-1, N2 
-            while head>N2-1:
-                n2_head += 1
-                if support[n1,n2_head]==1:
-                    head = n2_head
-            while tail<0:
-                n2_tail -= 1
-                if support[n1,n2_tail]==1:
-                    tail = n2_tail
-            for n2 in range(head,tail+1):
-                out_mask[n1,n2] += 1
-
-        for n2 in range(N2):
-            if torch.sum(support[:,n2])==0:
-                continue;
-            head, tail, n1_head, n1_tail = N1,-1,-1, N1 
-            while head>N1-1:
-                n1_head += 1
-                if support[n1_head,n2]==1:
-                    head = n1_head
-            while tail<0:
-                n1_tail -= 1
-                if support[n1_tail,n2]==1:
-                    tail = n1_tail
-            for n1 in range(head,tail+1):
-                out_mask[n1,n2] += 1
-        out_mask = torch.ge(out_mask,2)
-
-        inner_mask = torch.zeros(N1,N2)
-        inv_support = torch.mul(~support,out_mask)
-
-        for n1 in range(N1):
-            if torch.sum(inv_support[n1,:])==0:
-                continue;
-            head, tail, n2_head, n2_tail = N2,-1,-1, N2 
-            while head>N2-1:
-                n2_head += 1
-                if inv_support[n1,n2_head]==1:
-                    head = n2_head
-            while tail<0:
-                n2_tail -= 1
-                if inv_support[n1,n2_tail]==1:
-                    tail = n2_tail
-            for n2 in range(head,tail+1):
-                inner_mask[n1,n2] += 1
-
-        for n2 in range(N2):
-            if torch.sum(inv_support[:,n2])==0:
-                continue;
-            head, tail, n1_head, n1_tail = N1,-1,-1, N1 
-            while head>N1-1:
-                n1_head += 1
-                if inv_support[n1_head,n2]==1:
-                    head = n1_head
-            while tail<0:
-                n1_tail -= 1
-                if inv_support[n1_tail,n2]==1:
-                    tail = n1_tail
-            for n1 in range(head,tail+1):
-                inner_mask[n1,n2] += 1
-        inner_mask = torch.ge(inner_mask,2)
-        result[batch,0,:,:] = inner_mask
-    return result
-
-support = support_extraction(Im)
-# %%
-
-D1 = torch.zeros(N1,N1)
-D2 = torch.zeros(N2,N2)
-
-for n1 in range(N1):
-    D1[n1,n1] = 1
-    if n1< N1-1:
-        D1[n1,n1+1] = -1
-    else:
-        D1[n1,0] = -1
-
-for n2 in range(N2):
-    D2[n2,n2] = 1
-    if n2< N2-1:
-        D2[n2,n2+1] = -1
-    else:
-        D2[n1,0] = -1
-
-
-def GradMap(Batch,support,D1,D2):
-    gradmap = support.clone()
-    N1 = Batch.size(2)
-    N2 = Batch.size(3)
-    for batch in range(Batch.size(0)):
-        Im = Batch[batch,0,:,:].squeeze()
-        sp = support[batch,0,:,:].squeeze()
-        G1 = torch.matmul(D1,Im)
-        G2 = torch.matmul(Im,D2)
-        G = torch.sqrt(torch.mul(G1,G1)+torch.mul(G2,G2))
-        G = torch.reshape(torch.mul(G,sp),(-1,))
-        sorted,_ = torch.sort(G,descending=True)
-        th = sorted[round(torch.sum(sp).item()*0.3)]
-        gradmap[batch,0,:,:] = torch.reshape(torch.ge(G,th),(N1,N2))
-
-    return gradmap
-
-gradmap = GradMap(Im,support,D1,D2)

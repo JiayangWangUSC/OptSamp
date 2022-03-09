@@ -35,7 +35,6 @@ train_data = mri_data.SliceDataset(
 #)
 
 # %% noise generator and transform to image
-batch_size = 8
 
 class Sample(torch.nn.Module): 
 
@@ -55,11 +54,10 @@ def toIm(kspace):
     image = fastmri.rss(fastmri.complex_abs(fastmri.ifft2c(kspace)), dim=1)
     return image
 
-# %% sampling
+# %% sampling and noise level parameters
 factor = 8
 sigma = 0.8
 print("noise level:", sigma)
-
 
 # %% unet loader
 recon_model = Unet(
@@ -73,24 +71,18 @@ recon_model = Unet(
 recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/model/uni_model_noise'+str(sigma))
 #recon_model = torch.load('/home/wjy/Project/optsamp_models/uni_model_noise0.3',map_location=torch.device('cpu'))
 
-# %% GPU 
+# %% data loader
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+batch_size = 8
 train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
 #val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
 sample_model = Sample(sigma,factor)
 sample_model.to(device)
 recon_model.to(device)
 
-
-# %% optimizer
+# %% optimization parameters
 recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
-#Loss = torch.nn.MSELoss()
 L1Loss = torch.nn.L1Loss()
-#L2Loss = torch.nn.MSELoss()
-#beta = 1e-3
-#ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
-
 step = 3e2 # sampling weight optimization step size
 
 # %% training
@@ -104,31 +96,31 @@ for epoch in range(max_epochs):
         batch_count = batch_count + 1
         sample_model.mask.requires_grad = True
         train_batch.to(device)
-        gt = toIm(train_batch)
-        #support = torch.ge(gt,0.05*torch.max(gt))
         
-        kspace_noise = sample_model(train_batch).to(device)
+        gt = toIm(train_batch) # ground truth
+        kspace_noise = sample_model(train_batch).to(device) # add noise
+        
+        # forward
         image_noise = fastmri.ifft2c(kspace_noise).to(device)
         image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device) 
         image_output = recon_model(image_input).to(device)
         image_recon = torch.cat((image_output[:,torch.arange(16),:,:].unsqueeze(4),image_output[:,torch.arange(16,32),:,:].unsqueeze(4)),4).to(device)
         recon = fastmri.rss(fastmri.complex_abs(image_recon), dim=1)
-        #loss = L2Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device))) + beta*L1Loss(torch.mul(recon.to(device),gradmap.to(device)),torch.mul(gt.to(device),gradmap.to(device)))
-        #loss = L1Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device)))
         loss = L1Loss(recon.to(device),gt.to(device))
 
         if batch_count%100 == 0:
             print("batch:",batch_count,"train loss:",loss.item())
         
+        # backward
         loss.backward()
         
-
+        # optimize mask
         with torch.no_grad():
             grad = sample_model.mask.grad
             temp = sample_model.mask.clone()
             sample_model.mask = temp - step * grad
-
-
+        
+        # optimize network
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 

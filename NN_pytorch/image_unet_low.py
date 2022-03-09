@@ -47,9 +47,9 @@ class Sample(torch.nn.Module):
         self.sigma = sigma
 
     def forward(self,kspace):
-        noise = self.sigma*torch.randn_like(kspace)/math.sqrt(self.factor/0.8)
+        noise = self.sigma*torch.randn_like(kspace)/math.sqrt(self.factor/240*396)
         support = torch.zeros(396)
-        support[torch.arange(38,38+320)] = 1
+        support[torch.arange(78,78+240)] = 1
         kspace_noise = torch.mul(kspace + noise, support.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2))
         return kspace_noise
 
@@ -59,7 +59,7 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 0.3
+sigma = 0.1
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -85,7 +85,6 @@ train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=Tru
 
 sample_model.to(device)
 recon_model.to(device)
-
 
 # %% optimizer
 recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
@@ -125,6 +124,6 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"./low_model_noise"+str(sigma))
+    torch.save(recon_model,"./low60_model_noise"+str(sigma))
 
 # %%
