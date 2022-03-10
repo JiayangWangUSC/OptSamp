@@ -49,7 +49,7 @@ def toIm(kspace):
 # %% parameters
 factor = 8
 batch_size = 8
-sigma = 0.1
+sigma = 0.3
 L1Loss = torch.nn.L1Loss()
 # %% image unet uniform
 class Sample(torch.nn.Module): 
@@ -62,7 +62,7 @@ class Sample(torch.nn.Module):
 
     def forward(self,kspace):
         sample_mask = torch.sqrt(1 + F.softmax(self.mask)*(self.factor-1)*396)
-        torch.manual_seed(20)
+        torch.manual_seed(69)
         noise = self.sigma*torch.randn_like(kspace)
         kspace_noise = kspace + torch.div(noise,sample_mask.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2)) 
         return kspace_noise
@@ -122,8 +122,8 @@ print(torch.sum(torch.abs(Im-recon))/torch.sum(torch.abs(Im)))
 
 
 # %%
-save_image(recon.squeeze()/torch.max(Im)*2,'/home/wjy/Project/optsamp_result/slice0_noise1_opt.png')
-save_image(torch.abs(recon-Im).squeeze()/torch.max(Im)*15,'/home/wjy/Project/optsamp_result/slice0_noise1_opt_error.png')
+save_image(recon.squeeze()/torch.max(Im)*2,'/home/wjy/Project/optsamp_result/slice0_noise3_opt.png')
+save_image(torch.abs(recon-Im).squeeze()/torch.max(Im)*20,'/home/wjy/Project/optsamp_result/slice0_noise3_opt_error.png')
 
 # %%
 cmhot = plt.cm.get_cmap('jet')
