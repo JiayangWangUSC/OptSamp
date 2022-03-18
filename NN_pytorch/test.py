@@ -49,7 +49,7 @@ def toIm(kspace):
 # %% parameters
 factor = 8
 batch_size = 8
-sigma = 0.3
+sigma = 0.6
 L1Loss = torch.nn.L1Loss()
 # %% image unet uniform
 class Sample(torch.nn.Module): 
@@ -67,16 +67,16 @@ class Sample(torch.nn.Module):
         kspace_noise = kspace + torch.div(noise,sample_mask.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2)) 
         return kspace_noise
 
-sample_model = Sample(sigma,factor)
-recon_model = torch.load('/home/wjy/Project/optsamp_models/uni_model_noise'+str(sigma),map_location=torch.device('cpu'))
+sample_uni = Sample(sigma,factor)
+recon_uni = torch.load('/home/wjy/Project/optsamp_models/uni_model_noise'+str(sigma),map_location=torch.device('cpu'))
 
 # %% opt
-sample_model = Sample(sigma,factor)
+sample_opt = Sample(sigma,factor)
 #mask = torch.load('/home/wjy/opt_mask_L1loss_noise0.3')
 mask = torch.load('/home/wjy/Project/optsamp_models/opt_mask_noise'+str(sigma))
-sample_model.mask = mask
+sample_opt.mask = mask
 sample_mask = 1 + F.softmax(mask)*(factor-1)*396
-recon_model = torch.load('/home/wjy/Project/optsamp_models/opt_model_noise'+str(sigma),map_location=torch.device('cpu'))
+recon_opt = torch.load('/home/wjy/Project/optsamp_models/opt_model_noise'+str(sigma),map_location=torch.device('cpu'))
 
 # %% low frequency
 class Sample(torch.nn.Module): 
@@ -94,21 +94,44 @@ class Sample(torch.nn.Module):
         kspace_noise = torch.mul(kspace + noise, support.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2))
         return kspace_noise
 
-sample_model = Sample(sigma,factor)
-recon_model = torch.load('/home/wjy/Project/optsamp_models/low_model_noise'+str(sigma),map_location=torch.device('cpu'))
+sample_low80 = Sample(sigma,factor)
+recon_low80 = torch.load('/home/wjy/Project/optsamp_models/low_model_noise'+str(sigma),map_location=torch.device('cpu'))
 
 # %%
-kspace = test_data[0]
-kspace = kspace.unsqueeze(0)
-Im  = toIm(kspace)
-with torch.no_grad():
-    kspace_noise = sample_model(kspace)
-    ImN = toIm(kspace_noise)
-    image_noise = fastmri.ifft2c(kspace_noise)
-    image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1) 
-    image_output = recon_model(image_input)
-    image_recon = torch.cat((image_output[:,torch.arange(16),:,:].unsqueeze(4),image_output[:,torch.arange(16,32),:,:].unsqueeze(4)),4)
-    recon = fastmri.rss(fastmri.complex_abs(image_recon), dim=1)
+for slice in range(719):
+    kspace = test_data[slice]
+    kspace = kspace.unsqueeze(0)
+    Im  = toIm(kspace)
+
+    #save_image(Im.squeeze()/5,'/home/wjy/Project/optsamp_result/groundtruth/slice'+str(slice)+'.png')
+
+    with torch.no_grad():
+        # uniform sampling
+        kspace_noise = sample_uni(kspace)
+        image_noise = fastmri.ifft2c(kspace_noise)
+        image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1) 
+        image_output = recon_uni(image_input)
+        image_recon = torch.cat((image_output[:,torch.arange(16),:,:].unsqueeze(4),image_output[:,torch.arange(16,32),:,:].unsqueeze(4)),4)
+        recon = fastmri.rss(fastmri.complex_abs(image_recon), dim=1)
+        save_image(recon.squeeze()/5,'/home/wjy/Project/optsamp_result/noise'+str(int(10*sigma))+'/slice'+str(slice)+'_uni.png')
+
+        # optimized sampling
+        kspace_noise = sample_opt(kspace)
+        image_noise = fastmri.ifft2c(kspace_noise)
+        image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1) 
+        image_output = recon_opt(image_input)
+        image_recon = torch.cat((image_output[:,torch.arange(16),:,:].unsqueeze(4),image_output[:,torch.arange(16,32),:,:].unsqueeze(4)),4)
+        recon = fastmri.rss(fastmri.complex_abs(image_recon), dim=1)
+        save_image(recon.squeeze()/5,'/home/wjy/Project/optsamp_result/noise'+str(int(10*sigma))+'/slice'+str(slice)+'_opt.png')
+
+        # 80% low frequency sampling
+        kspace_noise = sample_low80(kspace)
+        image_noise = fastmri.ifft2c(kspace_noise)
+        image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1) 
+        image_output = recon_low80(image_input)
+        image_recon = torch.cat((image_output[:,torch.arange(16),:,:].unsqueeze(4),image_output[:,torch.arange(16,32),:,:].unsqueeze(4)),4)
+        recon = fastmri.rss(fastmri.complex_abs(image_recon), dim=1)
+        save_image(recon.squeeze()/5,'/home/wjy/Project/optsamp_result/noise'+str(int(10*sigma))+'/slice'+str(slice)+'_low80.png')
 
 # %%
 from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM

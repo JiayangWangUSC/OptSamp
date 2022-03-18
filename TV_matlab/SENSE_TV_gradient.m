@@ -6,12 +6,7 @@ addpath(genpath('./SPIRiT_v0.3'));
 %% load data
 
 datapath = '/home/wjy/Project/fastmri_dataset/test/';
-%datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/val/';
 dirname = dir(datapath);
-%data = h5read('file_brain_AXT2_200_6002217.h5','/home/wjy/Project/fastmri_dataset/test');
-%kspace = h5read([datapath,dirname(3).name],'/kspace');
-%kspace = complex(kspace.r,kspace.i);
-%kspace = permute(kspace,[4,2,1,3]);
 N1 = 384; N2 = 396; Nc = 16;
 
 subject = [];
@@ -49,7 +44,6 @@ for n = 1:N2-1
 end
 d2(N2,1) = -1;
 
-
 %% reconstruction parameters initialization
 sigma = 0.3;
 noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
@@ -67,130 +61,9 @@ kspace = permute(kspace,[4,2,1,3]);
 kData = undersample(reshape(kspace(3,:,:,:),2*N1,N2,Nc))/1e-4;
 kMask = repmat(sqrt(weight),[N1,1,Nc]);
 usData = kMask.*kData+noise;
-recon = TV(usData,kMask,rho,beta,MaxIter,d1,d2);
-imr = ifft2c(reshape(recon,N1,N2,Nc));
-ImR = sqrt(sum(abs(imr).^2,3));
-Im = sqrt(sum(abs(ifft2c(reshape(kData,N1,N2,Nc))).^2,3));
-ImN= sqrt(sum(abs(ifft2c(reshape(usData./kMask,N1,N2,Nc))).^2,3));
-support = zeros(N1,N2);
-support(Im>0.06*max(Im(:))) = 1;
-
-%%
-%patch = ImN(221:260,101:150);
-%patch = imresize(patch,[80,80],'nearest');
-%imwrite(patch/max(Im(:))*2,'/home/wjy/Project/OptSamp/result_local/TV_patch1_noise08.png');
 maps = getmap(usData./kMask);
-%%
- image_norm(support.*(ImN-Im))/image_norm(support.*Im)
- image_norm(support.*(ImR-Im))/image_norm(support.*Im)
-%%
-%ssim(support.*ImR/max(Im(:))*256,support.*Im/max(Im(:))*256)
 
-%%
-epoch_max = 30;
-step = 10;
-train_loss = zeros(1,epoch_max);
-for epoch = 1:epoch_max
-    disp(epoch);
-    loss = 0;
-    for batch = 1:batch_num
-        kMask = repmat(sqrt(weight),[N1,1,Nc]);
-        AhA = kMask.*kMask + rho*DhD;
-        AhA_dagger = AhA;
-        AhA_dagger(find(AhA)) = 1./AhA(find(AhA));
-        Gradient = zeros(N1,N2,batch_size);
-        mse = zeros(1,batch_size);
-        parfor (datanum = 1:batch_size, batch_size)
-            % data load
-            fname = subject(batch_size*(batch-1)+datanum,:);
-            slicenum = slice(batch_size*(batch-1)+datanum);
-            kspace = h5read([datapath,fname],'/kspace');
-            kspace = complex(kspace.r,kspace.i);
-            kspace = permute(kspace,[4,2,1,3]);
-            kData = undersample(reshape(kspace(slicenum,:,:,:),2*N1,N2,Nc))/1e-4;
-            
-            % sample
-            noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
-            usData = kMask.*kData + noise;
-        
-            %recon
-            x = usData./kMask;
-            x = x(:);
-            X = repmat(0*x,[1,MaxIter]);
-            z = threshold(D(x),beta);
-            Z = repmat(0*z,[1,MaxIter]);
-            u = 0*z;
-            U = repmat(0*u,[1,MaxIter]);
-            fd = kMask(:).*usData(:);
-
-            for k = 1:MaxIter
-                X(:,k) = x;
-                Z(:,k) = z;
-                U(:,k) = u;
-                x = AhA_dagger(:).*(fd+rho*Dh(z-u));
-                Dx = D(x);
-                z = threshold(Dx+u,beta);
-                u = u + Dx - z; 
-            end
-            recon = x;
-            imr = ifft2c(reshape(recon,N1,N2,Nc));
-            ImR = sqrt(sum(abs(imr).^2,3));
-            Im = sqrt(sum(abs(ifft2c(reshape(kData,N1,N2,Nc))).^2,3));
-            
-            support = zeros(N1,N2);
-            support(Im>0.06*max(Im(:))) = 1;
-            
-            %% backward propagation
-            Grad = 0;
-            dx = support.*((ImR-Im)./Im);
-            dx = fft2c(repmat(dx,[1,1,Nc]).*imr);
-            dx = dx(:);
-            for k = MaxIter:-1:1
-                dW = AhA_dagger.*AhA_dagger.*(rho*DhD.*(kData+noise./kMask/2)-kMask.*noise/2-rho*reshape(Dh(Z(:,k)-U(:,k)),N1,N2,Nc));
-                Grad = Grad + complex_odot(dW(:),dx);
-                if k == MaxIter
-                    du = - rho* D(AhA_dagger(:).*dx);
-                else
-                    du = du - rho* D(AhA_dagger(:).*dx) + complex_odot(threshold_grad(D(X(:,k+1))+U(:,k),beta),dz);
-                end
-                    dz = rho* D(AhA_dagger(:).*dx) - du;
-    
-                if k == 1
-                    dx = Dh(complex_odot(threshold_grad(D(X(:,k)),beta),dz));
-                    dW = -noise(:)./(kMask(:)).^3/2;
-                    Grad = Grad + complex_odot(dW,dx);
-                else
-                    dx = Dh(du + complex_odot(threshold_grad(D(X(:,k))+U(:,k-1),beta),dz));
-                end
-            end
-            Grad = reshape(Grad,N1,N2,Nc);
-            Grad = sum(real(Grad)+imag(Grad),3);
-            Gradient(:,:,datanum) = Grad;
-            
-            mse(datanum) = image_norm(support.*(ImR-Im))^2;
-    
-        end
-        
-        Gradient = sum(sum(Gradient,3),1);
-        Gradient = Gradient-mean(Gradient(:));
-        Gradient = Gradient/norm(Gradient(:));
-
-        weight = weight - step* Gradient;
-        for p = 1:10
-            weight(weight<1) = 1;
-            weight = weight - mean(weight(:)) + factor;
-        end
-        weight(weight<1) = 1;
-        if mod(batch,100) == 0
-            disp(['epoch:',num2str(epoch),' batch:',num2str(batch),' train loss:',num2str(mean(mse))]);
-        end
-        loss = loss + mean(mse);
-    end
-    train_loss(epoch) = loss/batch_num;
-end
-
-%save TV_noise08_train_loss train_loss
-save ./result_local/TV_noise03_mask.mat weight
+%% SENSE-TV
 
 
 %%
@@ -252,11 +125,7 @@ end
 
 %% threshold
 function result = threshold(x,th)
-    %v = abs(real(x))-th;
-    %v(v<0)=0;
-    %u = abs(imag(x))-th;
-    %u(u<0)=0;
-    %result= complex(sign(real(x)).*u,sign(imag(x)).*v);
+
     v = abs(x)-th;
     v(v<0) = 0;
     result = sign(x).*v;
