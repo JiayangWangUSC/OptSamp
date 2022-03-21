@@ -54,61 +54,35 @@ Dh = @(x) reshape(fft2c(reshape(difference_H(x,N1,N2,Nc,d1,d2),N1,N2,Nc)),[],1);
 DhD = reshape(real(Dh(D(ones(N1,N2,Nc)))),N1,N2,Nc);
 
 %% reconstruction parameters initialization
-sigma = 0.8;
+sigma = 0.1;
 noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
 factor = 8;
 weight = factor*ones(1,N2);
-rho = 1.6;
-beta = 0.8; % (noise_level,rho,beta): (0.5, 1, 0.5),(0.8, 1.6, 0.8),(0.3,0.6,0.5)
+rho = 0.5;
+beta = 0.3; % (noise_level,rho,beta): (0.1~0.3,0.5,0.3),(0.4~0.6, 1, 0.5),(0.8, 1.6, 0.8)
 
 MaxIter = 10;
 
 %%
 %load('/home/wjy/TV_noise05_mask.mat');
-kspace = h5read([datapath,dirname(3).name],'/kspace');
-kspace = complex(kspace.r,kspace.i);
-kspace = permute(kspace,[4,2,1,3]);
-kData = undersample(reshape(kspace(3,:,:,:),2*N1,N2,Nc))/1e-4;
-kMask = repmat(sqrt(weight),[N1,1,Nc]);
-usData = kMask.*kData+noise;
-recon = TV(usData,kMask,rho,beta,MaxIter,D,Dh,DhD);
-imr = ifft2c(reshape(recon,N1,N2,Nc));
-ImR = sqrt(sum(abs(imr).^2,3));
-Im = sqrt(sum(abs(ifft2c(reshape(kData,N1,N2,Nc))).^2,3));
-ImN= sqrt(sum(abs(ifft2c(reshape(usData./kMask,N1,N2,Nc))).^2,3));
-support = zeros(N1,N2);
-support(Im>0.06*max(Im(:))) = 1;
+%kspace = h5read([datapath,dirname(3).name],'/kspace');
+%kspace = complex(kspace.r,kspace.i);
+%kspace = permute(kspace,[4,2,1,3]);
+%kData = undersample(reshape(kspace(3,:,:,:),2*N1,N2,Nc))/1e-4;
+%kMask = repmat(sqrt(weight),[N1,1,Nc]);
+%usData = kMask.*kData+noise;
+%recon = TV(usData,kMask,rho,beta,MaxIter,D,Dh,DhD);
+%imr = ifft2c(reshape(recon,N1,N2,Nc));
+%ImR = sqrt(sum(abs(imr).^2,3));
+%Im = sqrt(sum(abs(ifft2c(reshape(kData,N1,N2,Nc))).^2,3));
+%ImN= sqrt(sum(abs(ifft2c(reshape(usData./kMask,N1,N2,Nc))).^2,3));
+%support = zeros(N1,N2);
+%support(Im>0.06*max(Im(:))) = 1;
 %%
 %patch = ImN(221:260,101:150);
 %patch = imresize(patch,[80,80],'nearest');
 %imwrite(patch/max(Im(:))*2,'/home/wjy/Project/OptSamp/result_local/TV_patch1_noise08.png');
 
-%%
- image_norm(support.*(ImN-Im))/image_norm(support.*Im)
- image_norm(support.*(ImR-Im))/image_norm(support.*Im)
-%%
-%ssim(support.*ImR/max(Im(:))*256,support.*Im/max(Im(:))*256)
-%% LPR
-%ptb = zeros(1,N2);
-%for i = 1:N2/4
-%    if mod(i,2)==1
-%        ptb(4*(i-1)+1:4*i)=1;
-%    end
-%end
-%ptb = repmat(ptb,[4,1]);
-%ptb = [ptb;1-ptb];
-%ptb = repmat(ptb,[N1/8,1,Nc]);
-%imr = ifft2c(reshape(kData,N1,N2,Nc));
-%ptb = ptb.*exp(j*angle(imr));
-%ptb = fft2c(ptb);
-%ptb = 0.05*ptb;
-%%
-
-%usData1 = kMask.*(kData+ptb)+noise;
-%recon1 = TV(usData1,kMask,rho,beta,MaxIter,D,Dh,DhD);
-%imr1 = ifft2c(reshape(recon1,N1,N2,Nc));
-%ImR1 = sqrt(sum(abs(imr1).^2,3));
-%Im1 = sqrt(sum(abs(ifft2c(reshape(kData+ptb,N1,N2,Nc))).^2,3));
 
 %%
 epoch_max = 1;
@@ -161,12 +135,12 @@ for epoch = 1:epoch_max
             ImR = sqrt(sum(abs(imr).^2,3));
             Im = sqrt(sum(abs(ifft2c(reshape(kData,N1,N2,Nc))).^2,3));
             
-            support = zeros(N1,N2);
-            support(Im>0.06*max(Im(:))) = 1;
+            %support = zeros(N1,N2);
+            %support(Im>0.06*max(Im(:))) = 1;
             
             %% backward propagation
             Grad = 0;
-            dx = support.*(sign(ImR-Im)./Im);
+            dx = sign(ImR-Im)./Im;
             dx = fft2c(repmat(dx,[1,1,Nc]).*imr);
             dx = dx(:);
             for k = MaxIter:-1:1
@@ -191,7 +165,7 @@ for epoch = 1:epoch_max
             Grad = sum(real(Grad)+imag(Grad),3);
             Gradient(:,:,datanum) = Grad;
             
-            mse(datanum) = image_norm(support.*(ImR-Im))^2;
+            mse(datanum) = image_norm(ImR-Im)^2;
     
         end
         
@@ -214,7 +188,7 @@ for epoch = 1:epoch_max
 end
 
 %save TV_noise08_train_loss train_loss
-save ./result_local/TV_L1_noise08_mask.mat weight
+save /project/jhaldar_118/jiayangw/OptSamp/model/TV_mask_noise1 weight
 
 
 %%
