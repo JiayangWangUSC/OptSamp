@@ -55,12 +55,12 @@ Dh = @(x) reshape(fft2c(reshape(difference_H(x,N1,N2,Nc,d1,d2),N1,N2,Nc)),[],1);
 DhD = reshape(real(Dh(D(ones(N1,N2,Nc)))),N1,N2,Nc);
 
 %% reconstruction parameters initialization
-sigma = 0.3;
+sigma = 0.4;
 noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
 factor = 8;
 weight = factor*ones(1,N2);
-rho = 0.5;
-beta = 0.3; % (noise_level,rho,beta): (0.1~0.3,0.5,0.3),(0.4~0.6, 1, 0.5),(0.8, 1.6, 0.8)
+rho = 1;
+beta = 0.5; % (noise_level,rho,beta): (0.1~0.3,0.5,0.3),(0.4~0.6, 1, 0.5),(0.8, 1.6, 0.8)
 
 MaxIter = 10;
 
@@ -191,7 +191,7 @@ for epoch = 1:epoch_max
 end
 
 %save TV_noise08_train_loss train_loss
-save /project/jhaldar_118/jiayangw/OptSamp/model/TV_mask_noise3 weight
+save /project/jhaldar_118/jiayangw/OptSamp/model/TV_mask_noise4 weight
 
 
 %%
