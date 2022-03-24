@@ -86,8 +86,8 @@ MaxIter = 10;
 
 
 %%
-epoch_max = 0.1;
-step = 1;
+epoch_max = 1;
+step = 0.1;
 train_loss = zeros(1,epoch_max);
 for epoch = 1:epoch_max
     disp(epoch);
