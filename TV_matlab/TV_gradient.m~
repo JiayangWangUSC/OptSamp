@@ -29,7 +29,7 @@ end
 
 %%
 datalen = length(slice);
-batch_size = 8;
+batch_size = 1;
 batch_num = datalen/batch_size;
 
 %%
@@ -86,7 +86,7 @@ MaxIter = 10;
 
 
 %%
-epoch_max = 0.1;
+epoch_max = 1;
 step = 1;
 train_loss = zeros(1,epoch_max);
 for epoch = 1:epoch_max
@@ -100,8 +100,8 @@ for epoch = 1:epoch_max
         AhA_dagger(find(AhA)) = 1./AhA(find(AhA));
         Gradient = zeros(N1,N2,batch_size);
         l1loss = zeros(1,batch_size);
-        parfor (datanum = 1:batch_size, batch_size)
-        %for datanum = 1:batch_size
+        %parfor (datanum = 1:batch_size, batch_size)
+        for datanum = 1:batch_size
             % data load
             fname = subject(batch_size*(batch-1)+datanum,:);
             slicenum = slice(batch_size*(batch-1)+datanum);
@@ -178,10 +178,10 @@ for epoch = 1:epoch_max
 
         weight = weight - step* Gradient;
         for p = 1:10
-            weight(weight<1) = 0;
+            weight(weight<0) = 0;
             weight = weight - mean(weight(:)) + factor;
         end
-        weight(weight<1) = 0;
+        weight(weight<0) = 0;
         if mod(batch,1) == 0
             disp(['epoch:',num2str(epoch),' batch:',num2str(batch),' train loss:',num2str(mean(l1loss))]);
         end
