@@ -55,12 +55,12 @@ Dh = @(x) reshape(fft2c(reshape(difference_H(x,N1,N2,Nc,d1,d2),N1,N2,Nc)),[],1);
 DhD = reshape(real(Dh(D(ones(N1,N2,Nc)))),N1,N2,Nc);
 
 %% reconstruction parameters initialization
-sigma = 0.8;
+sigma = 0.1;
 noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
 factor = 8;
 weight = factor*ones(1,N2);
-rho = 1.6;
-beta = 0.8; % (noise_level,rho,beta): (0.1~0.3,0.5,0.3),(0.4~0.6, 1, 0.5),(0.8, 1.6, 0.8)
+rho = 0.5;
+beta = 0.3; % (noise_level,rho,beta): (0.1~0.3,0.5,0.3),(0.4~0.6, 1, 0.5),(0.8, 1.6, 0.8)
 
 MaxIter = 10;
 
@@ -94,13 +94,14 @@ for epoch = 1:epoch_max
     loss = 0;
     for batch = 1:batch_num
         kMask = repmat(sqrt(weight),[N1,1,Nc]);
-        kMask_dagger = 1./kMask(find(kMask));
+        kMask_dagger = kMask;
+        kMask_dagger(find(kMask)) = 1./kMask(find(kMask));
         AhA = kMask.*kMask + rho*DhD;
         AhA_dagger = AhA;
         AhA_dagger(find(AhA)) = 1./AhA(find(AhA));
         Gradient = zeros(N1,N2,batch_size);
         l1loss = zeros(1,batch_size);
-        parfor (datanum = 1:batch_size, batch_size)
+        parfor datanum = 1:batch_size
         %for datanum = 1:batch_size
             % data load
             fname = subject(batch_size*(batch-1)+datanum,:);
@@ -182,7 +183,7 @@ for epoch = 1:epoch_max
             weight = weight - mean(weight(:)) + factor;
         end
         weight(weight<1) = 0;
-        if mod(batch,1) == 0
+        if mod(batch,100) == 0
             disp(['epoch:',num2str(epoch),' batch:',num2str(batch),' train loss:',num2str(mean(l1loss))]);
         end
         loss = loss + mean(l1loss);
@@ -191,7 +192,7 @@ for epoch = 1:epoch_max
 end
 
 %save TV_noise08_train_loss train_loss
-save /project/jhaldar_118/jiayangw/OptSamp/model/TV_mask_noise8 weight
+save /project/jhaldar_118/jiayangw/OptSamp/model/TV_mask_noise1 weight
 
 
 %%
