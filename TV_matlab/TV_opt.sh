@@ -10,5 +10,5 @@
 module purge
 module load matlab
 
-sigma = 0.3
+sigma = 0.4
 matlab -batch  "noiselevel=$sigma;TV_gradient.m;quit"
