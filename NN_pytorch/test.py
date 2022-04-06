@@ -49,7 +49,7 @@ def toIm(kspace):
 # %% parameters
 factor = 8
 batch_size = 8
-sigma = 0.6
+sigma = 0.4
 L1Loss = torch.nn.L1Loss()
 
 from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
@@ -120,7 +120,7 @@ sample_low80 = Sample(sigma,factor)
 recon_low80 = torch.load('/home/wjy/Project/optsamp_models/low_model_noise'+str(sigma),map_location=torch.device('cpu'))
 
 # %%
-for slice in range(96,97):
+for slice in range(128,129):
     kspace = test_data[slice]
     kspace = kspace.unsqueeze(0)
     Im  = toIm(kspace)
@@ -177,46 +177,57 @@ for slice in range(96,97):
 
 # %% patches
 
-color_scale = 5
+color_scale = 2.5
+
+left = 210
+right = 260 
+up = 190
+bottom = 240
+
+# slice 33: 100, 140, 190, 230
+# slice 64: 210, 250, 210, 250
+# slice 114: 100,140,180,220
+# slice 160: 140, 180, 180, 220
+# slice 128
 
 patch = Im
-patch = patch[:,torch.arange(200,230),:] # slice160: (190,220) slice33: (200,230) slice114: (180,210) slice64: (210,240)
-patch = patch[:,:,torch.arange(145,175)] # slice160: (145,175) slice33: (110,140) slice114: (110,140) slice64: (210,240)
+patch = patch[:,torch.arange(up,bottom),:] # slice160: (190,220) slice114: (180,210) 
+patch = patch[:,:,torch.arange(left,right)] # slice160: (145,175) slice114: (110,140)
 patch = F.interpolate(patch.unsqueeze(0),size=[256,256],mode='nearest')
 save_image(patch.squeeze()/color_scale,'/home/wjy/Project/optsamp_result/Unet/patch1_slice'+str(slice)+'_gt.png')
 patch = ImN_uni
-patch = patch[:,torch.arange(200,230),:]
-patch = patch[:,:,torch.arange(145,175)]
+patch = patch[:,torch.arange(up,bottom),:]
+patch = patch[:,:,torch.arange(left,right)]
 patch = F.interpolate(patch.unsqueeze(0),size=[256,256],mode='nearest')
 save_image(patch.squeeze()/color_scale,'/home/wjy/Project/optsamp_result/Unet/patch1_slice'+str(slice)+'_noise'+str(int(10*sigma))+'_noiseuni.png')
 
 patch = ImN_low
-patch = patch[:,torch.arange(200,230),:]
-patch = patch[:,:,torch.arange(145,175)]
+patch = patch[:,torch.arange(up,bottom),:]
+patch = patch[:,:,torch.arange(left,right)]
 patch = F.interpolate(patch.unsqueeze(0),size=[256,256],mode='nearest')
 save_image(patch.squeeze()/color_scale,'/home/wjy/Project/optsamp_result/Unet/patch1_slice'+str(slice)+'_noise'+str(int(10*sigma))+'_noiselow.png')
 
 patch = ImN_opt
-patch = patch[:,torch.arange(200,230),:]
-patch = patch[:,:,torch.arange(145,175)]
+patch = patch[:,torch.arange(up,bottom),:]
+patch = patch[:,:,torch.arange(left,right)]
 patch = F.interpolate(patch.unsqueeze(0),size=[256,256],mode='nearest')
 save_image(patch.squeeze()/color_scale,'/home/wjy/Project/optsamp_result/Unet/patch1_slice'+str(slice)+'_noise'+str(int(10*sigma))+'_noiseopt.png')
 
 patch = recon_uni
-patch = patch[:,torch.arange(200,230),:]
-patch = patch[:,:,torch.arange(145,175)]
+patch = patch[:,torch.arange(up,bottom),:]
+patch = patch[:,:,torch.arange(left,right)]
 patch = F.interpolate(patch.unsqueeze(0),size=[256,256],mode='nearest')
 save_image(patch.squeeze()/color_scale,'/home/wjy/Project/optsamp_result/Unet/patch1_slice'+str(slice)+'_noise'+str(int(10*sigma))+'_uni.png')
 
 patch = recon_low
-patch = patch[:,torch.arange(200,230),:]
-patch = patch[:,:,torch.arange(145,175)]
+patch = patch[:,torch.arange(up,bottom),:]
+patch = patch[:,:,torch.arange(left,right)]
 patch = F.interpolate(patch.unsqueeze(0),size=[256,256],mode='nearest')
 save_image(patch.squeeze()/color_scale,'/home/wjy/Project/optsamp_result/Unet/patch1_slice'+str(slice)+'_noise'+str(int(10*sigma))+'_low.png')
 
 patch = recon_opt
-patch = patch[:,torch.arange(200,230),:]
-patch = patch[:,:,torch.arange(145,175)]
+patch = patch[:,torch.arange(up,bottom),:]
+patch = patch[:,:,torch.arange(left,right)]
 patch = F.interpolate(patch.unsqueeze(0),size=[256,256],mode='nearest')
 save_image(patch.squeeze()/color_scale,'/home/wjy/Project/optsamp_result/Unet/patch1_slice'+str(slice)+'_noise'+str(int(10*sigma))+'_opt.png')
 
