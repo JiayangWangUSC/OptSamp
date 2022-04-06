@@ -10,4 +10,4 @@
 module purge
 module load matlab
 
-matlab -batch  "noiselevel=0.1;TV_gradient.m;quit"
+matlab -batch  "noiselevel=0.2;TV_gradient.m;quit"
