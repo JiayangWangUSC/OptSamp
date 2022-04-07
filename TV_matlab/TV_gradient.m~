@@ -4,8 +4,8 @@ clc;
 
 %% load data
 
-%datapath = '/home/wjy/Project/fastmri_dataset/miniset/';
-datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/train/';
+datapath = '/home/wjy/Project/fastmri_dataset/miniset/';
+%datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/train/';
 dirname = dir(datapath);
 %data = h5read('file_brain_AXT2_200_6002217.h5','/home/wjy/Project/fastmri_dataset/test');
 %kspace = h5read([datapath,dirname(3).name],'/kspace');
@@ -29,7 +29,7 @@ end
 
 %%
 datalen = length(slice);
-batch_size = 8;
+batch_size = 1;
 batch_num = datalen/batch_size;
 
 %%
@@ -55,7 +55,7 @@ Dh = @(x) reshape(fft2c(reshape(difference_H(x,N1,N2,Nc,d1,d2),N1,N2,Nc)),[],1);
 DhD = reshape(real(Dh(D(ones(N1,N2,Nc)))),N1,N2,Nc);
 
 %% reconstruction parameters initialization
-sigma = 0.2;
+sigma = 0.8;
 factor = 8;
 weight = factor*ones(1,N2);
 
@@ -200,7 +200,6 @@ for epoch = 1:epoch_max
     train_loss(epoch) = loss/batch_num;
     
     save(['/project/jhaldar_118/jiayangw/OptSamp/model/TV_mask_noise',num2str(int8(10*sigma))], 'weight')
-    %save(['./TV_mask_noise',num2str(int8(10*sigma))], 'weight')
 end
 
 %save TV_noise08_train_loss train_loss
