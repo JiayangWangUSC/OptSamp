@@ -10,4 +10,4 @@
 module purge
 module load matlab
 
-matlab -batch  TV_gradient.m
+matlab -batch  TV_gradient
