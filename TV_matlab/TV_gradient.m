@@ -55,11 +55,10 @@ Dh = @(x) reshape(fft2c(reshape(difference_H(x,N1,N2,Nc,d1,d2),N1,N2,Nc)),[],1);
 DhD = reshape(real(Dh(D(ones(N1,N2,Nc)))),N1,N2,Nc);
 
 %% reconstruction parameters initialization
-noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
+sigma = 0.2;
 factor = 8;
 weight = factor*ones(1,N2);
 
-sigma = 0.8;
 
 if sigma <= 0.3
     rho = 0.5;
