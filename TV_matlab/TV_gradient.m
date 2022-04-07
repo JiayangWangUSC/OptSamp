@@ -59,7 +59,8 @@ noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
 factor = 8;
 weight = factor*ones(1,N2);
 
-sigma = noiselevel;
+sigma = 0.4;
+
 if sigma <= 0.3
     rho = 0.5;
     beta = 0.3;
