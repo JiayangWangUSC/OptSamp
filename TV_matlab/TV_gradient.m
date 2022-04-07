@@ -198,10 +198,11 @@ for epoch = 1:epoch_max
         loss = loss + mean(l1loss);
     end
     train_loss(epoch) = loss/batch_num;
+    
+    save(['/project/jhaldar_118/jiayangw/OptSamp/model/TV_mask_noise',num2str(int8(10*sigma))], 'weight')
 end
 
 %save TV_noise08_train_loss train_loss
-save(['/project/jhaldar_118/jiayangw/OptSamp/model/TV_mask_noise',num2str(int8(10*sigma))], 'weight')
 
 
 %%
