@@ -14,6 +14,8 @@ from fastmri.data import  mri_data
 #from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
 #[15,640,368]
+nx = 320
+ny = 368
 def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     # Transform the kspace to tensor format
     kspace = transforms.to_tensor(kspace)
@@ -43,12 +45,12 @@ class Sample(torch.nn.Module):
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = factor*torch.ones(368)
+        self.mask = factor*torch.ones(ny)
         self.sigma = sigma
 
     def forward(self,kspace):
         noise = self.sigma*torch.randn_like(kspace)
-        kspace_noise = kspace + torch.div(noise,torch.sqrt(self.mask).unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
+        kspace_noise = kspace + torch.div(noise,torch.sqrt(self.mask).unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,nx,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
         return kspace_noise
 
 def toIm(kspace): 
@@ -57,7 +59,7 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 0.6
+sigma = 0.2
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -102,13 +104,13 @@ for epoch in range(max_epochs):
         batch_count = batch_count + 1
         train_batch.to(device)
         gt = toIm(train_batch)
-        support = torch.ge(gt,0.05*torch.max(gt))
+        #support = torch.ge(gt,0.05*torch.max(gt))
         
         kspace_noise = sample_model(train_batch).to(device)
         image_noise = fastmri.ifft2c(kspace_noise).to(device)
         image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device) 
         image_output = recon_model(image_input).to(device)
-        image_recon = torch.cat((image_output[:,torch.arange(16),:,:].unsqueeze(4),image_output[:,torch.arange(16,32),:,:].unsqueeze(4)),4).to(device)
+        image_recon = torch.cat((image_output[:,torch.arange(15),:,:].unsqueeze(4),image_output[:,torch.arange(15,30),:,:].unsqueeze(4)),4).to(device)
         recon = fastmri.rss(fastmri.complex_abs(image_recon), dim=1)
         #loss = L2Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device))) + beta*L1Loss(torch.mul(recon.to(device),gradmap.to(device)),torch.mul(gt.to(device),gradmap.to(device)))
         #loss = L1Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device)))
