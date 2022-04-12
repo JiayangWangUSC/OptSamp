@@ -14,6 +14,7 @@ from fastmri.data import  mri_data
 #from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
 #[15,640,368]
+nc = 15
 nx = 320
 ny = 368
 def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
@@ -50,7 +51,7 @@ class Sample(torch.nn.Module):
 
     def forward(self,kspace):
         noise = self.sigma*torch.randn_like(kspace)
-        kspace_noise = kspace + torch.div(noise,torch.sqrt(self.mask).unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,nx,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
+        kspace_noise = kspace + torch.div(noise,torch.sqrt(self.mask).unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),nc,nx,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
         return kspace_noise
 
 def toIm(kspace): 
@@ -59,15 +60,15 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 0.4
+sigma = 0.2
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
 
 # %% unet loader
 recon_model = Unet(
-  in_chans = 30,
-  out_chans = 30,
+  in_chans = 2*nc,
+  out_chans = 2*nc,
   chans = 128,
   num_pool_layers = 4,
   drop_prob = 0.0
@@ -110,7 +111,7 @@ for epoch in range(max_epochs):
         image_noise = fastmri.ifft2c(kspace_noise).to(device)
         image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device) 
         image_output = recon_model(image_input).to(device)
-        image_recon = torch.cat((image_output[:,torch.arange(15),:,:].unsqueeze(4),image_output[:,torch.arange(15,30),:,:].unsqueeze(4)),4).to(device)
+        image_recon = torch.cat((image_output[:,torch.arange(nc),:,:].unsqueeze(4),image_output[:,torch.arange(nc,2*nc),:,:].unsqueeze(4)),4).to(device)
         recon = fastmri.rss(fastmri.complex_abs(image_recon), dim=1)
         #loss = L2Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device))) + beta*L1Loss(torch.mul(recon.to(device),gradmap.to(device)),torch.mul(gt.to(device),gradmap.to(device)))
         #loss = L1Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device)))
