@@ -59,7 +59,8 @@ def toIm(kspace):
 
 # %% sampling and noise level parameters
 factor = 8
-sigma = 0.4
+sigma = 0.6
+
 print("noise level:", sigma)
 
 # %% unet loader
