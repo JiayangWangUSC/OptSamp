@@ -4,8 +4,8 @@ clc;
 
 %% load data
 
-%datapath = '/home/wjy/Project/fastmri_dataset/miniset/';
-datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/train/';
+datapath = '/home/wjy/Project/fastmri_dataset/miniset/';
+%datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/train/';
 dirname = dir(datapath);
 %data = h5read('file_brain_AXT2_200_6002217.h5','/home/wjy/Project/fastmri_dataset/test');
 %kspace = h5read([datapath,dirname(3).name],'/kspace');
@@ -29,7 +29,7 @@ end
 
 %%
 datalen = length(slice);
-batch_size = 8;
+batch_size = 4;
 batch_num = datalen/batch_size;
 
 %%
@@ -55,12 +55,14 @@ Dh = @(x) reshape(fft2c(reshape(difference_H(x,N1,N2,Nc,d1,d2),N1,N2,Nc)),[],1);
 DhD = reshape(real(Dh(D(ones(N1,N2,Nc)))),N1,N2,Nc);
 
 %% reconstruction parameters initialization
-sigma = 0.2;
+sigma = 0.1;
 factor = 8;
 weight = factor*ones(1,N2);
 
-
-if sigma <= 0.3
+if sigma <=0.1
+    rho = 0.3;
+    beta = 0.2;
+elseif sigma <= 0.3
     rho = 0.5;
     beta = 0.3;
 elseif sigma <= 0.6
@@ -95,9 +97,10 @@ MaxIter = 10;
 
 
 %%
-epoch_max = 1;
-step = 1;
+epoch_max = 20;
+step = 10;
 train_loss = zeros(1,epoch_max);
+weight_support = ones(1,N2);
 for epoch = 1:epoch_max
     disp(epoch);
     loss = 0;
@@ -187,20 +190,25 @@ for epoch = 1:epoch_max
         Gradient = Gradient/norm(Gradient(:));
 
         weight = weight - step* Gradient;
+        weight(weight<=1)=0;
+        weight_support(weight<1) = 0;
+        temp = weight(weight_support>0); 
         for p = 1:10
-            weight(weight<1) = 0;
-            weight = weight - mean(weight(:)) + factor;
+            temp = temp - mean(temp(:)) + factor/length(temp)*length(weight);
+            temp(temp<1) = 1;
         end
-        weight(weight<1) = 0;
-        if mod(batch,100) == 0
+        weight(weight_support>0) = temp;
+        weight(weight_support==0) = 0;
+        
+        if mod(batch,2) == 0
             disp(['epoch:',num2str(epoch),' batch:',num2str(batch),' train loss:',num2str(mean(l1loss))]);
         end
         loss = loss + mean(l1loss);
     end
     train_loss(epoch) = loss/batch_num;
     
-    save(['/project/jhaldar_118/jiayangw/OptSamp/model/TV_mask_noise',num2str(int8(10*sigma))], 'weight')
-    %save(['./TV_mask_noise',num2str(int8(10*sigma))], 'weight')
+    %save(['/project/jhaldar_118/jiayangw/OptSamp/model/TV_mask_noise',num2str(int8(10*sigma))], 'weight')
+    save(['./TV_mask_noise',num2str(int8(10*sigma))], 'weight')
 end
 
 %save TV_noise08_train_loss train_loss

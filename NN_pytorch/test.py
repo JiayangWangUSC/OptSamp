@@ -120,7 +120,7 @@ sample_low80 = Sample(sigma,factor)
 recon_low80 = torch.load('/home/wjy/Project/optsamp_models/low_model_noise'+str(sigma),map_location=torch.device('cpu'))
 
 # %%
-for slice in range(128,129):
+for slice in range(33,34):
     kspace = test_data[slice]
     kspace = kspace.unsqueeze(0)
     Im  = toIm(kspace)
@@ -177,12 +177,12 @@ for slice in range(128,129):
 
 # %% patches
 
-color_scale = 2.5
+color_scale = 3
 
-left = 210
-right = 260 
-up = 190
-bottom = 240
+left = 110
+right = 140 
+up = 200
+bottom = 230
 
 # slice 33: 100, 140, 190, 230
 # slice 64: 210, 250, 210, 250
@@ -266,13 +266,46 @@ mask8 = 1 + F.softmax(mask8)*(factor-1)*396
 
 plt.plot(uni_mask,label='uniform')
 plt.plot(low_mask,label='low frequency')
-plt.plot(mask2,label='Noise 2')
-plt.plot(mask4,label='Noise 4')
-plt.plot(mask6,label='Noise 6')
-plt.plot(mask8,label='Noise 8')
+plt.plot(mask2,label='SNR=2.00')
+plt.plot(mask4,label='SNR=1.00')
+plt.plot(mask6,label='SNR=0.67')
+plt.plot(mask8,label='SNR=0.50')
+
+fig.patch.set_facecolor('black')
 
 plt.legend()
 plt.show()
 
+
+
 fig.savefig('/home/wjy/Project/optsamp_result/Unet/mask.png')
+# %%
+
+uni_mask = uni_mask.cpu().detach().numpy()
+low_mask = low_mask.cpu().detach().numpy()
+mask2 = mask2.cpu().detach().numpy()
+mask4 = mask4.cpu().detach().numpy()
+mask6 = mask6.cpu().detach().numpy()
+mask8 = mask8.cpu().detach().numpy()
+
+import scipy.io
+
+mask = {'uni':uni_mask, 'low':low_mask, 'mask2': mask2, 'mask4':mask4, 'mask6':mask6, 'mask8':mask8}
+scipy.io.savemat('mask',mask)
+
+
+# %%
+cmhot = plt.cm.get_cmap('magma')
+Error = torch.abs(recon_low-Im).squeeze()
+error = Error + 6*(F.relu(Error,0.3)) + 2*(F.relu(Error,0.2))
+Error = cmhot(np.array(error)/5)
+Error = np.uint8(Error*255)
+Error = Image.fromarray(Error)
+Error.save('/home/wjy/Project/optsamp_result/Unet/error_slice'+str(slice)+'_noise'+str(int(10*sigma))+'_low.png')
+# %%
+error1 = torch.abs(recon_low-Im).squeeze().cpu().detach().numpy()
+error2 = torch.abs(recon_opt-Im).squeeze().cpu().detach().numpy()
+error3 = torch.abs(recon_uni-Im).squeeze().cpu().detach().numpy()
+error = {'error_low':error1, 'error_opt':error2, 'error_uni':error3}
+scipy.io.savemat('errormaps', error)
 # %%

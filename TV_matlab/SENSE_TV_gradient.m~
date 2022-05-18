@@ -44,17 +44,15 @@ for n = 1:N2-1
 end
 d2(N2,1) = -1;
 
-
-
 %% reconstruction parameters initialization
-sigma = 0.3;
+sigma = 0.4;
 noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
 
 factor = 8;
 weight = factor*ones(1,N2);
 
-rho = 1;
-lambda = 1;
+rho = 8;
+lambda = 0.5;
 beta = 1; 
 MaxIter = 10;
 %%
@@ -69,7 +67,7 @@ kMask = repmat(sqrt(weight),[N1,1,Nc]);
 kMask_dagger = kMask;
 kMask_dagger(find(kMask)) = 1./(kMask(find(kMask)));
 
-usData = (kMask.*kData+noise).*kMask_dagger;
+usData = kMask.*kData+noise;
 maps = getmap(kData);
 
 %% 
@@ -77,29 +75,41 @@ maps = getmap(kData);
 D = @(x) [reshape(d1*reshape(x,N1,N2),[],1);reshape(reshape(x,N1,N2)*d2,[],1)];
 Dh = @(x) reshape(d1'*reshape(x(1:end/2),N1,N2) + reshape(x(end/2+1:end),N1,N2)*d2',[],1);
 DhD = real(fft2c(reshape(Dh(D(ifft2c(ones(N1,N2)))),N1,N2)));
-B = @(x) reshape(ifft2(fft2(reshape(x,N1,N2))./(rho+beta*DhD)),[],1);
+BhB_dagger = @(x) reshape(ifft2c(fft2c(reshape(x,N1,N2))./(rho+beta*DhD)),[],1);
 
+FEh = @(x)reshape(sum(conj(maps).*ifft2c(reshape(x,N1,N2,Nc)),3),[],1);
+FE = @(x) reshape(fft2c(maps.*repmat(reshape(x,N1,N2),[1,1,Nc])),[],1);
 %%
+AhA = kMask.*kMask + rho;
+AhA_dagger = 1./AhA;
 
-AhA = kMask.*kMask + rho*DhD;
-AhA_dagger = AhA;
-AhA_dagger(find(AhA)) = 1./AhA(find(AhA));
-
-x = usData./kMask;
-x = x(:);
-z = threshold(D(x),beta);
-u = 0*z;
-fd = kMask(:).*usData(:);
-
-for k = 1:MaxIter
-    x = AhA_dagger(:).*(fd+rho*Dh(z-u));
-    Dx = D(x);
+% initialization
+k = usData(:).*kMask_dagger(:);
+f = FEh(k);
+u = 0 *k;
+z = threshold(D(f),lambda/beta);
+v = D(f) - z;
+mk = usData(:).*kMask(:);
+%%
+for iter = 1:10
+    k = AhA_dagger(:).*(mk+ rho*(FE(f)+u));
+    f = BhB_dagger(rho*FEh(k-u)+beta*Dh(z-v));
+    u = FE(f) - k + u;
+    z = threshold(D(f)+v,lambda/beta);
+    v = D(f) - z + v;
     
-    z = threshold(Dx+u,beta);
-    u = u + Dx - z; 
-    %norm(x-kData(:))
+    norm(abs(f-Im(:)))/norm(abs(Im(:)))
+    %norm(abs(D(f) - z))
 end
-recon = x;
+recon = f;
+%%
+mean(abs(D(Im)))
+%%
+Im = FEh(kData);
+image_norm(abs(FEh(k)-f))
+image_norm(abs(FEh(k)-FEh(kData)))/image_norm(abs(FEh(kData)))
+
+
 
 %%
 function maps = getmap(kData)
@@ -151,19 +161,6 @@ function result = complex_odot(x,y)
 end
 
 
-%% 
-function result = difference(x,N1,N2,d1,d2)
-x = reshape(x,N1,N2);
-D1 = d1*x;
-D2 = x*d2;
-result = [reshape(D1,[],1);reshape(D2,[],1)];
-end
-
-function result = difference_H(x,N1,N2,d1,d2)
-D1 = reshape(x(1:end/2),N1,N2);
-D2 = reshape(x(end/2+1:end),N1,N2);
-result = d1'*D1+D2*d2';
-end
 
 %% 
 function kspace = undersample(kspace)
