@@ -55,9 +55,9 @@ Dh = @(x) reshape(fft2c(reshape(difference_H(x,N1,N2,Nc,d1,d2),N1,N2,Nc)),[],1);
 DhD = reshape(real(Dh(D(ones(N1,N2,Nc)))),N1,N2,Nc);
 
 %% reconstruction parameters initialization
-sigma = 0.1;
+sigma = 0.8;
 factor = 8;
-weight = factor*ones(1,N2);
+
 
 if sigma <=0.1
     rho = 0.3;
@@ -97,10 +97,13 @@ MaxIter = 10;
 
 
 %%
-epoch_max = 20;
-step = 10;
+epoch_max = 10;
+step = 5;
 train_loss = zeros(1,epoch_max);
+weight = factor*ones(1,N2);
+load('TV_mask_noise8.mat')
 weight_support = ones(1,N2);
+weight_support(weight<1) = 0;
 for epoch = 1:epoch_max
     disp(epoch);
     loss = 0;
@@ -190,8 +193,7 @@ for epoch = 1:epoch_max
         Gradient = Gradient/norm(Gradient(:));
 
         weight = weight - step* Gradient;
-        weight(weight<=1)=0;
-        weight_support(weight<1) = 0;
+        weight_support(weight<=1) = 0;
         temp = weight(weight_support>0); 
         for p = 1:10
             temp = temp - mean(temp(:)) + factor/length(temp)*length(weight);
