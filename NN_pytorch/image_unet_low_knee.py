@@ -22,8 +22,7 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     kspace = transforms.to_tensor(kspace)
     image = fastmri.ifft2c(kspace)
     image = image[:,torch.arange(160,480),:,:]
-    im = fastmri.rss(fastmri.complex_abs(image[:,:,:,:,17]))
-    kspace = fastmri.fft2c(image)/torch.max(im)*2
+    kspace = fastmri.fft2c(image)
     return kspace
 
 train_data = mri_data.SliceDataset(
