@@ -18,12 +18,13 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     kspace = transforms.to_tensor(kspace)
     image = fastmri.ifft2c(kspace)
     image = image[:,torch.arange(191,575),:,:]
-    kspace = fastmri.fft2c(image)/1e-4
+    im = fastmri.rss(fastmri.complex_abs(image[:,:,:,:,0]))
+    kspace = fastmri.fft2c(image)/torch.max(im)*2
     return kspace
 
 train_data = mri_data.SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/test/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
+    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/test_brain/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain/train/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -56,7 +57,8 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 0.1
+SNR = 0.25 # 0.25, 0.5, 1, 2
+sigma = 1/16/SNR
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -120,6 +122,6 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_model_noise"+str(sigma))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_model_snr"+str(SNR))
 
 # %%

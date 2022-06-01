@@ -7,14 +7,14 @@ clc;
 fft2c = @(x) fftshift(fft2(ifftshift(x)))/sqrt(size(x(:),1))*4;
 ifft2c = @(x) fftshift(ifft2(ifftshift(x)))*sqrt(size(x(:),1))/4; 
 
-datapath = '/home/wjy/Project/fastmri_dataset/miniset_brain/';
+datapath = '/home/wjy/Project/fastmri_dataset/miniset_knee/';
 %datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/train/';
 dirname = dir(datapath);
 %data = h5read('file_brain_AXT2_200_6002217.h5','/home/wjy/Project/fastmri_dataset/test');
 %kspace = h5read([datapath,dirname(3).name],'/kspace');
 %kspace = complex(kspace.r,kspace.i);
 %kspace = permute(kspace,[4,2,1,3]);
-N1 = 384; N2 = 396; Nc = 16;
+N1 = 320; N2 = 368; Nc = 15;
 
 subject = [];
 slice = [];
@@ -24,7 +24,7 @@ for i = 3:length(dirname)
     fname = dirname(i).name;
     kspace = h5read([datapath,fname],'/kspace');
     kspace = complex(kspace.r,kspace.i);
-    im = sqrt(sum(abs(ifft2c(kspace(:,:,:,1))).^2,3));
+    im = sqrt(sum(abs(ifft2c(kspace(:,:,:,18))).^2,3));
     kspace = permute(kspace,[4,2,1,3]);
     central_norm = 0.5*max(im(:));
     for snum = 1:size(kspace,1)
@@ -38,6 +38,7 @@ end
 datalen = length(slice);
 batch_size = 4;
 batch_num = datalen/batch_size;
+
 
 %% difference 
 d1 = diag(ones(N1,1));
@@ -127,7 +128,7 @@ for epoch = 1:epoch_max
             kspace = h5read([datapath,fname],'/kspace');
             kspace = complex(kspace.r,kspace.i);
             kspace = permute(kspace,[4,2,1,3]);
-            kData = undersample(reshape(kspace(slicenum,:,:,:),2*N1,N2,Nc))/norm_coef(batch_size*(batch-1)+datanum);
+            kData = undersample(reshape(kspace(slicenum,:,:,:),2*N1,N2,Nc))/norm_coef(batch_size*(batch-1)+datanum); %%
             
             % sample
             noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
@@ -213,7 +214,7 @@ for epoch = 1:epoch_max
     train_loss(epoch) = loss/batch_num;
     
     %save(['/project/jhaldar_118/jiayangw/OptSamp/model/TV_mask_noise',num2str(int8(10*sigma))], 'weight')
-    save(['./TV_mask_SNR',num2str(int8(100*SNR))], 'weight')
+    save(['./TV_knee_mask_SNR',num2str(int8(100*SNR))], 'weight')
 end
 
 %save TV_noise08_train_loss train_loss
@@ -295,7 +296,7 @@ function kspace = undersample(kspace)
     fft2c = @(x) fftshift(fft2(ifftshift(x)))/sqrt(size(x(:),1))*4;
     ifft2c = @(x) fftshift(ifft2(ifftshift(x)))*sqrt(size(x(:),1))/4;   
     im = ifft2c(kspace);
-    im = im(192:575,:,:);
+    im = im(161:480,:,:);
     kspace = fft2c(im);
 end
 

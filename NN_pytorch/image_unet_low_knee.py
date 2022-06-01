@@ -22,7 +22,8 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     kspace = transforms.to_tensor(kspace)
     image = fastmri.ifft2c(kspace)
     image = image[:,torch.arange(160,480),:,:]
-    kspace = fastmri.fft2c(image)/1e-4
+    im = fastmri.rss(fastmri.complex_abs(image[:,:,:,:,17]))
+    kspace = fastmri.fft2c(image)/torch.max(im)*2
     return kspace
 
 train_data = mri_data.SliceDataset(
@@ -62,7 +63,8 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 0.1
+SNR = 0.25 # 0.25, 0.5, 1, 2
+sigma = 1/16/SNR
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -126,5 +128,5 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/low_knee_model_noise"+str(sigma))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/low_knee_model_snr"+str(SNR))
 
