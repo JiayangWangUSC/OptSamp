@@ -19,8 +19,7 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     kspace = transforms.to_tensor(kspace)
     image = fastmri.ifft2c(kspace)
     image = image[:,torch.arange(191,575),:,:]
-    im = fastmri.rss(fastmri.complex_abs(image[:,:,:,:,0]))
-    kspace = fastmri.fft2c(image)/torch.max(im)*2
+    kspace = fastmri.fft2c(image)
     return kspace
 
 train_data = mri_data.SliceDataset(
@@ -98,11 +97,18 @@ L1Loss = torch.nn.L1Loss()
 
 # %% training
 max_epochs = 50
+norm_const = 1e-4
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
     batch_count = 0
     for train_batch in train_dataloader:
+        
+        norm_coef = torch.max(toIm(train_batch))/2
+        if norm_coef < norm_const:
+            norm_coef = norm_const
+        train_batch = train_batch/norm_coef
+        
         batch_count = batch_count + 1
         train_batch.to(device)
         gt = toIm(train_batch)

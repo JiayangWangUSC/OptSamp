@@ -101,11 +101,18 @@ L1Loss = torch.nn.L1Loss()
 
 # %% training
 max_epochs = 50
+norm_const = 1e-4
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
     batch_count = 0
     for train_batch in train_dataloader:
+        
+        norm_coef = torch.max(toIm(train_batch))/2
+        if norm_coef < norm_const:
+            norm_coef = norm_const
+        train_batch = train_batch/norm_coef
+        
         batch_count = batch_count + 1
         train_batch.to(device)
         gt = toIm(train_batch)

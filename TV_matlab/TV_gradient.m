@@ -58,7 +58,7 @@ Dh = @(x) reshape(fft2c(reshape(difference_H(x,N1,N2,Nc,d1,d2),N1,N2,Nc)),[],1);
 DhD = reshape(real(Dh(D(ones(N1,N2,Nc)))),N1,N2,Nc);
 
 %% reconstruction parameters initialization
-SNR = 1;
+SNR = 1; %% 0.25,0.5,1,2
 factor = 8;
 sigma = 1/SNR/Nc;
 
@@ -213,7 +213,7 @@ for epoch = 1:epoch_max
     train_loss(epoch) = loss/batch_num;
     
     %save(['/project/jhaldar_118/jiayangw/OptSamp/model/TV_mask_noise',num2str(int8(10*sigma))], 'weight')
-    save(['./TV_mask_SNR',num2str(int8(100*SNR))], 'weight')
+    save(['./TV_mask_snr',num2str(int8(100*SNR))], 'weight')
 end
 
 %save TV_noise08_train_loss train_loss
