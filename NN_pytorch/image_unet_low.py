@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from fastmri.data import transforms
 from fastmri.models import Unet
 
+import numpy as np
 import math
 import pathlib
 import torch.optim as optim
@@ -19,7 +20,7 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     kspace = transforms.to_tensor(kspace)
     image = fastmri.ifft2c(kspace)
     image = image[:,torch.arange(191,575),:,:]
-    kspace = fastmri.fft2c(image)
+    kspace = fastmri.fft2c(image)/5e-5
     return kspace
 
 train_data = mri_data.SliceDataset(
@@ -44,7 +45,7 @@ class Sample(torch.nn.Module):
     def __init__(self,sigma,factor):
         super().__init__()
         self.factor = factor
-        self.sigma = sigma
+        self.sigma = sigma/np.sqrt(2*16)
 
     def forward(self,kspace):
         noise = self.sigma*torch.randn_like(kspace)/math.sqrt(self.factor/278*396)
@@ -59,8 +60,7 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-SNR = 0.25 # 0.25, 0.5, 1, 2
-sigma = 1/16/SNR
+sigma = 1
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -97,17 +97,11 @@ L1Loss = torch.nn.L1Loss()
 
 # %% training
 max_epochs = 50
-norm_const = 1e-4
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
     batch_count = 0
     for train_batch in train_dataloader:
-        
-        norm_coef = torch.max(toIm(train_batch))/2
-        if norm_coef < norm_const:
-            norm_coef = norm_const
-        train_batch = train_batch/norm_coef
         
         batch_count = batch_count + 1
         train_batch.to(device)
@@ -131,5 +125,5 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/low_model_snr"+str(SNR))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/low_model_sigma"+str(sigma))
 

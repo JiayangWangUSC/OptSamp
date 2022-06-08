@@ -7,7 +7,7 @@ clc;
 fft2c = @(x) fftshift(fft2(ifftshift(x)))/sqrt(size(x(:),1))*4;
 ifft2c = @(x) fftshift(ifft2(ifftshift(x)))*sqrt(size(x(:),1))/4; 
 
-datapath = '/home/wjy/Project/fastmri_dataset/test_knee/';
+datapath = '/home/wjy/Project/fastmri_dataset/miniset_knee/';
 %datapath = '/project/jhaldar_118/jiayangw/OptSamp/dataset/train/';
 dirname = dir(datapath);
 %data = h5read('file_brain_AXT2_200_6002217.h5','/home/wjy/Project/fastmri_dataset/test');
@@ -27,7 +27,6 @@ for i = 3:length(dirname)
     im = sqrt(sum(abs(ifft2c(kspace(:,:,:,18))).^2,3));
     kspace = permute(kspace,[4,2,1,3]);
     central_norm = 0.5*max(im(:));
-    display(size(kspace,1))
     for snum = 1:size(kspace,1)
         subject = [subject;fname];
         norm_coef = [norm_coef; central_norm];
@@ -39,6 +38,9 @@ end
 datalen = length(slice);
 batch_size = 4;
 batch_num = datalen/batch_size;
+%%
+im = sqrt(sum(abs(ifft2c(kspace(:,:,:,18))).^2,3));
+im = im(:,161:480);
 
 %% difference 
 d1 = diag(ones(N1,1));

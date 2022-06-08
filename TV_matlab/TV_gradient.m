@@ -39,6 +39,9 @@ datalen = length(slice);
 batch_size = 4;
 batch_num = datalen/batch_size;
 
+%%
+im = sqrt(sum(abs(ifft2c(kspace(:,:,:,1))).^2,3));
+im = im(:,192:575);
 %% difference 
 d1 = diag(ones(N1,1));
 for n = 1:N1-1
