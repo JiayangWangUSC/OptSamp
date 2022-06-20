@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from fastmri.data import transforms
 from fastmri.models import Unet
 import pathlib
+import numpy as np
 import torch.optim as optim
 from fastmri.data import  mri_data
 
@@ -20,7 +21,7 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     kspace = transforms.to_tensor(kspace)
     image = fastmri.ifft2c(kspace)
     image = image[:,torch.arange(160,480),:,:]
-    kspace = fastmri.fft2c(image)/1e-4
+    kspace = fastmri.fft2c(image)/2e-5
     return kspace
 
 train_data = mri_data.SliceDataset(
@@ -45,7 +46,7 @@ class Sample(torch.nn.Module):
         super().__init__()
         self.mask = 2*torch.rand(ny)-1
         self.factor = factor
-        self.sigma = sigma
+        self.sigma = sigma/np.sqrt(2*nc)
 
     def forward(self,kspace):
         sample_mask = torch.sqrt(1 + F.softmax(self.mask)*(self.factor-1)*ny)
@@ -59,7 +60,7 @@ def toIm(kspace):
 
 # %% sampling and noise level parameters
 factor = 8
-sigma = 0.1
+sigma = 1
 
 print("noise level:", sigma)
 
@@ -72,7 +73,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/model/uni_knee_model_noise'+str(sigma))
+recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/model/uni_knee_model_sigma'+str(sigma))
 #recon_model = torch.load('/home/wjy/Project/optsamp_models/uni_model_noise0.3',map_location=torch.device('cpu'))
 
 # %% data loader
@@ -94,7 +95,7 @@ max_epochs = 50
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-    step = step * 0.8
+    step = step * 0.9
     batch_count = 0
     for train_batch in train_dataloader:
         batch_count = batch_count + 1
@@ -128,6 +129,6 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_knee_model_noise"+str(sigma))
-    torch.save(sample_model.mask,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_knee_mask_noise"+str(sigma))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_knee_model_sigma"+str(sigma))
+    torch.save(sample_model.mask,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_knee_mask_sigma"+str(sigma))
 
