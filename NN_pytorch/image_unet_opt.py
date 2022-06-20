@@ -23,7 +23,7 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
 
 train_data = mri_data.SliceDataset(
     #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/test/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/brain/train/'),
     transform=data_transform,
     challenge='multicoil'
 )
