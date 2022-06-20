@@ -23,7 +23,7 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
 
 train_data = mri_data.SliceDataset(
     #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/test/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/brain/train/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain/train/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -57,7 +57,7 @@ def toIm(kspace):
 
 # %% sampling and noise level parameters
 factor = 8
-sigma = 2 #1,2,4,8
+sigma = 1 #1,2,4,8
 print("noise level:", sigma)
 
 # %% unet loader
