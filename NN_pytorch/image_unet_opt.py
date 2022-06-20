@@ -69,7 +69,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/uni_model_sigma'+str(sigma))
+recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/model/uni_model_sigma'+str(sigma))
 #recon_model = torch.load('/home/wjy/Project/optsamp_models/uni_model_noise0.3',map_location=torch.device('cpu'))
 
 # %% data loader
