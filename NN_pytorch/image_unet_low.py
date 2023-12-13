@@ -48,9 +48,11 @@ class Sample(torch.nn.Module):
         self.sigma = sigma/np.sqrt(2*16)
 
     def forward(self,kspace):
-        noise = self.sigma*torch.randn_like(kspace)/math.sqrt(self.factor/278*396)
+        noise = self.sigma*torch.randn_like(kspace)
         support = torch.zeros(396)
-        support[torch.arange(59,59+278)] = 1
+        # low_80(40,317)
+        noise = noise/math.sqrt(self.factor/317*396)
+        support[torch.arange(40,40+317)] = 1
         kspace_noise = torch.mul(kspace + noise, support.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2))
         return kspace_noise
 
@@ -60,7 +62,7 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 8
+sigma = 1
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -74,8 +76,6 @@ recon_model = Unet(
 )
 
 #recon_model = torch.load('/home/wjy/Project/optsamp_models/uni_model_noise0.3',map_location=torch.device('cpu'))
-
-#recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/uniform_model_selfloss_noise'+str(sigma))
 
 # %% GPU 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -93,7 +93,6 @@ L1Loss = torch.nn.L1Loss()
 #L2Loss = torch.nn.MSELoss()
 #beta = 1e-3
 #ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
-
 
 # %% training
 max_epochs = 50
@@ -125,5 +124,5 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/low_model_sigma"+str(sigma))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/low80_L1_model_sigma"+str(sigma))
 

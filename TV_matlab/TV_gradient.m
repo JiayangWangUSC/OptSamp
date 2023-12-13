@@ -39,9 +39,6 @@ datalen = length(slice);
 batch_size = 4;
 batch_num = datalen/batch_size;
 
-%%
-im = sqrt(sum(abs(ifft2c(kspace(:,:,:,1))).^2,3));
-im = im(:,192:575);
 %% difference 
 d1 = diag(ones(N1,1));
 for n = 1:N1-1
@@ -61,24 +58,22 @@ Dh = @(x) reshape(fft2c(reshape(difference_H(x,N1,N2,Nc,d1,d2),N1,N2,Nc)),[],1);
 DhD = reshape(real(Dh(D(ones(N1,N2,Nc)))),N1,N2,Nc);
 
 %% reconstruction parameters initialization
-SNR = 1; %% 0.25,0.5,1,2
 factor = 8;
-sigma = 1/SNR/Nc;
+sigma = 2;
 
-if SNR == 2
-    rho = 0.3;
-    beta = 0.2;
-elseif SNR == 1
+if sigma == 1
     rho = 0.5;
-    beta = 0.3;
-elseif SNR == 0.5
-    rho = 1;
-    beta = 0.5;
-elseif SNR == 0.25
-    rho = 1.6;
-    beta = 0.8;
-end % (noise_level,rho,beta): (0.1~0.3,0.5,0.3),(0.4~0.6, 1, 0.5),(0.8, 1.6, 0.8)
-
+    beta = 0.2;
+elseif sigma == 2
+    rho = 2;
+    beta = 0.2;
+elseif sigma == 4
+    rho = 6;
+    beta = 0.2;
+elseif sigma == 8
+    rho = 15;
+    beta = 0.2;
+end 
 MaxIter = 10;
 
 %%
@@ -86,28 +81,29 @@ MaxIter = 10;
 %kspace = h5read([datapath,dirname(3).name],'/kspace');
 %kspace = complex(kspace.r,kspace.i);
 %kspace = permute(kspace,[4,2,1,3]);
-%kData = undersample(reshape(kspace(3,:,:,:),2*N1,N2,Nc))/1e-4;
+%kData = undersample(reshape(kspace(3,:,:,:),2*N1,N2,Nc))/5e-5;
+%weight = factor*ones(1,N2);
 %kMask = repmat(sqrt(weight),[N1,1,Nc]);
+%noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc))/sqrt(2*Nc);
 %usData = kMask.*kData+noise;
 %recon = TV(usData,kMask,rho,beta,MaxIter,D,Dh,DhD);
 %imr = ifft2c(reshape(recon,N1,N2,Nc));
 %ImR = sqrt(sum(abs(imr).^2,3));
 %Im = sqrt(sum(abs(ifft2c(reshape(kData,N1,N2,Nc))).^2,3));
-%ImN= sqrt(sum(abs(ifft2c(reshape(usData./kMask,N1,N2,Nc))).^2,3));
-%support = zeros(N1,N2);
-%support(Im>0.06*max(Im(:))) = 1;
+
+%image_norm(ImR-Im)/image_norm(Im)
+
 %%
 %patch = ImN(221:260,101:150);
 %patch = imresize(patch,[80,80],'nearest');
 %imwrite(patch/max(Im(:))*2,'/home/wjy/Project/OptSamp/result_local/TV_patch1_noise08.png');
-
 
 %%
 epoch_max = 10;
 step = 5;
 train_loss = zeros(1,epoch_max);
 weight = factor*ones(1,N2);
-%load('TV_mask_noise8.mat')
+load('TV_brain_sigma2.mat')
 weight_support = ones(1,N2);
 weight_support(weight<1) = 0;
 for epoch = 1:epoch_max
@@ -130,10 +126,10 @@ for epoch = 1:epoch_max
             kspace = h5read([datapath,fname],'/kspace');
             kspace = complex(kspace.r,kspace.i);
             kspace = permute(kspace,[4,2,1,3]);
-            kData = undersample(reshape(kspace(slicenum,:,:,:),2*N1,N2,Nc))/norm_coef(batch_size*(batch-1)+datanum);
+            kData = undersample(reshape(kspace(slicenum,:,:,:),2*N1,N2,Nc))/5e-5;
             
             % sample
-            noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
+            noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc))/sqrt(2*Nc);
             usData = kMask.*kData + noise;
         
             %recon
@@ -216,7 +212,7 @@ for epoch = 1:epoch_max
     train_loss(epoch) = loss/batch_num;
     
     %save(['/project/jhaldar_118/jiayangw/OptSamp/model/TV_mask_noise',num2str(int8(10*sigma))], 'weight')
-    save(['./TV_mask_snr',num2str(int8(100*SNR))], 'weight')
+    save(['./TV_brain_sigma',num2str(int8(sigma))], 'weight')
 end
 
 %save TV_noise08_train_loss train_loss

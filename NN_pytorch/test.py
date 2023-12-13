@@ -27,7 +27,7 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     return kspace
 
 test_data = mri_data.SliceDataset(
-    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/test_brain/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_copy/'),
     #root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/train/'),
     transform=data_transform,
     challenge='multicoil'
@@ -49,7 +49,7 @@ def toIm(kspace):
 # %% parameters
 factor = 8
 batch_size = 8
-sigma = 0.4
+sigma = 8
 L1Loss = torch.nn.L1Loss()
 
 from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
@@ -63,19 +63,16 @@ class Sample(torch.nn.Module):
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = 2*torch.rand(396)-1
-        self.factor = factor
-        self.sigma = sigma
+        self.mask = factor*torch.ones(396)
+        self.sigma = sigma/np.sqrt(2*16)
 
     def forward(self,kspace):
-        sample_mask = torch.sqrt(1 + F.softmax(self.mask)*(self.factor-1)*396)
-        torch.manual_seed(20)
         noise = self.sigma*torch.randn_like(kspace)
-        kspace_noise = kspace + torch.div(noise,sample_mask.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2)) 
+        kspace_noise = kspace + torch.div(noise,torch.sqrt(self.mask).unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
         return kspace_noise
 
 sample_uni = Sample(sigma,factor)
-recon_uni = torch.load('/home/wjy/Project/optsamp_models/uni_model_noise'+str(sigma),map_location=torch.device('cpu'))
+recon_uni = torch.load('/home/wjy/Project/optsamp_models/uni_model_sigma'+str(sigma),map_location=torch.device('cpu'))
 
 # %% opt
 class Sample(torch.nn.Module): 
@@ -84,21 +81,20 @@ class Sample(torch.nn.Module):
         super().__init__()
         self.mask = 2*torch.rand(396)-1
         self.factor = factor
-        self.sigma = sigma
+        self.sigma = sigma/np.sqrt(2*16)
 
     def forward(self,kspace):
         sample_mask = torch.sqrt(1 + F.softmax(self.mask)*(self.factor-1)*396)
-        torch.manual_seed(69)
         noise = self.sigma*torch.randn_like(kspace)
         kspace_noise = kspace + torch.div(noise,sample_mask.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2)) 
         return kspace_noise
 
 sample_opt = Sample(sigma,factor)
 #mask = torch.load('/home/wjy/opt_mask_L1loss_noise0.3')
-mask = torch.load('/home/wjy/Project/optsamp_models/opt_mask_noise'+str(sigma))
+mask = torch.load('/home/wjy/Project/optsamp_models/opt_mask_sigma'+str(sigma))
 sample_opt.mask = mask
 sample_mask = 1 + F.softmax(mask)*(factor-1)*396
-recon_opt = torch.load('/home/wjy/Project/optsamp_models/opt_model_noise'+str(sigma),map_location=torch.device('cpu'))
+recon_opt = torch.load('/home/wjy/Project/optsamp_models/opt_model_sigma'+str(sigma),map_location=torch.device('cpu'))
 
 # %% low frequency
 class Sample(torch.nn.Module): 
@@ -106,18 +102,17 @@ class Sample(torch.nn.Module):
     def __init__(self,sigma,factor):
         super().__init__()
         self.factor = factor
-        self.sigma = sigma
+        self.sigma = sigma/np.sqrt(2*16)
 
     def forward(self,kspace):
-        torch.manual_seed(10)
-        noise = self.sigma*torch.randn_like(kspace)/math.sqrt(self.factor/0.8)
+        noise = self.sigma*torch.randn_like(kspace)/math.sqrt(self.factor/278*396)
         support = torch.zeros(396)
-        support[torch.arange(38,38+320)] = 1
+        support[torch.arange(59,59+278)] = 1
         kspace_noise = torch.mul(kspace + noise, support.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2))
         return kspace_noise
 
 sample_low80 = Sample(sigma,factor)
-recon_low80 = torch.load('/home/wjy/Project/optsamp_models/low_model_noise'+str(sigma),map_location=torch.device('cpu'))
+recon_low80 = torch.load('/home/wjy/Project/optsamp_models/low_model_sigma'+str(sigma),map_location=torch.device('cpu'))
 
 # %%
 for slice in range(33,34):
@@ -131,15 +126,15 @@ for slice in range(33,34):
         # uniform sampling
         kspace_noise = sample_uni(kspace)
         ImN_uni = toIm(kspace_noise)
-        save_image(ImN_uni.squeeze()/5,'/home/wjy/Project/optsamp_result/Unet/noise_slice'+str(slice)+'_noise'+str(int(10*sigma))+'_uni.png')
+      #  save_image(ImN_uni.squeeze()/5,'/home/wjy/Project/optsamp_result/Unet/noise_slice'+str(slice)+'_noise'+str(int(10*sigma))+'_uni.png')
         print(torch.norm(Im-ImN_uni)/torch.norm(Im))
         image_noise = fastmri.ifft2c(kspace_noise)
         image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1) 
         image_output = recon_uni(image_input)
         image_recon = torch.cat((image_output[:,torch.arange(16),:,:].unsqueeze(4),image_output[:,torch.arange(16,32),:,:].unsqueeze(4)),4)
         recon_uni = fastmri.rss(fastmri.complex_abs(image_recon), dim=1)
-        save_image(recon_uni.squeeze()/5,'/home/wjy/Project/optsamp_result/Unet/slice'+str(slice)+'_noise'+str(int(10*sigma))+'_uni.png')
-        save_image(torch.abs(recon_uni-Im).squeeze()*2,'/home/wjy/Project/optsamp_result/Unet/error_slice'+str(slice)+'_noise'+str(int(10*sigma))+'_uni.png')
+      #  save_image(recon_uni.squeeze()/5,'/home/wjy/Project/optsamp_result/Unet/slice'+str(slice)+'_noise'+str(int(10*sigma))+'_uni.png')
+      #  save_image(torch.abs(recon_uni-Im).squeeze()*2,'/home/wjy/Project/optsamp_result/Unet/error_slice'+str(slice)+'_noise'+str(int(10*sigma))+'_uni.png')
         ssim_uni = ssim_module(Im.unsqueeze(0)/5*255,recon_uni.unsqueeze(0)/5*255)
         mse_uni = torch.norm(Im-recon_uni)/torch.norm(Im)
 
@@ -147,30 +142,30 @@ for slice in range(33,34):
         # optimized sampling
         kspace_noise = sample_opt(kspace)
         ImN_opt = toIm(kspace_noise)
-        save_image(ImN_opt.squeeze()/5,'/home/wjy/Project/optsamp_result/Unet/noise_slice'+str(slice)+'_noise'+str(int(10*sigma))+'_opt.png')
+      #  save_image(ImN_opt.squeeze()/5,'/home/wjy/Project/optsamp_result/Unet/noise_slice'+str(slice)+'_noise'+str(int(10*sigma))+'_opt.png')
         print(torch.norm(Im-ImN_opt)/torch.norm(Im))
         image_noise = fastmri.ifft2c(kspace_noise)
         image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1) 
         image_output = recon_opt(image_input)
         image_recon = torch.cat((image_output[:,torch.arange(16),:,:].unsqueeze(4),image_output[:,torch.arange(16,32),:,:].unsqueeze(4)),4)
         recon_opt = fastmri.rss(fastmri.complex_abs(image_recon), dim=1)
-        save_image(recon_opt.squeeze()/5,'/home/wjy/Project/optsamp_result/Unet/slice'+str(slice)+'_noise'+str(int(10*sigma))+'_opt.png')
-        save_image(torch.abs(recon_opt-Im).squeeze()*2,'/home/wjy/Project/optsamp_result/Unet/error_slice'+str(slice)+'_noise'+str(int(10*sigma))+'_opt.png')
+      #  save_image(recon_opt.squeeze()/5,'/home/wjy/Project/optsamp_result/Unet/slice'+str(slice)+'_noise'+str(int(10*sigma))+'_opt.png')
+      #  save_image(torch.abs(recon_opt-Im).squeeze()*2,'/home/wjy/Project/optsamp_result/Unet/error_slice'+str(slice)+'_noise'+str(int(10*sigma))+'_opt.png')
         ssim_opt = ssim_module(Im.unsqueeze(0)/5*255,recon_opt.unsqueeze(0)/5*255)
         mse_opt = torch.norm(Im-recon_opt)/torch.norm(Im)
 
         # 80% low frequency sampling
         kspace_noise = sample_low80(kspace)
         ImN_low = toIm(kspace_noise)
-        save_image(ImN_low.squeeze()/5,'/home/wjy/Project/optsamp_result/Unet/noise_slice'+str(slice)+'_noise'+str(int(10*sigma))+'_low.png')
+      #  save_image(ImN_low.squeeze()/5,'/home/wjy/Project/optsamp_result/Unet/noise_slice'+str(slice)+'_noise'+str(int(10*sigma))+'_low.png')
         print(torch.norm(Im-ImN_low)/torch.norm(Im))
         image_noise = fastmri.ifft2c(kspace_noise)
         image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1) 
         image_output = recon_low80(image_input)
         image_recon = torch.cat((image_output[:,torch.arange(16),:,:].unsqueeze(4),image_output[:,torch.arange(16,32),:,:].unsqueeze(4)),4)
         recon_low = fastmri.rss(fastmri.complex_abs(image_recon), dim=1)
-        save_image(recon_low.squeeze()/5,'/home/wjy/Project/optsamp_result/Unet/slice'+str(slice)+'_noise'+str(int(10*sigma))+'_low.png')
-        save_image(torch.abs(recon_low-Im).squeeze()*2,'/home/wjy/Project/optsamp_result/Unet/error_slice'+str(slice)+'_noise'+str(int(10*sigma))+'_low.png')
+       # save_image(recon_low.squeeze()/5,'/home/wjy/Project/optsamp_result/Unet/slice'+str(slice)+'_noise'+str(int(10*sigma))+'_low.png')
+       # save_image(torch.abs(recon_low-Im).squeeze()*2,'/home/wjy/Project/optsamp_result/Unet/error_slice'+str(slice)+'_noise'+str(int(10*sigma))+'_low.png')
         ssim_low = ssim_module(Im.unsqueeze(0)/5*255,recon_low.unsqueeze(0)/5*255)
         mse_low = torch.norm(Im-recon_low)/torch.norm(Im)
 

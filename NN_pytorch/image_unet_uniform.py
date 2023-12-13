@@ -57,7 +57,7 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 8 # 1,2,4,8
+sigma = 1 # 1,2,4,8
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -124,4 +124,4 @@ for epoch in range(max_epochs):
 
     torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_model_sigma"+str(sigma))
 
-# %%
+
