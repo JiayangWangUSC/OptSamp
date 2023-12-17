@@ -27,8 +27,8 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     return kspace
 
 train_data = mri_data.SliceDataset(
-    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/miniset_brain/'),
-    #root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/knee/train/'),
+    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/miniset_brain/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/knee/train/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -51,8 +51,10 @@ class Sample(torch.nn.Module):
         self.sigma = sigma/np.sqrt(2*nc)
 
     def forward(self,kspace):
-        noise = self.sigma*torch.randn_like(kspace)/math.sqrt(self.factor/294*368)
+        noise = self.sigma*torch.randn_like(kspace)
         support = torch.zeros(ny)
+        # low_80(37,294)
+        noise = noise/math.sqrt(self.factor/294*368)    
         support[torch.arange(37,37+294)] = 1
         kspace_noise = torch.mul(kspace + noise, support.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),nc,nx,1,2))
         return kspace_noise
@@ -63,7 +65,7 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 8
+sigma = 1
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
