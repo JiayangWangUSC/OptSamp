@@ -22,8 +22,8 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     return kspace
 
 train_data = mri_data.SliceDataset(
-    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/miniset_brain/'),
-    #root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain/train/'),
+    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/miniset_brain/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain/train/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -57,7 +57,7 @@ def toIm(kspace):
 
 # %% sampling and noise level parameters
 factor = 8
-sigma = 8 #1,2,4,8
+sigma = 1 #1,2,4,8
 print("noise level:", sigma)
 
 # %% unet loader
@@ -85,6 +85,7 @@ recon_model.to(device)
 recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
 L1Loss = torch.nn.L1Loss()
 step = 3e2 # sampling weight optimization step size
+L2Loss = torch.nn.MSELoss()
 
 # %% training
 max_epochs = 50
@@ -108,7 +109,7 @@ for epoch in range(max_epochs):
         image_output = recon_model(image_input).to(device)
         image_recon = torch.cat((image_output[:,torch.arange(16),:,:].unsqueeze(4),image_output[:,torch.arange(16,32),:,:].unsqueeze(4)),4).to(device)
         recon = fastmri.rss(fastmri.complex_abs(image_recon), dim=1)
-        loss = L1Loss(recon.to(device),gt.to(device))
+        loss = L2Loss(recon.to(device),gt.to(device))
 
         if batch_count%100 == 0:
             print("batch:",batch_count,"train loss:",loss.item())
@@ -126,6 +127,6 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_model_sigma"+str(sigma))
-    torch.save(sample_model.mask,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mask_sigma"+str(sigma))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_L2_model_sigma"+str(sigma))
+    torch.save(sample_model.mask,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_L2_mask_sigma"+str(sigma))
 
