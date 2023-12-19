@@ -27,8 +27,8 @@ def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
     return kspace
 
 train_data = mri_data.SliceDataset(
-    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/test_knee/'),
-    #root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/knee/train/'),
+    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/test_knee/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/knee/train/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -61,7 +61,7 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 8
+sigma = 1
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -91,7 +91,7 @@ recon_model.to(device)
 recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
 #Loss = torch.nn.MSELoss()
 L1Loss = torch.nn.L1Loss()
-#L2Loss = torch.nn.MSELoss()
+L2Loss = torch.nn.MSELoss()
 #beta = 1e-3
 #ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 
@@ -117,7 +117,7 @@ for epoch in range(max_epochs):
         recon = fastmri.rss(fastmri.complex_abs(image_recon), dim=1)
         #loss = L2Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device))) + beta*L1Loss(torch.mul(recon.to(device),gradmap.to(device)),torch.mul(gt.to(device),gradmap.to(device)))
         #loss = L1Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device)))
-        loss = L1Loss(recon.to(device),gt.to(device))
+        loss = L2Loss(recon.to(device),gt.to(device))
 
         if batch_count%100 == 0:
             print("batch:",batch_count,"train loss:",loss.item())
@@ -126,6 +126,6 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_knee_model_sigma"+str(sigma))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_L2_knee_model_sigma"+str(sigma))
 
 # %%
