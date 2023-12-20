@@ -60,7 +60,7 @@ def toIm(kspace):
 
 # %% sampling and noise level parameters
 factor = 8
-sigma = 8
+sigma = 1
 
 print("noise level:", sigma)
 
@@ -88,6 +88,7 @@ recon_model.to(device)
 # %% optimization parameters
 recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
 L1Loss = torch.nn.L1Loss()
+L2Loss = torch.nn.MSELoss()
 step = 3e2 # sampling weight optimization step size
 
 # %% training
@@ -111,7 +112,7 @@ for epoch in range(max_epochs):
         image_output = recon_model(image_input).to(device)
         image_recon = torch.cat((image_output[:,torch.arange(nc),:,:].unsqueeze(4),image_output[:,torch.arange(nc,2*nc),:,:].unsqueeze(4)),4).to(device)
         recon = fastmri.rss(fastmri.complex_abs(image_recon), dim=1)
-        loss = L1Loss(recon.to(device),gt.to(device))
+        loss = L2Loss(recon.to(device),gt.to(device))
 
         if batch_count%100 == 0:
             print("batch:",batch_count,"train loss:",loss.item())
@@ -129,6 +130,6 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_knee_model_sigma"+str(sigma))
-    torch.save(sample_model.mask,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_knee_mask_sigma"+str(sigma))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_L2_knee_model_sigma"+str(sigma))
+    torch.save(sample_model.mask,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_L2_knee_mask_sigma"+str(sigma))
 
