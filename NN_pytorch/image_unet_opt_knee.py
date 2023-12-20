@@ -60,7 +60,7 @@ def toIm(kspace):
 
 # %% sampling and noise level parameters
 factor = 8
-sigma = 2
+sigma = 4
 
 print("noise level:", sigma)
 
