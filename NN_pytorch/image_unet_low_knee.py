@@ -56,8 +56,8 @@ class Sample(torch.nn.Module):
         # low_80(37,294)
         # low_60(74,220)
         # low_40(111,146)
-        noise = noise/math.sqrt(self.factor/220*368)    
-        support[torch.arange(74,74+220)] = 1
+        noise = noise/math.sqrt(self.factor/294*368)    
+        support[torch.arange(37,37+294)] = 1
         kspace_noise = torch.mul(kspace + noise, support.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),nc,nx,1,2))
         return kspace_noise
 
@@ -67,7 +67,7 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 8
+sigma = 4
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -132,5 +132,5 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/low60_L2_knee_model_sigma"+str(sigma))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/low80_L2_knee_model_sigma"+str(sigma))
 
