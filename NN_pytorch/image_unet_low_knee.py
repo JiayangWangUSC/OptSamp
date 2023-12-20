@@ -56,8 +56,8 @@ class Sample(torch.nn.Module):
         # low_80(37,294)
         # low_60(74,220)
         # low_40(111,146)
-        noise = noise/math.sqrt(self.factor/146*368)    
-        support[torch.arange(111,111+146)] = 1
+        noise = noise/math.sqrt(self.factor/294*368)    
+        support[torch.arange(37,37+294)] = 1
         kspace_noise = torch.mul(kspace + noise, support.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),nc,nx,1,2))
         return kspace_noise
 
@@ -67,7 +67,7 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 8
+sigma = 1
 print("noise level:", sigma)
 sample_model = Sample(sigma,factor)
 
@@ -97,7 +97,7 @@ recon_model.to(device)
 recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
 #Loss = torch.nn.MSELoss()
 L1Loss = torch.nn.L1Loss()
-#L2Loss = torch.nn.MSELoss()
+L2Loss = torch.nn.MSELoss()
 #beta = 1e-3
 #ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 
@@ -123,7 +123,7 @@ for epoch in range(max_epochs):
         recon = fastmri.rss(fastmri.complex_abs(image_recon), dim=1)
         #loss = L2Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device))) + beta*L1Loss(torch.mul(recon.to(device),gradmap.to(device)),torch.mul(gt.to(device),gradmap.to(device)))
         #loss = L1Loss(torch.mul(recon.to(device),support.to(device)),torch.mul(gt.to(device),support.to(device)))
-        loss = L1Loss(recon.to(device),gt.to(device))
+        loss = L2Loss(recon.to(device),gt.to(device))
 
         if batch_count%100 == 0:
             print("batch:",batch_count,"train loss:",loss.item())
@@ -132,5 +132,5 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/low40_L1_knee_model_sigma"+str(sigma))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/low80_L2_knee_model_sigma"+str(sigma))
 
