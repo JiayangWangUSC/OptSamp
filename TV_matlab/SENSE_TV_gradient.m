@@ -5,7 +5,7 @@ clc;
 addpath(genpath('./SPIRiT_v0.3'));
 %% load data
 
-datapath = '/home/wjy/Project/fastmri_dataset/miniset/';
+datapath = '/home/wjy/Project/fastmri_dataset/brain_copy/';
 dirname = dir(datapath);
 N1 = 384; N2 = 396; Nc = 16;
 
@@ -55,8 +55,8 @@ rho = 8;
 lambda = 0.5;
 beta = 1; 
 MaxIter = 10;
-%%
 
+%%
 kspace = h5read([datapath,dirname(3).name],'/kspace');
 kspace = complex(kspace.r,kspace.i);
 kspace = permute(kspace,[4,2,1,3]);
@@ -108,8 +108,6 @@ mean(abs(D(Im)))
 Im = FEh(kData);
 image_norm(abs(FEh(k)-f))
 image_norm(abs(FEh(k)-FEh(kData)))/image_norm(abs(FEh(kData)))
-
-
 
 %%
 function maps = getmap(kData)
