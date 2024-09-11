@@ -12,19 +12,21 @@ import pathlib
 import torch.optim as optim
 from fastmri.data import  mri_data
 
+from my_data import *
+
 #from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
-def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
+def data_transform(kspace):
     # Transform the kspace to tensor format
     kspace = transforms.to_tensor(kspace)
-    image = fastmri.ifft2c(kspace)
-    image = image[:,torch.arange(191,575),:,:]
-    kspace = fastmri.fft2c(image)/5e-5
+    #image = fastmri.ifft2c(kspace)
+    #image = image[:,torch.arange(191,575),:,:]
+    #kspace = fastmri.fft2c(image)/5e-5
     return kspace
 
-train_data = mri_data.SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/test_brain/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain/train/'),
+train_data = SliceDataset(
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1/'),
+    #root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain/train/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -37,14 +39,17 @@ train_data = mri_data.SliceDataset(
 #)
 
 # %% noise generator and transform to image
+N1 = 320
+N2 = 320
+Nc = 20
 batch_size = 8
 
 class Sample(torch.nn.Module): 
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = factor*torch.ones(396)
-        self.sigma = sigma/np.sqrt(2*16)
+        self.mask = factor*torch.ones(N2)
+        self.sigma = sigma
 
     def forward(self,kspace):
         noise = self.sigma*torch.randn_like(kspace)
@@ -57,15 +62,17 @@ def toIm(kspace):
 
 # %% sampling
 factor = 8
-sigma = 4 # 1,2,4,8
-print("noise level:", sigma)
+signal_mag = 0.034
+snr = 2e-2
+sigma =  1
+print("SNR:", snr)
 sample_model = Sample(sigma,factor)
 
 
 # %% unet loader
 recon_model = Unet(
-  in_chans = 32,
-  out_chans = 32,
+  in_chans = 40,
+  out_chans = 40,
   chans = 128,
   num_pool_layers = 4,
   drop_prob = 0.0
