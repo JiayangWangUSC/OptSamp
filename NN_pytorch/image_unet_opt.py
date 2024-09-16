@@ -34,8 +34,8 @@ def data_transform(kspace,maps):
     return kspace, maps
 
 train_data = SliceDataset(
-    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
-    #root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/'),
+    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -88,8 +88,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-#recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/model/uni_model_sigma'+str(sigma))
-#recon_model = torch.load('/home/wjy/Project/optsamp_models/uni_model_noise0.3',map_location=torch.device('cpu'))
+recon_model = torch.load(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_mae_snr"+str(snr))
 
 # %% data loader
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -109,7 +108,7 @@ step = 3e2 # sampling weight optimization step size
 
 
 # %% training
-max_epochs = 2
+max_epochs = 100
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
@@ -134,7 +133,7 @@ for epoch in range(max_epochs):
 
         loss = L1Loss(recon.to(device),gt.to(device))
 
-        if batch_count%1 == 0:
+        if batch_count%10 == 0:
             print("batch:",batch_count,"train loss:",loss.item())
         
         # backward
@@ -150,8 +149,8 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-#    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_L2_model_sigma"+str(sigma))
-#    torch.save(sample_model.mask,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_L2_mask_sigma"+str(sigma))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mae_snr"+str(snr))
+    torch.save(sample_model.mask,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mae_mask_snr"+str(snr))
 
 
 # %%
