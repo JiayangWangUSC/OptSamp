@@ -121,10 +121,10 @@ for epoch in range(max_epochs):
         batch_count = batch_count + 1
         
         
-        gt = toIm(kspace.to(device), maps.to(device))
+        gt = toIm(kspace, maps)
         
-        kspace_noise = sample_model(kspace.to(device)).to(device)
-        image_noise = fastmri.ifft2c(kspace_noise).to(device)
+        kspace_noise = sample_model(kspace)
+        image_noise = fastmri.ifft2c(kspace_noise)
         image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
         image_output = recon_model(image_input).to(device)
         image_recon = torch.cat((image_output[:,torch.arange(Nc),:,:].unsqueeze(4),image_output[:,torch.arange(Nc,2*Nc),:,:].unsqueeze(4)),4).to(device)
