@@ -34,8 +34,8 @@ def data_transform(kspace,maps):
     return kspace, maps
 
 train_data = SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
+    #root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -48,6 +48,7 @@ train_data = SliceDataset(
 #)
 
 # %% noise generator and transform to image
+batch_size = 8
 
 class Sample(torch.nn.Module): 
 
@@ -60,7 +61,7 @@ class Sample(torch.nn.Module):
     def forward(self,kspace):
         sample_mask = torch.sqrt(1 + F.softmax(self.mask)*(self.factor-1)*N2)
         noise = self.sigma*torch.randn_like(kspace)
-        kspace_noise = kspace + torch.div(noise,torch.sqrt(self.mask).unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2)) 
+        kspace_noise = kspace + torch.div(noise,sample_mask.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2)) 
         return kspace_noise
 
 def toIm(kspace,maps): 
@@ -92,44 +93,48 @@ recon_model = Unet(
 
 # %% data loader
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-batch_size = 8
+
 train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
 #val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
-sample_model = Sample(sigma,factor)
+
 sample_model.to(device)
 recon_model.to(device)
 
 # %% optimization parameters
 recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
 L1Loss = torch.nn.L1Loss()
-step = 3e2 # sampling weight optimization step size
 L2Loss = torch.nn.MSELoss()
 
+step = 3e2 # sampling weight optimization step size
+
+
 # %% training
-max_epochs = 50
+max_epochs = 2
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
     step = step * 0.9
     batch_count = 0
-    for train_batch in train_dataloader:
+    for kspace, maps in train_dataloader:
         
         batch_count = batch_count + 1
         sample_model.mask.requires_grad = True
-        train_batch.to(device)
         
-        gt = toIm(train_batch) # ground truth
-        kspace_noise = sample_model(train_batch).to(device) # add noise
+        gt = toIm(kspace, maps) # ground truth
+        kspace_noise = sample_model(kspace) # add noise
         
         # forward
-        image_noise = fastmri.ifft2c(kspace_noise).to(device)
-        image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device) 
+        image_noise = fastmri.ifft2c(kspace_noise)
+        image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
         image_output = recon_model(image_input).to(device)
-        image_recon = torch.cat((image_output[:,torch.arange(16),:,:].unsqueeze(4),image_output[:,torch.arange(16,32),:,:].unsqueeze(4)),4).to(device)
-        recon = fastmri.rss(fastmri.complex_abs(image_recon), dim=1)
-        loss = L2Loss(recon.to(device),gt.to(device))
+        image_recon = torch.cat((image_output[:,torch.arange(Nc),:,:].unsqueeze(4),image_output[:,torch.arange(Nc,2*Nc),:,:].unsqueeze(4)),4).to(device)
+        
+        recon = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
 
-        if batch_count%10 == 0:
+
+        loss = L1Loss(recon.to(device),gt.to(device))
+
+        if batch_count%1 == 0:
             print("batch:",batch_count,"train loss:",loss.item())
         
         # backward
@@ -145,6 +150,8 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_L2_model_sigma"+str(sigma))
-    torch.save(sample_model.mask,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_L2_mask_sigma"+str(sigma))
+#    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_L2_model_sigma"+str(sigma))
+#    torch.save(sample_model.mask,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_L2_mask_sigma"+str(sigma))
 
+
+# %%
