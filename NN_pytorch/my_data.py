@@ -375,7 +375,7 @@ class SliceDataset(torch.utils.data.Dataset):
 
             #ncc_effect = hf["ncc_effect"][dataslice]
 
-            #sense_maps = hf["sense_maps"][dataslice]
+            sense_maps = hf["sense_central"][dataslice]
 
             #mask = np.asarray(hf["mask"]) if "mask" in hf else None
 
@@ -385,9 +385,9 @@ class SliceDataset(torch.utils.data.Dataset):
             attrs.update(metadata)
 
         if self.transform is None:
-            sample = (kspace)
+            sample = (kspace,sense_maps)
         else:
-            sample = self.transform(kspace)
+            sample = self.transform(kspace,sense_maps)
 
         return sample
 

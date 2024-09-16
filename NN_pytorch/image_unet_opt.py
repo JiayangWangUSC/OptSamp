@@ -111,7 +111,7 @@ for epoch in range(max_epochs):
         recon = fastmri.rss(fastmri.complex_abs(image_recon), dim=1)
         loss = L2Loss(recon.to(device),gt.to(device))
 
-        if batch_count%100 == 0:
+        if batch_count%10 == 0:
             print("batch:",batch_count,"train loss:",loss.item())
         
         # backward
