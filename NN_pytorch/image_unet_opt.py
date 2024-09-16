@@ -6,24 +6,36 @@ import torch.nn as nn
 import torch.nn.functional as F
 from fastmri.data import transforms
 from fastmri.models import Unet
-import pathlib
+
 import numpy as np
+import pathlib
 import torch.optim as optim
 from fastmri.data import  mri_data
+import math
+
+import matplotlib.pyplot as plt
+
+from my_data import *
 
 #from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
-def data_transform(kspace, mask, target, data_attributes, filename, slice_num):
+N1 = 320
+N2 = 320
+Nc = 20
+def data_transform(kspace,maps):
     # Transform the kspace to tensor format
     kspace = transforms.to_tensor(kspace)
-    image = fastmri.ifft2c(kspace)
-    image = image[:,torch.arange(191,575),:,:]
-    kspace = fastmri.fft2c(image)/5e-5
-    return kspace
+    maps = transforms.to_tensor(maps)
+    kspace = torch.cat((kspace[torch.arange(Nc),:,:].unsqueeze(3),kspace[torch.arange(Nc,2*Nc),:,:].unsqueeze(3)),3)
+    maps = torch.cat((maps[torch.arange(Nc),:,:].unsqueeze(3),maps[torch.arange(Nc,2*Nc),:,:].unsqueeze(3)),3)
+    kspace = kspace.permute([0,2,1,3])
+    maps = maps.permute([0,2,1,3]) + 1e-7
 
-train_data = mri_data.SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/miniset_brain/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain/train/'),
+    return kspace, maps
+
+train_data = SliceDataset(
+    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -41,35 +53,41 @@ class Sample(torch.nn.Module):
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = 2*torch.rand(396)-1
+        self.mask = 2*torch.rand(N2)-1
         self.factor = factor
-        self.sigma = sigma/np.sqrt(2*16)
+        self.sigma = sigma
 
     def forward(self,kspace):
-        sample_mask = torch.sqrt(1 + F.softmax(self.mask)*(self.factor-1)*396)
+        sample_mask = torch.sqrt(1 + F.softmax(self.mask)*(self.factor-1)*N2)
         noise = self.sigma*torch.randn_like(kspace)
-        kspace_noise = kspace + torch.div(noise,sample_mask.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),16,384,1,2)) 
+        kspace_noise = kspace + torch.div(noise,torch.sqrt(self.mask).unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2)) 
         return kspace_noise
 
-def toIm(kspace): 
-    image = fastmri.rss(fastmri.complex_abs(fastmri.ifft2c(kspace)), dim=1)
-    return image
+def toIm(kspace,maps): 
+    # kspace-(batch,Nc,N1,N2,2) maps-(batch,Nc,N1,N2,2)
+    # image-(batch,N1,N2)
+    image = fastmri.complex_abs(torch.sum(fastmri.complex_mul(fastmri.ifft2c(kspace),fastmri.complex_conj(maps)),dim=1))
+    return image.squeeze()
 
-# %% sampling and noise level parameters
+# %% sampling
 factor = 8
-sigma = 4 #1,2,4,8
-print("noise level:", sigma)
+snr = 10
+sigma =  math.sqrt(8)*45/snr
+print("SNR:", snr)
+
+sample_model = Sample(sigma,factor)
+
 
 # %% unet loader
 recon_model = Unet(
-  in_chans = 32,
-  out_chans = 32,
+  in_chans = 40,
+  out_chans = 40,
   chans = 128,
   num_pool_layers = 4,
   drop_prob = 0.0
 )
 
-recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/model/uni_model_sigma'+str(sigma))
+#recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/model/uni_model_sigma'+str(sigma))
 #recon_model = torch.load('/home/wjy/Project/optsamp_models/uni_model_noise0.3',map_location=torch.device('cpu'))
 
 # %% data loader

@@ -121,6 +121,7 @@ for epoch in range(max_epochs):
         batch_count = batch_count + 1
         
         kspace.to(device)
+        maps.to(device)
         gt = toIm(kspace, maps)
         
         kspace_noise = sample_model(kspace).to(device)
