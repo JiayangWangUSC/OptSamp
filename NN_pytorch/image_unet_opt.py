@@ -72,7 +72,7 @@ def toIm(kspace,maps):
 
 # %% sampling
 factor = 8
-snr = 5
+snr = 20
 sigma =  math.sqrt(8)*45/snr
 print("SNR:", snr)
 
