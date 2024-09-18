@@ -72,7 +72,7 @@ def toIm(kspace,maps):
 
 # %% sampling
 factor = 8
-snr = 20
+snr = 3
 sigma =  math.sqrt(8)*45/snr
 print("SNR:", snr)
 
@@ -88,7 +88,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt_mae_snr"+str(snr))
+recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_snr10")
 
 # %% data loader
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
