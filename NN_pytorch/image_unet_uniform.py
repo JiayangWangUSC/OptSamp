@@ -73,7 +73,7 @@ factor = 8
 snr = 3
 sigma =  math.sqrt(8)*45/snr
 print("SNR:", snr)
-
+print('uniform')
 sample_model = Sample(sigma,factor)
 
 
@@ -135,7 +135,7 @@ for epoch in range(max_epochs):
         loss = L2Loss(recon.to(device),gt.to(device))
 
         if batch_count%10 == 0:
-            print("batch:",batch_count,"train loss:",loss.item())
+            print("batch:",batch_count,"L2 loss:",loss.item())
         
 
         loss.backward()
