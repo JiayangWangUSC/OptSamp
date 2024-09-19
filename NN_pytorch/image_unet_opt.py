@@ -107,7 +107,7 @@ recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
 L1Loss = torch.nn.L1Loss()
 L2Loss = torch.nn.MSELoss()
 
-step = 3 # sampling weight optimization step size
+step = 0.1 # sampling weight optimization step size
 
 
 # %% training
