@@ -34,8 +34,8 @@ def data_transform(kspace,maps):
     return kspace, maps
 
 train_data = SliceDataset(
-    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
-    #root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/'),
+    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -84,6 +84,7 @@ factor = 8
 snr = 5
 sigma =  math.sqrt(8)*45/snr
 print("SNR:", snr)
+print('opt')
 
 sample_model = Sample(sigma,factor)
 
@@ -143,7 +144,7 @@ for epoch in range(max_epochs):
         loss = L2Loss(recon.to(device),gt.to(device))
 
         if batch_count%1 == 0:
-            print("batch:",batch_count,"train loss:",loss.item())
+            print("batch:",batch_count,"L2 loss:",loss.item())
         
         # backward
         loss.backward()
@@ -169,7 +170,7 @@ for epoch in range(max_epochs):
             temp = temp/temp.mean()*(factor*N2/len(ind)-1)
             weight[ind] = temp + 1
 
-            print("max:",weight.max(),"min:",weight.min(),"mean:", weight.mean())
+            #print("max:",weight.max(),"min:",weight.min(),"mean:", weight.mean())
 
             sample_model.weight = weight
         
@@ -177,8 +178,10 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    #torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_snr"+str(snr))
-    #torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_mask_snr"+str(snr))
+    print("weight max:",weight.max(),"min:",weight.min(),"mean:", weight.mean())
+    
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_snr"+str(snr))
+    torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_mask_snr"+str(snr))
 
 
 # %%
