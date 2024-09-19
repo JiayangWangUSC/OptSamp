@@ -63,8 +63,8 @@ class Sample(torch.nn.Module):
         # low_50(80,240)
         # low_25(120,200)
         support = torch.zeros(N2)
-        support[torch.arange(120,200)] = 1
-        noise = noise/math.sqrt(factor*4)
+        support[torch.arange(80,240)] = 1
+        noise = noise/math.sqrt(factor*2)
         
         kspace_noise = torch.mul(kspace + noise, support.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),Nc,N1,1,2))
         
@@ -81,7 +81,7 @@ factor = 8
 snr = 3
 sigma =  math.sqrt(8)*45/snr
 print("SNR:", snr)
-print('low25')
+print('low50')
 
 sample_model = Sample(sigma,factor)
 
@@ -152,7 +152,7 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/low25_mae_snr"+str(snr))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/low50_mae_snr"+str(snr))
 
 
 
