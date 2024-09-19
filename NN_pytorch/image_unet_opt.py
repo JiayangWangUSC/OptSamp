@@ -152,6 +152,12 @@ for epoch in range(max_epochs):
 
             grad = sample_model.mask.grad
             grad = - weight_dagger**2 * grad
+
+            temp = grad[ind]
+            temp = temp - temp.mean()
+            temp = temp/temp.norm()
+            grad[ind] = temp
+
             weight = temp - step * grad
             weight[weight<1] = 0
             ind = torch.where(weight >= 1)[0]
@@ -159,7 +165,7 @@ for epoch in range(max_epochs):
             
             for p in range(10):
                 temp = temp - temp.mean() + factor*N2/len(ind)
-                temp[temp<1] = 1
+                temp[temp<1.5] = 1
 
             weight[ind] = temp
         
