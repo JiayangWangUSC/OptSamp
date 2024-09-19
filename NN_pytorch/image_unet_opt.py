@@ -54,14 +54,17 @@ class Sample(torch.nn.Module):
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = 2*torch.rand(N2)-1
+        self.mask = torch.zeros(N2)
         self.factor = factor
         self.sigma = sigma
 
-    def forward(self,kspace):
-        sample_mask = torch.sqrt(1 + F.softmax(self.mask)*(self.factor-1)*N2)
+    def forward(self,kspace,weight):
+        #sample_mask = torch.sqrt(1 + F.softmax(self.mask)*(self.factor-1)*N2)
+        self.mask = weight.clone() 
+        ind = torch.where(weight > 0)[0]
+        self.mask[ind] = 1.0 / (weight[ind] ** 0.5)
         noise = self.sigma*torch.randn_like(kspace)
-        kspace_noise = kspace + torch.div(noise,sample_mask.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2)) 
+        kspace_noise = kspace + torch.mul(noise,self.mask.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2)) 
         return kspace_noise
 
 def toIm(kspace,maps): 
@@ -104,15 +107,16 @@ recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
 L1Loss = torch.nn.L1Loss()
 L2Loss = torch.nn.MSELoss()
 
-step = 3e2 # sampling weight optimization step size
+step = 3 # sampling weight optimization step size
 
 
 # %% training
 max_epochs = 100
+weight = factor * torch.ones(N2)
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-    step = step * 0.9
+    #step = step * 0.9
     batch_count = 0
     for kspace, maps in train_dataloader:
         
@@ -120,7 +124,7 @@ for epoch in range(max_epochs):
         sample_model.mask.requires_grad = True
         
         gt = toIm(kspace, maps) # ground truth
-        kspace_noise = sample_model(kspace) # add noise
+        kspace_noise = sample_model(kspace,weights) # add noise
         
         # forward
         image_noise = fastmri.ifft2c(kspace_noise)
@@ -141,16 +145,30 @@ for epoch in range(max_epochs):
         
         # optimize mask
         with torch.no_grad():
+            # todo: add support&avgmask -> mask = avgmask_dagger
+            weight_dagger = weight.clone() 
+            ind = torch.where(weight > 0)[0]
+            weight_dagger[ind] = 1.0 / weight[ind]
+
             grad = sample_model.mask.grad
-            temp = sample_model.mask.clone()
-            sample_model.mask = temp - step * grad
+            grad = - weight_dagger**2 * grad
+            weight = temp - step * grad
+            weight[weight<1] = 0
+            ind = torch.where(weight >= 1)[0]
+            temp = weight[ind]
+            
+            for p in range(10):
+                temp = temp - temp.mean() + factor*N2/len(ind)
+                temp[temp<1] = 1
+
+            weight[ind] = temp
         
         # optimize network
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_snr"+str(snr))
-    torch.save(sample_model.mask,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_mask_snr"+str(snr))
+    #torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_snr"+str(snr))
+    #torch.save(avgmask,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_mask_snr"+str(snr))
 
 
 # %%
