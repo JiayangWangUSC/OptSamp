@@ -34,8 +34,8 @@ def data_transform(kspace,maps):
     return kspace, maps
 
 train_data = SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
+    #root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -54,17 +54,23 @@ class Sample(torch.nn.Module):
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = torch.zeros(N2)
+        self.weight = factor*torch.ones(N2)
         self.factor = factor
         self.sigma = sigma
 
-    def forward(self,kspace,weight):
+    def forward(self,kspace):
         #sample_mask = torch.sqrt(1 + F.softmax(self.mask)*(self.factor-1)*N2)
-        self.mask = weight.clone() 
-        ind = torch.where(weight > 0)[0]
-        self.mask[ind] = 1.0 / (weight[ind] ** 0.5)
+        
+        support = self.weight >= 1
+        support = support.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2)
+
+        mask = self.weight.clone() 
+        mask = 1.0 / (self.weight ** 0.5)
+        mask = mask.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2)
+        
+        
         noise = self.sigma*torch.randn_like(kspace)
-        kspace_noise = kspace + torch.mul(noise,self.mask.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2)) 
+        kspace_noise = support * (kspace + mask * noise) 
         return kspace_noise
 
 def toIm(kspace,maps): 
@@ -75,7 +81,7 @@ def toIm(kspace,maps):
 
 # %% sampling
 factor = 8
-snr = 3
+snr = 5
 sigma =  math.sqrt(8)*45/snr
 print("SNR:", snr)
 
@@ -91,7 +97,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_snr10")
+#
 
 # %% data loader
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -107,24 +113,23 @@ recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
 L1Loss = torch.nn.L1Loss()
 L2Loss = torch.nn.MSELoss()
 
-step = 0.1 # sampling weight optimization step size
+step = 3 # sampling weight optimization step size
 
 
 # %% training
 max_epochs = 100
-weight = factor * torch.ones(N2)
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-    #step = step * 0.9
+    step = step * 0.99
     batch_count = 0
     for kspace, maps in train_dataloader:
         
         batch_count = batch_count + 1
-        sample_model.mask.requires_grad = True
-        
+        sample_model.weight.requires_grad = True
+
         gt = toIm(kspace, maps) # ground truth
-        kspace_noise = sample_model(kspace,weight) # add noise
+        kspace_noise = sample_model(kspace) # add noise
         
         # forward
         image_noise = fastmri.ifft2c(kspace_noise)
@@ -137,7 +142,7 @@ for epoch in range(max_epochs):
 
         loss = L2Loss(recon.to(device),gt.to(device))
 
-        if batch_count%10 == 0:
+        if batch_count%1 == 0:
             print("batch:",batch_count,"train loss:",loss.item())
         
         # backward
@@ -146,25 +151,27 @@ for epoch in range(max_epochs):
         # optimize mask
         with torch.no_grad():
 
-            weight_dagger = weight.clone() 
-            ind = torch.where(weight > 0)[0]
-            weight_dagger[ind] = 1.0 / weight[ind]
+            weight = sample_model.weight.clone() 
+            ind = torch.where(weight >= 1)[0]
 
-            grad = sample_model.mask.grad
-            grad = - weight_dagger**2 * grad
-
+            grad = sample_model.weight.grad
             temp = grad[ind]
             temp = temp - temp.mean()
             temp = temp/temp.norm()
+            grad = 0 * grad
             grad[ind] = temp
 
-            weight = temp - step * grad
-            weight[weight<1] = 0
+            weight = weight - step * grad
+            weight[weight<1] = 1e-7
             ind = torch.where(weight >= 1)[0]
             
             temp = weight[ind] - 1
-            temp = temp/temp.mean()*(factor-1)*N2/len(ind)
+            temp = temp/temp.mean()*(factor*N2/len(ind)-1)
             weight[ind] = temp + 1
+
+            print("max:",weight.max(),"min:",weight.min(),"mean:", weight.mean())
+
+            sample_model.weight = weight
         
         # optimize network
         recon_optimizer.step()
