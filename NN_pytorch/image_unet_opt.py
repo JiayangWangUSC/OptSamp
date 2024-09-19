@@ -124,7 +124,7 @@ for epoch in range(max_epochs):
         sample_model.mask.requires_grad = True
         
         gt = toIm(kspace, maps) # ground truth
-        kspace_noise = sample_model(kspace,weights) # add noise
+        kspace_noise = sample_model(kspace,weight) # add noise
         
         # forward
         image_noise = fastmri.ifft2c(kspace_noise)
@@ -145,7 +145,7 @@ for epoch in range(max_epochs):
         
         # optimize mask
         with torch.no_grad():
-            # todo: add support&avgmask -> mask = avgmask_dagger
+
             weight_dagger = weight.clone() 
             ind = torch.where(weight > 0)[0]
             weight_dagger[ind] = 1.0 / weight[ind]
@@ -161,20 +161,17 @@ for epoch in range(max_epochs):
             weight = temp - step * grad
             weight[weight<1] = 0
             ind = torch.where(weight >= 1)[0]
-            temp = weight[ind]
             
-            for p in range(10):
-                temp = temp - temp.mean() + factor*N2/len(ind)
-                temp[temp<1.5] = 1
-
-            weight[ind] = temp
+            temp = weight[ind] - 1
+            temp = temp/temp.mean()*(factor-1)*N2/len(ind)
+            weight[ind] = temp + 1
         
         # optimize network
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
     #torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_snr"+str(snr))
-    #torch.save(avgmask,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_mask_snr"+str(snr))
+    #torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_mask_snr"+str(snr))
 
 
 # %%
