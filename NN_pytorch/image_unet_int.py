@@ -59,8 +59,6 @@ class Sample(torch.nn.Module):
         self.sigma = sigma
 
     def forward(self,kspace):
-        #sample_mask = torch.sqrt(1 + F.softmax(self.mask)*(self.factor-1)*N2)
-        
         support = self.weight >= 1
         support = support.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2)
 
@@ -74,21 +72,17 @@ class Sample(torch.nn.Module):
         return kspace_noise
 
 def toIm(kspace,maps): 
-    # kspace-(batch,Nc,N1,N2,2) maps-(batch,Nc,N1,N2,2)
-    # image-(batch,N1,N2)
     image = fastmri.complex_abs(torch.sum(fastmri.complex_mul(fastmri.ifft2c(kspace),fastmri.complex_conj(maps)),dim=1))
     return image.squeeze()
 
 # %% sampling
 factor = 8
-snr = 10
+snr = 5
 sigma =  math.sqrt(8)*45/snr
 print("SNR:", snr)
 print('opt')
 
 sample_model = Sample(sigma,factor)
-weight = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_mask_snr"+str(snr))
-sample_model.weight = weight
 
 # %% unet loader
 recon_model = Unet(
@@ -99,13 +93,13 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_snr"+str(snr))
+recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt_mae_snr"+str(snr))
+weight = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt_mae_mask_snr"+str(snr))
+sample_model.weight = weight
 
 # %% data loader
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
 train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
-#val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
 
 sample_model.to(device)
 recon_model.to(device)
@@ -115,20 +109,16 @@ recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
 L1Loss = torch.nn.L1Loss()
 L2Loss = torch.nn.MSELoss()
 
-step = 0.3 # sampling weight optimization step size
-
-
 # %% training
-max_epochs = 300
-#val_loss = torch.zeros(max_epochs)
+max_epochs = 10
+
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-    step = step * 0.99
+
     batch_count = 0
     for kspace, maps in train_dataloader:
-        
+
         batch_count = batch_count + 1
-        sample_model.weight.requires_grad = True
 
         gt = toIm(kspace, maps) # ground truth
         kspace_noise = sample_model(kspace) # add noise
@@ -142,47 +132,19 @@ for epoch in range(max_epochs):
         recon = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
 
 
-        loss = L2Loss(recon.to(device),gt.to(device))
+        loss = L1Loss(recon.to(device),gt.to(device))
 
         if batch_count%10 == 0:
-            print("batch:",batch_count,"L2 loss:",loss.item())
+            print("batch:",batch_count,"L1 loss:",loss.item())
         
         # backward
         loss.backward()
         
-        # optimize mask
-        with torch.no_grad():
-
-            weight = sample_model.weight.clone() 
-            ind = torch.where(weight >= 1)[0]
-
-            grad = sample_model.weight.grad
-            temp = grad[ind]
-            temp = temp - temp.mean()
-            temp = temp/temp.norm()
-            grad = 0 * grad
-            grad[ind] = temp
-
-            weight = weight - step * grad
-            weight[weight<1] = 1e-7
-            ind = torch.where(weight >= 1)[0]
-            
-            temp = weight[ind] - 1
-            temp = temp/temp.mean()*(factor*N2/len(ind)-1)
-            weight[ind] = temp + 1
-
-            #print("max:",weight.max(),"min:",weight.min(),"mean:", weight.mean())
-
-            sample_model.weight = weight
-        
         # optimize network
         recon_optimizer.step()
         recon_optimizer.zero_grad()
-
-    print("weight max:",weight.max(),"min:",weight.min(),"mean:", weight.mean())
     
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_snr"+str(snr))
-    torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_mask_snr"+str(snr))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/int_mae_snr"+str(snr))
 
 
 # %%
