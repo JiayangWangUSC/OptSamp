@@ -70,7 +70,7 @@ def toIm(kspace,maps):
 
 # %% sampling
 factor = 8
-snr = 3
+snr = 10
 sigma =  math.sqrt(8)*45/snr
 print("SNR:", snr)
 print('uniform')
@@ -86,7 +86,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/model/uni_mse_snr'+str(snr))
+recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/model/uni_mae_snr'+str(snr))
 
 # %% GPU 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -132,10 +132,10 @@ for epoch in range(max_epochs):
         recon = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
 
 
-        loss = L2Loss(recon.to(device),gt.to(device))
+        loss = L1Loss(recon.to(device),gt.to(device))
 
         if batch_count%10 == 0:
-            print("batch:",batch_count,"L12 loss:",loss.item())
+            print("batch:",batch_count,"L1 loss:",loss.item())
         
 
         loss.backward()
@@ -143,7 +143,7 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_mse_snr"+str(snr))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_mae_snr"+str(snr))
 
 
 
