@@ -148,7 +148,7 @@ for epoch in range(max_epochs):
 
     with torch.no_grad():
         valloss = 0
-        for kspace, maps in train_dataloader:
+        for kspace, maps in val_dataloader:
             recon_model.eval()
             gt = toIm(kspace, maps)
         
