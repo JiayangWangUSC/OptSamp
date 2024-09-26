@@ -83,7 +83,7 @@ recon_model = Unet(
   in_chans = 40,
   out_chans = 40,
   chans = 32,
-  num_pool_layers = 3,
+  num_pool_layers = 2,
   drop_prob = 0.0
 )
 
@@ -111,7 +111,7 @@ L2Loss = torch.nn.MSELoss()
 
 
 # %% training
-max_epochs = 50
+max_epochs = 100
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
@@ -144,7 +144,7 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/depth7_uni_mae_snr"+str(snr))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/depth5_uni_mae_snr"+str(snr))
 
     with torch.no_grad():
         valloss = 0
