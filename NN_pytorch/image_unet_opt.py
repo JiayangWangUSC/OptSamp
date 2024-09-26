@@ -40,12 +40,12 @@ train_data = SliceDataset(
     challenge='multicoil'
 )
 
-#val_data = mri_data.SliceDataset(
-#    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/multicoil_test/T2/'),
-#    root = pathlib.Path('/project/jhaldar_118/jiayangw/OptSamp/dataset/val/'),
-#    transform=data_transform,
-#    challenge='multicoil'
-#)
+val_data = SliceDataset(
+    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
+    transform=data_transform,
+    challenge='multicoil'
+)
 
 # %% noise generator and transform to image
 batch_size = 8
@@ -81,7 +81,7 @@ def toIm(kspace,maps):
 
 # %% sampling
 factor = 8
-snr = 3
+snr = 10
 sigma =  math.sqrt(8)*45/snr
 print("SNR:", snr)
 print('opt')
@@ -94,18 +94,18 @@ sample_model.weight = weight
 recon_model = Unet(
   in_chans = 40,
   out_chans = 40,
-  chans = 128,
-  num_pool_layers = 4,
+  chans = 32,
+  num_pool_layers = 3,
   drop_prob = 0.0
 )
 
-recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt_mae_snr"+str(snr))
+#recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt_mae_snr"+str(snr))
 
 # %% data loader
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
-#val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
+val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
 
 sample_model.to(device)
 recon_model.to(device)
@@ -115,20 +115,21 @@ recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
 L1Loss = torch.nn.L1Loss()
 L2Loss = torch.nn.MSELoss()
 
-step = 0.3 # sampling weight optimization step size
-
+#step = 0.3 # sampling weight optimization step size
+print('L1 Loss')
 
 # %% training
-max_epochs = 300
+max_epochs = 200
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-    step = step * 0.99
+    #step = step * 0.99
     batch_count = 0
+    trainloss = 0
     for kspace, maps in train_dataloader:
         
         batch_count = batch_count + 1
-        sample_model.weight.requires_grad = True
+        #sample_model.weight.requires_grad = True
 
         gt = toIm(kspace, maps) # ground truth
         kspace_noise = sample_model(kspace) # add noise
@@ -143,46 +144,63 @@ for epoch in range(max_epochs):
 
 
         loss = L1Loss(recon.to(device),gt.to(device))
+        trainloss += loss.item()
 
-        if batch_count%10 == 0:
-            print("batch:",batch_count,"L1 loss:",loss.item())
+        #if batch_count%10 == 0:
+        #    print("batch:",batch_count,"L1 loss:",loss.item())
         
         # backward
         loss.backward()
         
         # optimize mask
-        with torch.no_grad():
+        #with torch.no_grad():
 
-            weight = sample_model.weight.clone() 
-            ind = torch.where(weight >= 1)[0]
+        #    weight = sample_model.weight.clone() 
+        #    ind = torch.where(weight >= 1)[0]
 
-            grad = sample_model.weight.grad
-            temp = grad[ind]
-            temp = temp - temp.mean()
-            temp = temp/temp.norm()
-            grad = 0 * grad
-            grad[ind] = temp
+        #    grad = sample_model.weight.grad
+        #    temp = grad[ind]
+        #    temp = temp - temp.mean()
+        #    temp = temp/temp.norm()
+        #    grad = 0 * grad
+        #    grad[ind] = temp
 
-            weight = weight - step * grad
-            weight[weight<1] = 1e-7
-            ind = torch.where(weight >= 1)[0]
+        #    weight = weight - step * grad
+        #    weight[weight<1] = 1e-7
+        #    ind = torch.where(weight >= 1)[0]
             
-            temp = weight[ind] - 1
-            temp = temp/temp.mean()*(factor*N2/len(ind)-1)
-            weight[ind] = temp + 1
+        #    temp = weight[ind] - 1
+        #    temp = temp/temp.mean()*(factor*N2/len(ind)-1)
+        #    weight[ind] = temp + 1
 
             #print("max:",weight.max(),"min:",weight.min(),"mean:", weight.mean())
 
-            sample_model.weight = weight
+        #    sample_model.weight = weight
         
         # optimize network
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    print("weight max:",weight.max(),"min:",weight.min(),"mean:", weight.mean())
+#    print("weight max:",weight.max(),"min:",weight.min(),"mean:", weight.mean())
     
     torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mae_snr"+str(snr))
-    torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mae_mask_snr"+str(snr))
+#    torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mae_mask_snr"+str(snr))
 
+    with torch.no_grad():
+        valloss = 0
+        for kspace, maps in val_dataloader:
+            recon_model.eval()
+            gt = toIm(kspace, maps)
+        
+            kspace_noise = sample_model(kspace)
+            image_noise = fastmri.ifft2c(kspace_noise)
+            image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
+            image_output = recon_model(image_input).to(device)
+            image_recon = torch.cat((image_output[:,torch.arange(Nc),:,:].unsqueeze(4),image_output[:,torch.arange(Nc,2*Nc),:,:].unsqueeze(4)),4).to(device)
+        
+            recon = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
+            valloss += L1Loss(recon.to(device),gt.to(device))
+
+    print("train loss:",trainloss/320," val loss:",valloss/48)
 
 # %%

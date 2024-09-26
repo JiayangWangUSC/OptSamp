@@ -83,11 +83,10 @@ recon_model = Unet(
   in_chans = 40,
   out_chans = 40,
   chans = 32,
-  num_pool_layers = 4,
+  num_pool_layers = 3,
   drop_prob = 0.0
 )
 
-print('depth9')
 
 #recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/model/uni_mae_snr'+str(snr))
 
@@ -110,7 +109,7 @@ L2Loss = torch.nn.MSELoss()
 
 #beta = 1e-3
 #ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
-
+print('L1 Loss')
 
 # %% training
 max_epochs = 200
@@ -122,7 +121,6 @@ for epoch in range(max_epochs):
     for kspace, maps in train_dataloader:
         
         batch_count = batch_count + 1
-        
         
         gt = toIm(kspace, maps)
         
@@ -146,7 +144,7 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/depth9_uni_mae_snr"+str(snr))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_mae_snr"+str(snr))
 
     with torch.no_grad():
         valloss = 0
