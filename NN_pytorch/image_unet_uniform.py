@@ -161,6 +161,6 @@ for epoch in range(max_epochs):
             recon = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
             valloss += L1Loss(recon.to(device),gt.to(device))
 
-    print("train loss:",trainloss," val loss:",valloss)
+    print("train loss:",trainloss/320," val loss:",valloss/48)
 
 
