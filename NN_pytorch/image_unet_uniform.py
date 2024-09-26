@@ -87,6 +87,8 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
+print('depth5')
+
 #recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/model/uni_mae_snr'+str(snr))
 
 # %% GPU 
