@@ -111,7 +111,7 @@ L2Loss = torch.nn.MSELoss()
 
 
 # %% training
-max_epochs = 100
+max_epochs = 200
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
