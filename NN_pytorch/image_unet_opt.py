@@ -81,7 +81,7 @@ def toIm(kspace,maps):
 
 # %% sampling
 factor = 8
-snr = 10
+snr = 5
 sigma =  math.sqrt(8)*45/snr
 print("SNR:", snr)
 print('opt')
@@ -201,6 +201,6 @@ for epoch in range(max_epochs):
             recon = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
             valloss += L1Loss(recon.to(device),gt.to(device))
 
-    print("train loss:",trainloss/320," val loss:",valloss/48)
+    print("train loss:",trainloss/48," val loss:",valloss/48)
 
 # %%
