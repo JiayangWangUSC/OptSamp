@@ -35,7 +35,7 @@ def data_transform(kspace,maps):
 
 train_data = SliceDataset(
     #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -201,6 +201,6 @@ for epoch in range(max_epochs):
             recon = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
             valloss += L2Loss(recon.to(device),gt.to(device))
 
-    print("train loss:",trainloss/320," val loss:",valloss/48)
+    print("train loss:",trainloss/48," val loss:",valloss/48)
 
 # %%

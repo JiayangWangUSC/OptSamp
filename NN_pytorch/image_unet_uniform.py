@@ -35,7 +35,7 @@ def data_transform(kspace,maps):
 
 train_data = SliceDataset(
     #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -71,7 +71,7 @@ def toIm(kspace,maps):
 
 # %% sampling
 factor = 8
-snr = 3
+snr = 10
 sigma =  math.sqrt(8)*45/snr
 print("SNR:", snr)
 print('uniform')
@@ -88,7 +88,7 @@ recon_model = Unet(
 )
 
 
-#recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/model/uni_mae_snr'+str(snr))
+recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/model/uni_mae_snr'+str(snr))
 
 # %% GPU 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -109,10 +109,10 @@ L2Loss = torch.nn.MSELoss()
 
 #beta = 1e-3
 #ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
-print('L2 Loss')
+print('L1 Loss')
 
 # %% training
-max_epochs = 200
+max_epochs = 10
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
@@ -133,7 +133,7 @@ for epoch in range(max_epochs):
         recon = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
 
 
-        loss = L2Loss(recon.to(device),gt.to(device))
+        loss = L1Loss(recon.to(device),gt.to(device))
         trainloss += loss.item()
 
         #if batch_count%10 == 0:
@@ -144,7 +144,7 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_mse_snr"+str(snr))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_mae_snr"+str(snr))
 
     with torch.no_grad():
         valloss = 0
@@ -159,8 +159,8 @@ for epoch in range(max_epochs):
             image_recon = torch.cat((image_output[:,torch.arange(Nc),:,:].unsqueeze(4),image_output[:,torch.arange(Nc,2*Nc),:,:].unsqueeze(4)),4).to(device)
         
             recon = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
-            valloss += L2Loss(recon.to(device),gt.to(device))
+            valloss += L1Loss(recon.to(device),gt.to(device))
 
-    print("train loss:",trainloss/320," val loss:",valloss/48)
+    print("train loss:",trainloss/48," val loss:",valloss/48)
 
 
