@@ -83,7 +83,7 @@ recon_model = Unet(
   in_chans = 40,
   out_chans = 40,
   chans = 64,
-  num_pool_layers = 3,
+  num_pool_layers = 4,
   drop_prob = 0.0
 )
 
@@ -145,7 +145,7 @@ for epoch in range(max_epochs):
         recon_optimizer.zero_grad()
 
     #torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_mae_snr"+str(snr))
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/depth7_uni_mae_snr"+str(snr))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_mae_snr"+str(snr))
 
     with torch.no_grad():
         valloss = 0

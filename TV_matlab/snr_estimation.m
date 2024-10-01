@@ -4,6 +4,7 @@ close all;
 clc;
 
 %% load data
+addpath(genpath('./SPIRiT_v0.3'));
 load('sampledata.mat');
 [N1,N2,Nc] = size(kspace);
 
@@ -29,9 +30,9 @@ patch = im_sense(170:200,120:150);
 signal_mag = mean(patch(:));
 
 %% def snr
-SNR = 1;
-sigma = signal_mag/SNR/sqrt(2);
-sigma = 45; %sigma = 45 SNR=1
+snr = 20;
+%sigma = signal_mag/SNR/sqrt(2);
+sigma = 45/snr; %sigma = 45 SNR=1
 
 %%
 % Monte Carlo calculation of mean and variance with coil-combination
