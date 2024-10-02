@@ -6,16 +6,16 @@ clc;
 %% load data
 addpath(genpath('./SPIRiT_v0.3'));
 %datapath = '/home/wjy/Project/fastmri_dataset/brain_T1/';
-datapath = '/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/';
+datapath = '/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/';
 dirname = dir(datapath);
 
 %% create new dataset
 Nx = 320; Ny = 320; Nc = 16; Ns = 8;
 
-for dir_num = 3:length(dirname)
-    h5create([datapath,dirname(dir_num).name],'/kspace_central',[Nx,Ny,2*Nc,Ns],'Datatype','single');
-    h5create([datapath,dirname(dir_num).name],'/sense_central',[Nx,Ny,2*Nc,Ns],'Datatype','single');
-end
+%for dir_num = 3:length(dirname)
+%    h5create([datapath,dirname(dir_num).name],'/kspace_central',[Nx,Ny,2*Nc,Ns],'Datatype','single');
+%    h5create([datapath,dirname(dir_num).name],'/sense_central',[Nx,Ny,2*Nc,Ns],'Datatype','single');
+%end
 
 %% sense estimation parameters
 ncalib = 24; % use 24 calibration lines to compute compression
