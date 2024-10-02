@@ -6,7 +6,7 @@ clc;
 %% load data
 addpath(genpath('./SPIRiT_v0.3'));
 %datapath = '/home/wjy/Project/fastmri_dataset/brain_T1/';
-datapath = '/project/jhaldar_118/jiayangw/dataset/brain_T1/';
+datapath = '/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/';
 dirname = dir(datapath);
 
 %% create new dataset
