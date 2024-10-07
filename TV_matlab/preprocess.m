@@ -27,7 +27,7 @@ eigThresh_1 = 0.1;
 eigThresh_2 = 0.95;
 
 %%
-for dir_num = 3 %:length(dirname)
+for dir_num = 3:length(dirname)
 kspace = h5read([datapath,dirname(dir_num).name],'/kspace');
 kspace = complex(kspace.r,kspace.i)*1e3;
 kspace = kspace(:,:,:,1:Ns); % select 8 central slices
@@ -36,7 +36,7 @@ kspace = permute(kspace,[2,1,3,4]);
 kspace_new = zeros(Nx,Ny,Nc,Ns);
 maps_new = zeros(Nx,Ny,Nc,Ns);
 
-    for s = 1%:Ns
+    for s = 1:Ns
         kdata = kspace(:,:,:,s);
         im = ifft2c(kdata);
         im = im(161:480,:,:);
