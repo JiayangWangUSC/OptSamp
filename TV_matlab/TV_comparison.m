@@ -15,7 +15,7 @@ dirname = dir(datapath);
 %maps = h5read([datapath,dirname(3).name],'/sense_central');
 %maps = complex(maps(:,:,1:20,1),maps(:,:,21:40,1));
 
-N1 = 320; N2 = 320; Nc = 20; Ns =8;
+N1 = 320; N2 = 320; Nc = 16; Ns =8;
 
 %% difference matrix
 d1 = diag(ones(N1,1));

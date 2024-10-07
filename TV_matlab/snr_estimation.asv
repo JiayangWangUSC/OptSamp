@@ -13,21 +13,21 @@ dirname = dir(datapath);
 N1 = 320; N2 = 320; Nc = 16; Ns =8;
 
 %% single image recon
-dirnum = 3;
+dirnum = 4;
 kspace = h5read([datapath,dirname(dirnum).name],'/kspace_central');
 kspace = complex(kspace(:,:,1:Nc,1),kspace(:,:,Nc+1:2*Nc,1));
 maps = h5read([datapath,dirname(dirnum).name],'/sense_central');
 maps = complex(maps(:,:,1:Nc,1),maps(:,:,Nc+1:2*Nc,1));
 
-% signal estimation
+%% signal estimation
 im_sense = abs(sum(conj(maps).*ifft2c(kspace),3));
-imagesc(im_sense/max(im_sense(:))*3);colormap(gray);clim([0,1]);
-
+%imwrite(im_sense/150,'test.png');
 %patch = im_sense(170:200,120:150);
+%imwrite(patch/150,'test.png');
 %signal_mag = mean(patch(:));
 
 %% def snr
-snr = 10;
+snr = 20;
 %sigma = signal_mag/SNR/sqrt(2);
 sigma = 45/snr; %sigma = 45 SNR=1
 

@@ -4,8 +4,11 @@ close all;
 clc;
 
 %% load data
-addpath(genpath('./SPIRiT_v0.3'));
-%datapath = '/home/wjy/Project/fastmri_dataset/brain_T1/';
+fft2c = @(x) fftshift(fft2(ifftshift(x)))/sqrt(size(x(:),1))*4;
+ifft2c = @(x) fftshift(ifft2(ifftshift(x)))*sqrt(size(x(:),1))/4; 
+
+%addpath(genpath('./SPIRiT_v0.3'));
+%datapath = '/home/wjy/Project/fastmri_dataset/brain_T1/test/';
 datapath = '/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/';
 dirname = dir(datapath);
 
@@ -24,22 +27,22 @@ eigThresh_1 = 0.1;
 eigThresh_2 = 0.95;
 
 %%
-for dir_num = 3:length(dirname)
+for dir_num = 3 %:length(dirname)
 kspace = h5read([datapath,dirname(dir_num).name],'/kspace');
-kspace = complex(kspace.r,kspace.i)*3e6;
+kspace = complex(kspace.r,kspace.i)*1e3;
 kspace = kspace(:,:,:,1:Ns); % select 8 central slices
 kspace = permute(kspace,[2,1,3,4]);
 
 kspace_new = zeros(Nx,Ny,Nc,Ns);
 maps_new = zeros(Nx,Ny,Nc,Ns);
 
-    for s = 1:Ns
+    for s = 1%:Ns
         kdata = kspace(:,:,:,s);
-        im = fftshift(ifftn(ifftshift(kdata)));
+        im = ifft2c(kdata);
         im = im(161:480,:,:);
-        kdata = fftshift(fft2(ifftshift(im)));
+        kdata = fft2c(im);
         kspace_new(:,:,:,s) = kdata;
-        
+      
         calib = crop(kdata,[ncalib,ncalib,Nc]);
         [k,S] = dat2Kernel(calib,ksize);
         idx = max(find(S >= S(1)*eigThresh_1));

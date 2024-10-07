@@ -23,7 +23,7 @@ from my_data import *
 # %% data loader
 N1 = 320
 N2 = 320
-Nc = 20
+Nc = 16
 def data_transform(kspace,maps):
     # Transform the kspace to tensor format
     kspace = transforms.to_tensor(kspace)
@@ -36,12 +36,11 @@ def data_transform(kspace,maps):
     return kspace, maps
 
 test_data = SliceDataset(
-    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_train/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1/test/'),
     #root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/'),
     transform=data_transform,
     challenge='multicoil'
 )
-
 
 # %% noise generator and transform to image
 batch_size = 1

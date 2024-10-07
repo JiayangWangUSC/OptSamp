@@ -21,7 +21,8 @@ from my_data import *
 # %% data loader
 N1 = 320
 N2 = 320
-Nc = 20
+Nc = 16
+
 def data_transform(kspace,maps):
     # Transform the kspace to tensor format
     kspace = transforms.to_tensor(kspace)
@@ -35,7 +36,7 @@ def data_transform(kspace,maps):
 
 train_data = SliceDataset(
     #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -129,9 +130,7 @@ for epoch in range(max_epochs):
         image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
         image_output = recon_model(image_input).to(device)
         image_recon = torch.cat((image_output[:,torch.arange(Nc),:,:].unsqueeze(4),image_output[:,torch.arange(Nc,2*Nc),:,:].unsqueeze(4)),4).to(device)
-        
         recon = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
-
 
         loss = L1Loss(recon.to(device),gt.to(device))
         trainloss += loss.item()
@@ -162,6 +161,6 @@ for epoch in range(max_epochs):
             recon = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
             valloss += L1Loss(recon.to(device),gt.to(device))
 
-    print("train loss:",trainloss/48," val loss:",valloss/48)
+    print("train loss:",trainloss/2640," val loss:",valloss/328)
 
 
