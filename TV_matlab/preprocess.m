@@ -9,7 +9,7 @@ ifft2c = @(x) fftshift(ifft2(ifftshift(x)))*sqrt(size(x(:),1))/4;
 
 addpath(genpath('./SPIRiT_v0.3'));
 %datapath = '/home/wjy/Project/fastmri_dataset/brain_T1/test/';
-datapath = '/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/';
+datapath = '/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/';
 dirname = dir(datapath);
 
 %% create new dataset
