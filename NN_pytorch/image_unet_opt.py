@@ -117,7 +117,7 @@ step = 1 # sampling weight optimization step size
 print('L1 Loss')
 
 # %% training
-max_epochs = 5
+max_epochs = 50
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)

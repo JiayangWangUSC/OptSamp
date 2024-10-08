@@ -21,7 +21,7 @@ from my_data import *
 # %% data loader
 N1 = 320
 N2 = 320
-Nc = 20
+Nc = 16
 def data_transform(kspace,maps):
     # Transform the kspace to tensor format
     kspace = transforms.to_tensor(kspace)
@@ -64,8 +64,8 @@ class Sample(torch.nn.Module):
         # low_50(80,240)
         # low_25(120,200)
         support = torch.zeros(N2)
-        support[torch.arange(120,200)] = 1
-        noise = noise/math.sqrt(factor*4)
+        support[torch.arange(80,240)] = 1
+        noise = noise/math.sqrt(factor*2)
         
         kspace_noise = torch.mul(kspace + noise, support.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),Nc,N1,1,2))
         
@@ -79,18 +79,18 @@ def toIm(kspace,maps):
 
 # %% sampling
 factor = 8
-snr = 3
-sigma =  math.sqrt(8)*45/snr
+snr = 10
+sigma =  0.15*math.sqrt(8)/snr
 print("SNR:", snr)
-print('low25')
+print('low50')
 
 sample_model = Sample(sigma,factor)
 
 
 # %% unet loader
 recon_model = Unet(
-  in_chans = 40,
-  out_chans = 40,
+  in_chans = 32,
+  out_chans = 32,
   chans = 32,
   num_pool_layers = 3,
   drop_prob = 0.0
@@ -107,29 +107,23 @@ val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
 sample_model.to(device)
 recon_model.to(device)
 
-
 # %% optimizer
 recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
 
-#Loss = torch.nn.MSELoss()
 L1Loss = torch.nn.L1Loss()
 L2Loss = torch.nn.MSELoss()
 
-#beta = 1e-3
-#ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 print('L1 Loss')
 
 # %% training
-max_epochs = 200
+max_epochs = 50
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-    batch_count = 0
+
     trainloss = 0
     
     for kspace, maps in train_dataloader:
-        
-        batch_count = batch_count + 1
         
         gt = toIm(kspace, maps)
         
@@ -144,15 +138,12 @@ for epoch in range(max_epochs):
         loss = L1Loss(recon.to(device),gt.to(device))
         trainloss += loss.item()
 
-        #if batch_count%10 == 0:
-        #    print("batch:",batch_count,"L1 loss:",loss.item())
-        
         loss.backward()
 
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/low25_mae_snr"+str(snr))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/low50_mae_snr"+str(snr))
 
     with torch.no_grad():
         valloss = 0
@@ -169,6 +160,6 @@ for epoch in range(max_epochs):
             recon = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
             valloss += L1Loss(recon.to(device),gt.to(device))
 
-    print("train loss:",trainloss/320," val loss:",valloss/48)
+    print("train loss:",trainloss/331/8," val loss:",valloss/42/8)
 
 # %%
