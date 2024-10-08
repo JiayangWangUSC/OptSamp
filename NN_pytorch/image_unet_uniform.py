@@ -73,7 +73,7 @@ def toIm(kspace,maps):
 # %% sampling
 factor = 8
 snr = 10
-sigma =  math.sqrt(8)*45/snr
+sigma =  0.15*math.sqrt(8)/snr
 print("SNR:", snr)
 print('uniform')
 sample_model = Sample(sigma,factor)
@@ -113,15 +113,15 @@ L2Loss = torch.nn.MSELoss()
 print('L1 Loss')
 
 # %% training
-max_epochs = 100
-#val_loss = torch.zeros(max_epochs)
+max_epochs = 50
+
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-    batch_count = 0
+    #batch_count = 0
     trainloss = 0
     for kspace, maps in train_dataloader:
         
-        batch_count = batch_count + 1
+        #batch_count = batch_count + 1
         
         gt = toIm(kspace, maps)
         
@@ -135,15 +135,11 @@ for epoch in range(max_epochs):
         loss = L1Loss(recon.to(device),gt.to(device))
         trainloss += loss.item()
 
-        #if batch_count%10 == 0:
-        #    print("batch:",batch_count,"L1 loss:",loss.item())
-        
         loss.backward()
 
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    #torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_mae_snr"+str(snr))
     torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_mae_snr"+str(snr))
 
     with torch.no_grad():
@@ -161,6 +157,5 @@ for epoch in range(max_epochs):
             recon = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
             valloss += L1Loss(recon.to(device),gt.to(device))
 
-    print("train loss:",trainloss/2640," val loss:",valloss/328)
-
+    print("train loss:",trainloss/331/8," val loss:",valloss/42/8)
 
