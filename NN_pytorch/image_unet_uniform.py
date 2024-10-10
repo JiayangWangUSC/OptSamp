@@ -30,7 +30,7 @@ def data_transform(kspace,maps):
     kspace = torch.cat((kspace[torch.arange(Nc),:,:].unsqueeze(3),kspace[torch.arange(Nc,2*Nc),:,:].unsqueeze(3)),3)
     maps = torch.cat((maps[torch.arange(Nc),:,:].unsqueeze(3),maps[torch.arange(Nc,2*Nc),:,:].unsqueeze(3)),3)
     kspace = kspace.permute([0,2,1,3])
-    maps = maps.permute([0,2,1,3]) + 1e-7
+    maps = maps.permute([0,2,1,3])
 
     return kspace, maps
 
@@ -83,11 +83,10 @@ sample_model = Sample(sigma,factor)
 recon_model = Unet(
   in_chans = 32,
   out_chans = 32,
-  chans = 32,
-  num_pool_layers = 4,
+  chans = 64,
+  num_pool_layers = 3,
   drop_prob = 0.0
 )
-
 
 #recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/model/uni_mae_snr'+str(snr))
 
@@ -102,7 +101,7 @@ recon_model.to(device)
 
 
 # %% optimizer
-recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
+recon_optimizer = optim.Adam(recon_model.parameters(),lr=1e-3)
 
 #Loss = torch.nn.MSELoss()
 L1Loss = torch.nn.L1Loss()
@@ -113,7 +112,7 @@ L2Loss = torch.nn.MSELoss()
 print('L1 Loss')
 
 # %% training
-max_epochs = 50
+max_epochs = 100
 
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
@@ -135,10 +134,13 @@ for epoch in range(max_epochs):
         loss = L1Loss(recon.to(device),gt.to(device))
         trainloss += loss.item()
 
+        print(loss.item())
+
         loss.backward()
 
         recon_optimizer.step()
         recon_optimizer.zero_grad()
+
 
     torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_mae_snr"+str(snr))
 
