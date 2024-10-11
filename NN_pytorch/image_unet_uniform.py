@@ -101,7 +101,7 @@ recon_model.to(device)
 
 
 # %% optimizer
-recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-3)
+recon_optimizer = optim.Adam(recon_model.parameters(),lr=1e-2)
 
 #Loss = torch.nn.MSELoss()
 L1Loss = torch.nn.L1Loss()
