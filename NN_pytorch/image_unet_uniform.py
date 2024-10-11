@@ -30,7 +30,7 @@ def data_transform(kspace,maps):
     kspace = torch.cat((kspace[torch.arange(Nc),:,:].unsqueeze(3),kspace[torch.arange(Nc,2*Nc),:,:].unsqueeze(3)),3)
     maps = torch.cat((maps[torch.arange(Nc),:,:].unsqueeze(3),maps[torch.arange(Nc,2*Nc),:,:].unsqueeze(3)),3)
     kspace = kspace.permute([0,2,1,3])
-    maps = maps.permute([0,2,1,3])
+    maps = maps.permute([0,2,1,3]) + 1e-7
 
     return kspace, maps
 
@@ -112,7 +112,7 @@ L2Loss = torch.nn.MSELoss()
 print('L1 Loss')
 
 # %% training
-max_epochs = 100
+max_epochs = 10
 
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)

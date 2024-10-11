@@ -6,16 +6,15 @@ clc;
 fft2c = @(x) fftshift(fft2(ifftshift(x)))/sqrt(size(x(:),1))*4;
 ifft2c = @(x) fftshift(ifft2(ifftshift(x)))*sqrt(size(x(:),1))/4; 
 
-datapath = '/home/wjy/Project/fastmri_dataset/brain_T1_test/';
+datapath = '/home/wjy/Project/fastmri_dataset/brain_T1/';
 dirname = dir(datapath);
 
 %% single image recon
-%kspace = h5read([datapath,dirname(3).name],'/kspace_central');
-%kspace = complex(kspace(:,:,1:20,1),kspace(:,:,21:40,1));
-%maps = h5read([datapath,dirname(3).name],'/sense_central');
-%maps = complex(maps(:,:,1:20,1),maps(:,:,21:40,1));
-
 N1 = 320; N2 = 320; Nc = 16; Ns =8;
+kspace = h5read([datapath,dirname(3).name],'/kspace_central');
+kspace = complex(kspace(:,:,1:Nc,1),kspace(:,:,Nc+1:2*Nc,1));
+maps = h5read([datapath,dirname(3).name],'/sense_central');
+maps = complex(maps(:,:,1:Nc,1),maps(:,:,Nc+1:2*Nc,1));
 
 %% difference matrix
 d1 = diag(ones(N1,1));
@@ -36,17 +35,17 @@ DhD = reshape(real(Dh(D(ones(N1,N2,Nc)))),N1,N2,Nc);
 
 %% define snr w. 8-averaging
 factor = 8;
-SNR = 3; % SNR after uniform averaging
-sigma = sqrt(8)*45/SNR; % 
+SNR = 10; % SNR after uniform averaging
+sigma = sqrt(8)*0.15/SNR; % 
 
 %% mask generation
 uni_mask = factor * ones(N1,N2,Nc);
-low50_mask = zeros(N1,N2,Nc);
-low50_mask(:,81:240,:) = 2 * factor;
-low25_mask = zeros(N1,N2,Nc);
-low25_mask(:,121:200,:) = 4 * factor;
-load(['./weight_snr',num2str(int8(SNR))]);
-opt_mask = repmat(weight,N1,1,Nc);
+%low50_mask = zeros(N1,N2,Nc);
+%low50_mask(:,81:240,:) = 2 * factor;
+%low25_mask = zeros(N1,N2,Nc);
+%low25_mask(:,121:200,:) = 4 * factor;
+%load(['./weight_snr',num2str(int8(SNR))]);
+%opt_mask = repmat(weight,N1,1,Nc);
 
 %% recon parameters
 if SNR == 3
@@ -58,7 +57,7 @@ elseif SNR == 5
     rho_low50 = 0.3; beta_low50 = 100;
     rho_low25 = 1; beta_low25 = 10;
 elseif SNR ==10
-    rho_uni = 1; beta_uni = 10;
+    rho_uni = 0.1; beta_uni = 0.5;
     rho_low50 = 0.8; beta_low50 = 15;
     rho_low25 = 5; beta_low25 = 3;
 end
@@ -66,12 +65,12 @@ end
 MaxIter = 20;
 
 %% acquisition
-%image_gt = sum(ifft2c(kspace).*conj(maps),3);
-%noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
-%kMask = sqrt(low50_mask);
-%kMask_dagger = kMask;
-%kMask_dagger(find(kMask)) = 1./kMask(find(kMask));
-%kspace_noise = kMask.* kspace + noise;
+image_gt = sum(ifft2c(kspace).*conj(maps),3);
+noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
+kMask = sqrt(uni_mask);
+kMask_dagger = kMask;
+kMask_dagger(find(kMask)) = 1./kMask(find(kMask));
+kspace_noise = kMask.* kspace + noise;
 
 %imwrite(abs(sum(ifft2c(kMask_dagger.*kspace_noise).*conj(maps),3))/150,'low50_noise_snr10.png');
 
@@ -105,8 +104,8 @@ for sub_num = 3:length(dirname)
     for slice_num = 1:Ns
     count = count + 1;
     
-    kData = complex(kspace(:,:,1:20,slice_num),kspace(:,:,21:40,slice_num));
-    maps = complex(Maps(:,:,1:20,slice_num),Maps(:,:,21:40,slice_num));
+    kData = complex(kspace(:,:,1:Nc,slice_num),kspace(:,:,Nc+1:2*Nc,slice_num));
+    maps = complex(Maps(:,:,1:Nc,slice_num),Maps(:,:,Nc+1:2*Nc,slice_num));
     noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
     gt = abs(sum(ifft2c(kData).*conj(maps),3));
     pixelscale = max(gt(:));
@@ -119,23 +118,23 @@ for sub_num = 3:length(dirname)
     nrmse_uni = nrmse_uni + norm(recon_uni(:)-gt(:))/l2scale;
     nmae_uni = nmae_uni + sum(abs(recon_uni(:)-gt(:)))/l1scale;
     
-    recon_opt = TV(sqrt(opt_mask).*kData + noise,sqrt(opt_mask),rho_uni,beta_uni,MaxIter,D,Dh,DhD);
-    recon_opt = abs(sum(ifft2c(reshape(recon_opt,N1,N2,Nc)).*conj(maps),3));
-    ssim_opt = ssim_opt + ssim(recon_opt/pixelscale,gt/pixelscale,'DynamicRange', 1);
-    nrmse_opt = nrmse_opt + norm(recon_opt(:)-gt(:))/l2scale;
-    nmae_opt = nmae_opt + sum(abs(recon_opt(:)-gt(:)))/l1scale;
+    % recon_opt = TV(sqrt(opt_mask).*kData + noise,sqrt(opt_mask),rho_uni,beta_uni,MaxIter,D,Dh,DhD);
+    % recon_opt = abs(sum(ifft2c(reshape(recon_opt,N1,N2,Nc)).*conj(maps),3));
+    % ssim_opt = ssim_opt + ssim(recon_opt/pixelscale,gt/pixelscale,'DynamicRange', 1);
+    % nrmse_opt = nrmse_opt + norm(recon_opt(:)-gt(:))/l2scale;
+    % nmae_opt = nmae_opt + sum(abs(recon_opt(:)-gt(:)))/l1scale;
 
-    recon_low50 = TV(sqrt(low50_mask).*kData + noise,sqrt(low50_mask),rho_low50,beta_low50,MaxIter,D,Dh,DhD);
-    recon_low50 = abs(sum(ifft2c(reshape(recon_low50,N1,N2,Nc)).*conj(maps),3));
-    ssim_low50 = ssim_low50 + ssim(recon_low50/pixelscale,gt/pixelscale,'DynamicRange', 1);
-    nrmse_low50 = nrmse_low50 + norm(recon_low50(:)-gt(:))/l2scale;
-    nmae_low50 = nmae_low50 + sum(abs(recon_low50(:)-gt(:)))/l1scale;
+    % recon_low50 = TV(sqrt(low50_mask).*kData + noise,sqrt(low50_mask),rho_low50,beta_low50,MaxIter,D,Dh,DhD);
+    % recon_low50 = abs(sum(ifft2c(reshape(recon_low50,N1,N2,Nc)).*conj(maps),3));
+    % ssim_low50 = ssim_low50 + ssim(recon_low50/pixelscale,gt/pixelscale,'DynamicRange', 1);
+    % nrmse_low50 = nrmse_low50 + norm(recon_low50(:)-gt(:))/l2scale;
+    % nmae_low50 = nmae_low50 + sum(abs(recon_low50(:)-gt(:)))/l1scale;
 
-    recon_low25 = TV(sqrt(low25_mask).*kData + noise,sqrt(low25_mask),rho_low25,beta_low25,MaxIter,D,Dh,DhD);
-    recon_low25 = abs(sum(ifft2c(reshape(recon_low25,N1,N2,Nc)).*conj(maps),3));
-    ssim_low25 = ssim_low25 + ssim(recon_low25/pixelscale,gt/pixelscale,'DynamicRange', 1);
-    nrmse_low25 = nrmse_low25 + norm(recon_low25(:)-gt(:))/l2scale;
-    nmae_low25 = nmae_low25 + sum(abs(recon_low25(:)-gt(:)))/l1scale;
+    % recon_low25 = TV(sqrt(low25_mask).*kData + noise,sqrt(low25_mask),rho_low25,beta_low25,MaxIter,D,Dh,DhD);
+    % recon_low25 = abs(sum(ifft2c(reshape(recon_low25,N1,N2,Nc)).*conj(maps),3));
+    % ssim_low25 = ssim_low25 + ssim(recon_low25/pixelscale,gt/pixelscale,'DynamicRange', 1);
+    % nrmse_low25 = nrmse_low25 + norm(recon_low25(:)-gt(:))/l2scale;
+    % nmae_low25 = nmae_low25 + sum(abs(recon_low25(:)-gt(:)))/l1scale;
 
     end
 
