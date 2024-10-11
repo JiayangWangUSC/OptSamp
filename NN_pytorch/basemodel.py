@@ -76,6 +76,9 @@ recon_optimizer = optim.Adam(recon_model.parameters(),lr=1e-2)
 
 L2Loss = torch.nn.MSELoss()
 
+snr = 50
+sigma =  0.15/snr
+
 # %% training
 max_epochs = 10
 
@@ -84,10 +87,12 @@ for epoch in range(max_epochs):
 
     trainloss = 0
     for kspace, maps in train_dataloader:
-        
+
+        noise = fastmri.ifft2c(sigma*torch.randn_like(kspace))
+        noise = torch.cat((noise[:,:,:,:,0],noise[:,:,:,:,1]),1).to(device)
         image_input = fastmri.ifft2c(kspace)
         image_input = torch.cat((image_input[:,:,:,:,0],image_input[:,:,:,:,1]),1).to(device)
-        image_output = recon_model(image_input).to(device)
+        image_output = recon_model(image_input+noise).to(device)
 
         loss = L2Loss(image_output.to(device),image_input.to(device))
         trainloss += loss.item()
@@ -104,9 +109,12 @@ for epoch in range(max_epochs):
         for kspace, maps in val_dataloader:
             recon_model.eval()
         
+            noise = fastmri.ifft2c(sigma*torch.randn_like(kspace))
+            noise = torch.cat((noise[:,:,:,:,0],noise[:,:,:,:,1]),1).to(device)
             image_input = fastmri.ifft2c(kspace)
             image_input = torch.cat((image_input[:,:,:,:,0],image_input[:,:,:,:,1]),1).to(device)
-            image_output = recon_model(image_input).to(device)
+            image_output = recon_model(image_input+noise).to(device)
+
             
             valloss += L2Loss(image_output.to(device),image_input.to(device))
 
