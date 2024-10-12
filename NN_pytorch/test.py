@@ -129,7 +129,7 @@ def toIm(kspace,maps):
 
 # %% parameters
 factor = 8
-snr = 10
+snr = 50
 sigma =  0.15*math.sqrt(8)/snr
 
 # %% GPU 
@@ -146,7 +146,8 @@ sample_uni = Sample_uni(sigma,factor)
 #sample_opt = Sample_opt(sigma,factor)
 #sample_opt.weight = weight
 
-recon_uni = torch.load('/home/wjy/Project/optsamp_model/uni_mae_snr'+str(snr),map_location=torch.device('cpu'))
+recon_uni = torch.load('/home/wjy/Project/optsamp_model/basemodel',map_location=torch.device('cpu'))
+#recon_uni = torch.load('/home/wjy/Project/optsamp_model/uni_mae_snr'+str(snr),map_location=torch.device('cpu'))
 #recon_low50 = torch.load('/home/wjy/Project/optsamp_model/low50_mae_snr'+str(snr),map_location=torch.device('cpu'))
 #recon_low25 = torch.load('/home/wjy/Project/optsamp_model/low25_mae_snr'+str(snr),map_location=torch.device('cpu'))
 #recon_opt = torch.load('/home/wjy/Project/optsamp_model/opt_mae_snr'+str(snr),map_location=torch.device('cpu'))
