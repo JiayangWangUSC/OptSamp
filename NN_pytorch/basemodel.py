@@ -81,7 +81,7 @@ snr = 50
 sigma =  0.15/snr
 
 # %% training
-max_epochs = 10
+max_epochs = 50
 
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
