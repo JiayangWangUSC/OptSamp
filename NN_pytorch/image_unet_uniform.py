@@ -72,7 +72,7 @@ def toIm(kspace,maps):
 
 # %% sampling
 factor = 8
-snr = 10
+snr = 5
 sigma =  0.15*math.sqrt(8)/snr
 print("SNR:", snr)
 print('uniform')
@@ -112,7 +112,7 @@ L2Loss = torch.nn.MSELoss()
 print('L1 Loss')
 
 # %% training
-max_epochs = 100
+max_epochs = 50
 
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
