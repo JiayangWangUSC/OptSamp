@@ -88,7 +88,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-#recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/model/uni_mae_snr'+str(snr))
+recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/model/basemodel')
 
 # %% GPU 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -101,7 +101,7 @@ recon_model.to(device)
 
 
 # %% optimizer
-recon_optimizer = optim.Adam(recon_model.parameters(),lr=1e-2)
+recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
 
 #Loss = torch.nn.MSELoss()
 L1Loss = torch.nn.L1Loss()
@@ -112,7 +112,7 @@ L2Loss = torch.nn.MSELoss()
 print('L1 Loss')
 
 # %% training
-max_epochs = 10
+max_epochs = 100
 
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)

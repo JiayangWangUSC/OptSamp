@@ -92,11 +92,11 @@ recon_model = Unet(
   in_chans = 32,
   out_chans = 32,
   chans = 32,
-  num_pool_layers = 4,
+  num_pool_layers = 3,
   drop_prob = 0.0
 )
 
-#recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/model/low25_mse_snr'+str(snr))
+recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/model/basemodel')
 
 # %% GPU 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -120,13 +120,10 @@ max_epochs = 50
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-
     trainloss = 0
-    
     for kspace, maps in train_dataloader:
-        
         gt = toIm(kspace, maps)
-        
+
         kspace_noise = sample_model(kspace)
         image_noise = fastmri.ifft2c(kspace_noise)
         image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)

@@ -93,11 +93,11 @@ recon_model = Unet(
   in_chans = 32,
   out_chans = 32,
   chans = 32,
-  num_pool_layers = 4,
+  num_pool_layers = 3,
   drop_prob = 0.0
 )
 
-#recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt_mae_snr"+str(snr))
+recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/basemodel")
 
 # %% data loader
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
