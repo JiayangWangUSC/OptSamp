@@ -6,7 +6,7 @@ clc;
 fft2c = @(x) fftshift(fft2(ifftshift(x)))/sqrt(size(x(:),1))*4;
 ifft2c = @(x) fftshift(ifft2(ifftshift(x)))*sqrt(size(x(:),1))/4; 
 
-datapath = '/home/wjy/Project/fastmri_dataset/brain_T1/';
+datapath = '/home/wjy/Project/fastmri_dataset/brain_T1_demo/';
 dirname = dir(datapath);
 
 %% single image recon
@@ -35,42 +35,42 @@ DhD = reshape(real(Dh(D(ones(N1,N2,Nc)))),N1,N2,Nc);
 
 %% define snr w. 8-averaging
 factor = 8;
-SNR = 10; % SNR after uniform averaging
+SNR = 3; % SNR after uniform averaging
 sigma = sqrt(8)*0.15/SNR; % 
 
 %% mask generation
 uni_mask = factor * ones(N1,N2,Nc);
-%low50_mask = zeros(N1,N2,Nc);
-%low50_mask(:,81:240,:) = 2 * factor;
-%low25_mask = zeros(N1,N2,Nc);
-%low25_mask(:,121:200,:) = 4 * factor;
+low50_mask = zeros(N1,N2,Nc);
+low50_mask(:,81:240,:) = 2 * factor;
+low25_mask = zeros(N1,N2,Nc);
+low25_mask(:,121:200,:) = 4 * factor;
 %load(['./weight_snr',num2str(int8(SNR))]);
 %opt_mask = repmat(weight,N1,1,Nc);
 
 %% recon parameters
 if SNR == 3
-    rho_uni = 1.5; beta_uni = 50;
-    rho_low50 = 1.5; beta_low50 = 50;
-    rho_low25 = 1.2; beta_low25 = 50;
+    rho_uni = 0.6; beta_uni = 0.5;
+    rho_low50 = 0.6; beta_low50 = 0.5;
+    rho_low25 = 0.06; beta_low25 = 0.001;
 elseif SNR == 5
-    rho_uni = 0.4; beta_uni = 100;
-    rho_low50 = 0.3; beta_low50 = 100;
-    rho_low25 = 1; beta_low25 = 10;
+    rho_uni = 0.3; beta_uni = 0.5;
+    rho_low50 = 0.3; beta_low50 = 0.5;
+    rho_low25 = 0.03; beta_low25 = 0.001;
 elseif SNR ==10
     rho_uni = 0.1; beta_uni = 0.5;
-    rho_low50 = 0.8; beta_low50 = 15;
-    rho_low25 = 5; beta_low25 = 3;
+    rho_low50 = 0.1; beta_low50 = 0.5;
+    rho_low25 = 0.01; beta_low25 = 0.001;
 end
 
 MaxIter = 20;
 
 %% acquisition
-image_gt = sum(ifft2c(kspace).*conj(maps),3);
-noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
-kMask = sqrt(uni_mask);
-kMask_dagger = kMask;
-kMask_dagger(find(kMask)) = 1./kMask(find(kMask));
-kspace_noise = kMask.* kspace + noise;
+% image_gt = sum(ifft2c(kspace).*conj(maps),3);
+% noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
+% kMask = sqrt(uni_mask);
+% kMask_dagger = kMask;
+% kMask_dagger(find(kMask)) = 1./kMask(find(kMask));
+% kspace_noise = kMask.* kspace + noise;
 
 %imwrite(abs(sum(ifft2c(kMask_dagger.*kspace_noise).*conj(maps),3))/150,'low50_noise_snr10.png');
 
@@ -91,17 +91,20 @@ kspace_noise = kMask.* kspace + noise;
 %norm(im_recon(:)-image_gt(:))/norm(image_gt(:))
 
 %% 
+MaxIter = 20;
+rho_low25 = 0.06; beta_low25 = 0.001;
+
 count = 0;
 ssim_uni = 0; ssim_low50 = 0; ssim_low25 = 0; ssim_opt = 0;
 nrmse_uni = 0; nrmse_low50 = 0; nrmse_low25 = 0; nrmse_opt = 0;
 nmae_uni = 0; nmae_low50 = 0; nmae_low25 = 0; nmae_opt = 0;
 
-for sub_num = 3:length(dirname)
+for sub_num = 3%:length(dirname)
     disp([datapath,dirname(sub_num).name]);
     kspace = h5read([datapath,dirname(sub_num).name],'/kspace_central');
     Maps = h5read([datapath,dirname(sub_num).name],'/sense_central');    
 
-    for slice_num = 1:Ns
+    for slice_num = 1%:Ns
     count = count + 1;
     
     kData = complex(kspace(:,:,1:Nc,slice_num),kspace(:,:,Nc+1:2*Nc,slice_num));
@@ -112,11 +115,11 @@ for sub_num = 3:length(dirname)
     l2scale = norm(gt(:));
     l1scale = sum(gt(:));
     
-    recon_uni = TV(sqrt(uni_mask).*kData + noise,sqrt(uni_mask),rho_uni,beta_uni,MaxIter,D,Dh,DhD);
-    recon_uni = abs(sum(ifft2c(reshape(recon_uni,N1,N2,Nc)).*conj(maps),3));
-    ssim_uni = ssim_uni + ssim(recon_uni/pixelscale,gt/pixelscale,'DynamicRange', 1);
-    nrmse_uni = nrmse_uni + norm(recon_uni(:)-gt(:))/l2scale;
-    nmae_uni = nmae_uni + sum(abs(recon_uni(:)-gt(:)))/l1scale;
+    % recon_uni = TV(sqrt(uni_mask).*kData + noise,sqrt(uni_mask),rho_uni,beta_uni,MaxIter,D,Dh,DhD);
+    % recon_uni = abs(sum(ifft2c(reshape(recon_uni,N1,N2,Nc)).*conj(maps),3));
+    % ssim_uni = ssim_uni + ssim(recon_uni/pixelscale,gt/pixelscale,'DynamicRange', 1);
+    % nrmse_uni = nrmse_uni + norm(recon_uni(:)-gt(:))/l2scale;
+    % nmae_uni = nmae_uni + sum(abs(recon_uni(:)-gt(:)))/l1scale;
     
     % recon_opt = TV(sqrt(opt_mask).*kData + noise,sqrt(opt_mask),rho_uni,beta_uni,MaxIter,D,Dh,DhD);
     % recon_opt = abs(sum(ifft2c(reshape(recon_opt,N1,N2,Nc)).*conj(maps),3));
@@ -130,11 +133,11 @@ for sub_num = 3:length(dirname)
     % nrmse_low50 = nrmse_low50 + norm(recon_low50(:)-gt(:))/l2scale;
     % nmae_low50 = nmae_low50 + sum(abs(recon_low50(:)-gt(:)))/l1scale;
 
-    % recon_low25 = TV(sqrt(low25_mask).*kData + noise,sqrt(low25_mask),rho_low25,beta_low25,MaxIter,D,Dh,DhD);
-    % recon_low25 = abs(sum(ifft2c(reshape(recon_low25,N1,N2,Nc)).*conj(maps),3));
-    % ssim_low25 = ssim_low25 + ssim(recon_low25/pixelscale,gt/pixelscale,'DynamicRange', 1);
-    % nrmse_low25 = nrmse_low25 + norm(recon_low25(:)-gt(:))/l2scale;
-    % nmae_low25 = nmae_low25 + sum(abs(recon_low25(:)-gt(:)))/l1scale;
+    recon_low25 = TV(sqrt(low25_mask).*kData + noise,sqrt(low25_mask),rho_low25,beta_low25,MaxIter,D,Dh,DhD);
+    recon_low25 = abs(sum(ifft2c(reshape(recon_low25,N1,N2,Nc)).*conj(maps),3));
+    ssim_low25 = ssim_low25 + ssim(recon_low25/pixelscale,gt/pixelscale,'DynamicRange', 1);
+    nrmse_low25 = nrmse_low25 + norm(recon_low25(:)-gt(:))/l2scale;
+    nmae_low25 = nmae_low25 + sum(abs(recon_low25(:)-gt(:)))/l1scale;
 
     end
 
@@ -142,8 +145,7 @@ for sub_num = 3:length(dirname)
 
 end
 
-        
-
+       
 
 %%
 function recon = TV(usData,kMask,rho,beta,MaxIter,D,Dh,DhD)

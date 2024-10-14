@@ -30,7 +30,7 @@ DhD = reshape(real(Dh(D(ones(N1,N2,Nc)))),N1,N2,Nc);
 
 %% define snr w. 8-averaging
 factor = 8;
-SNR = 5; % SNR after uniform averaging
+SNR = 10; % SNR after uniform averaging
 sigma = 0.15*sqrt(8)/SNR; % 
 
 %% reconstruction parameters initialization
@@ -49,8 +49,8 @@ epoch_max = 30;
 step = 1;
 train_loss = zeros(1,epoch_max);
 
-weight = factor * ones(1,N2);
-%load(['./weight_snr',num2str(int8(SNR))])
+%weight = factor * ones(1,N2);
+load(['./weight_snr',num2str(int8(SNR))])
 
 for epoch = 1:epoch_max
     disp(epoch);
@@ -75,8 +75,8 @@ for epoch = 1:epoch_max
             AhA_dagger(find(AhA)) = 1./AhA(find(AhA));
             
             % load slice
-            kData = complex(kspace(:,:,1:Nc,slice_num),kspace(:,:,Nc+1:2*Nc,slice_num));
-            maps = complex(Maps(:,:,1:Nc,slice_num),Maps(:,:,Nc+1:2*Nc,slice_num));
+            kData = complex(kspace(:,:,1:20,slice_num),kspace(:,:,21:40,slice_num));
+            maps = complex(Maps(:,:,1:20,slice_num),Maps(:,:,21:40,slice_num));
             
             % generate noisy acquisition
             noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
@@ -149,7 +149,7 @@ for epoch = 1:epoch_max
             weight(ind) = temp;
             
             
-            %disp(['epoch:',num2str(epoch),' subject:',num2str(sub_num-2),' slice:',num2str(slice_num),' NRMSE:',num2str(norm(ImR(:)-Im(:))/norm(Im(:)))]);
+            disp(['epoch:',num2str(epoch),' subject:',num2str(sub_num-2),' slice:',num2str(slice_num),' NRMSE:',num2str(norm(ImR(:)-Im(:))/norm(Im(:)))]);
             
             l2loss(slice_num) = sum(abs(ImR(:)-Im(:)).^2);
     
