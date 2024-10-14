@@ -129,7 +129,7 @@ def toIm(kspace,maps):
 
 # %% parameters
 factor = 8
-snr = 3
+snr = 5
 sigma =  0.15*math.sqrt(8)/snr
 
 # %% GPU 

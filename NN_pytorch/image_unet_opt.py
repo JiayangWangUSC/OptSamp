@@ -81,7 +81,7 @@ def toIm(kspace,maps):
 
 # %% sampling
 factor = 8
-snr = 1
+snr = 5
 sigma =  0.15*math.sqrt(8)/snr
 print("SNR:", snr)
 print('opt')
@@ -121,7 +121,10 @@ max_epochs = 50
 #val_loss = torch.zeros(max_epochs)
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-    step = step * 0.9
+    #step = step * 0.9
+    if (epoch+1)%10 == 0:
+        step = step/2
+
     trainloss = 0
     for kspace, maps in train_dataloader:
         sample_model.weight.requires_grad = True
