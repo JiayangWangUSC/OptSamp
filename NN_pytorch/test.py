@@ -36,7 +36,7 @@ def data_transform(kspace,maps):
     return kspace, maps
 
 test_data = SliceDataset(
-    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1/'),
     #root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/'),
     transform=data_transform,
     challenge='multicoil'
@@ -215,7 +215,7 @@ with torch.no_grad():
 #plt.savefig('/home/wjy/Project/optsamp_result/low25_error_mse_snr10.png', bbox_inches='tight', pad_inches=0) 
 
 # %% save patch
-resize_transform = torchvision.transforms.Resize((256, 256), interpolation=torchvision.transforms.InterpolationMode.NEAREST)
+#resize_transform = torchvision.transforms.Resize((256, 256), interpolation=torchvision.transforms.InterpolationMode.NEAREST)
 
 #patch1 = resize_transform(gt[120:200,170:250].unsqueeze(0))/torch.max(gt)*2
 #save_image(patch1,'/home/wjy/Project/optsamp_result/gt_p1.png')
