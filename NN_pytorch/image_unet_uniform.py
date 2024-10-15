@@ -131,8 +131,6 @@ for epoch in range(max_epochs):
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_mae_snr"+str(snr))
-
     with torch.no_grad():
         valloss = 0
         for kspace, maps in val_dataloader:
@@ -148,4 +146,6 @@ for epoch in range(max_epochs):
             valloss += Loss(recon.to(device),gt.to(device))
 
     print("train loss:",trainloss/331/8," val loss:",valloss/42/8)
+
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_mae_snr"+str(snr))
 
