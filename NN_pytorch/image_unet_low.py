@@ -50,7 +50,7 @@ val_data = SliceDataset(
 
 # %% noise generator and transform to image
 batch_size = 8
-print('low50')
+print('low25')
 
 class Sample(torch.nn.Module): 
 
@@ -65,8 +65,8 @@ class Sample(torch.nn.Module):
         # low_50(80,240)
         # low_25(120,200)
         support = torch.zeros(N2)
-        support[torch.arange(80,240)] = 1
-        noise = noise/math.sqrt(factor*2)
+        support[torch.arange(120,200)] = 1
+        noise = noise/math.sqrt(factor*4)
         
         kspace_noise = torch.mul(kspace + noise, support.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),Nc,N1,1,2))
         
@@ -154,6 +154,6 @@ for epoch in range(max_epochs):
 
     print("train loss:",trainloss/331/8," val loss:",valloss/42/8)
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/low50_mae_snr"+str(snr))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/low25_mae_snr"+str(snr))
 
 # %%
