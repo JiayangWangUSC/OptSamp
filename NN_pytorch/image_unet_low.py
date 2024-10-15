@@ -50,7 +50,7 @@ val_data = SliceDataset(
 
 # %% noise generator and transform to image
 batch_size = 8
-print('low25')
+print('low25', flush = True)
 
 class Sample(torch.nn.Module): 
 
@@ -80,9 +80,9 @@ def toIm(kspace,maps):
 
 # %% sampling
 factor = 8
-snr = 10
+snr = 5
 sigma =  0.15*math.sqrt(8)/snr
-print("SNR:", snr)
+print("SNR:", snr, flush = True)
 
 
 sample_model = Sample(sigma,factor)
@@ -111,7 +111,7 @@ recon_model.to(device)
 # %% optimizer
 recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
 
-print('L1 Loss')
+print('L1 Loss', flush = True)
 Loss = torch.nn.L1Loss()
 #Loss = torch.nn.MSELoss()
 
@@ -152,7 +152,7 @@ for epoch in range(max_epochs):
         
             valloss += Loss(recon.to(device),gt.to(device))
 
-    print("train loss:",trainloss/331/8," val loss:",valloss/42/8)
+    print("train loss:",trainloss/331/8," val loss:",valloss/42/8, flush = True)
 
     torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/low25_mae_snr"+str(snr))
 
