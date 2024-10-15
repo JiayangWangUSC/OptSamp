@@ -81,7 +81,7 @@ def toIm(kspace,maps):
 
 # %% sampling
 factor = 8
-snr = 3
+snr = 10
 sigma =  0.15*math.sqrt(8)/snr
 print("SNR:", snr, flush = True)
 print('opt', flush = True)
@@ -92,7 +92,7 @@ sample_model = Sample(sigma,factor)
 recon_model = Unet(
   in_chans = 32,
   out_chans = 2,
-  chans = 32,
+  chans = 64,
   num_pool_layers = 3,
   drop_prob = 0.0
 )
@@ -120,7 +120,7 @@ step = 1
 max_epochs = 50
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-    step = step * 0.9
+    step = 0.9 * step
 
     trainloss = 0
     trainloss_normalized = 0
