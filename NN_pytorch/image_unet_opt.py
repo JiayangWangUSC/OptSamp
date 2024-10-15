@@ -133,7 +133,7 @@ for epoch in range(max_epochs):
         image_noise = fastmri.ifft2c(kspace_noise)
         image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
         image_output = recon_model(image_input).to(device)
-        recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).to(device)
+        recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
 
         loss = Loss(recon.to(device),gt.to(device))
         trainloss += loss.item()
@@ -179,7 +179,7 @@ for epoch in range(max_epochs):
             image_noise = fastmri.ifft2c(kspace_noise)
             image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
             image_output = recon_model(image_input).to(device)
-            recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).to(device)
+            recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
 
             valloss += Loss(recon.to(device),gt.to(device))
 
