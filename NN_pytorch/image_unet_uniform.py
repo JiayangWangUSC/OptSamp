@@ -72,7 +72,7 @@ def toIm(kspace,maps):
 
 # %% sampling
 factor = 8
-snr = 3
+snr = 10
 sigma =  0.15*math.sqrt(8)/snr
 print("SNR:", snr)
 print('uniform')
@@ -82,13 +82,13 @@ sample_model = Sample(sigma,factor)
 # %% unet loader
 recon_model = Unet(
   in_chans = 32,
-  out_chans = 32,
+  out_chans = 2,
   chans = 64,
   num_pool_layers = 3,
   drop_prob = 0.0
 )
 
-recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/model/basemodel')
+#recon_model = torch.load('/project/jhaldar_118/jiayangw/OptSamp/model/basemodel')
 
 # %% GPU 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -103,24 +103,17 @@ recon_model.to(device)
 # %% optimizer
 recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
 
-#Loss = torch.nn.MSELoss()
-L1Loss = torch.nn.L1Loss()
-L2Loss = torch.nn.MSELoss()
-
-#beta = 1e-3
-#ms_ssim_module = MS_SSIM(data_range=255, size_average=True, channel=1)
 print('L1 Loss')
+Loss = torch.nn.L1Loss()
+#Loss = torch.nn.MSELoss()
 
 # %% training
 max_epochs = 50
 
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-    #batch_count = 0
     trainloss = 0
     for kspace, maps in train_dataloader:
-        
-        #batch_count = batch_count + 1
         
         gt = toIm(kspace, maps)
         
@@ -128,19 +121,15 @@ for epoch in range(max_epochs):
         image_noise = fastmri.ifft2c(kspace_noise)
         image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
         image_output = recon_model(image_input).to(device)
-        image_recon = torch.cat((image_output[:,torch.arange(Nc),:,:].unsqueeze(4),image_output[:,torch.arange(Nc,2*Nc),:,:].unsqueeze(4)),4).to(device)
-        recon = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
+        recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(4),image_output[:,1,:,:].unsqueeze(4)),4)).to(device)
+        #recon = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
 
-        loss = L1Loss(recon.to(device),gt.to(device))
+        loss = Loss(recon.to(device),gt.to(device))
         trainloss += loss.item()
 
-        print(loss.item())
-
         loss.backward()
-
         recon_optimizer.step()
         recon_optimizer.zero_grad()
-
 
     torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_mae_snr"+str(snr))
 
@@ -154,10 +143,9 @@ for epoch in range(max_epochs):
             image_noise = fastmri.ifft2c(kspace_noise)
             image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
             image_output = recon_model(image_input).to(device)
-            image_recon = torch.cat((image_output[:,torch.arange(Nc),:,:].unsqueeze(4),image_output[:,torch.arange(Nc,2*Nc),:,:].unsqueeze(4)),4).to(device)
-        
-            recon = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
-            valloss += L1Loss(recon.to(device),gt.to(device))
+            recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(4),image_output[:,1,:,:].unsqueeze(4)),4)).to(device)        
+            
+            valloss += Loss(recon.to(device),gt.to(device))
 
     print("train loss:",trainloss/331/8," val loss:",valloss/42/8)
 
