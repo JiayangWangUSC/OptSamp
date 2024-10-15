@@ -84,7 +84,7 @@ factor = 8
 snr = 10
 sigma =  0.15*math.sqrt(8)/snr
 print("SNR:", snr, flush = True)
-print('opt', flush = True)
+print('opt step3', flush = True)
 
 sample_model = Sample(sigma,factor)
 
