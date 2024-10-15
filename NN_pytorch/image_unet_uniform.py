@@ -72,7 +72,7 @@ def toIm(kspace,maps):
 
 # %% sampling
 factor = 8
-snr = 5
+snr = 10
 sigma =  0.15*math.sqrt(8)/snr
 print("SNR:", snr, flush = True)
 print('uniform', flush = True)
@@ -103,9 +103,9 @@ recon_model.to(device)
 # %% optimizer
 recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
 
-print('L1 Loss', flush = True)
-Loss = torch.nn.L1Loss()
-#Loss = torch.nn.MSELoss()
+print('L2 Loss', flush = True)
+#Loss = torch.nn.L1Loss()
+Loss = torch.nn.MSELoss()
 
 # %% training
 max_epochs = 50
@@ -147,5 +147,5 @@ for epoch in range(max_epochs):
 
     print("train loss:",trainloss/331/8," val loss:",valloss/42/8, flush = True)
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_mae_snr"+str(snr))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_mse_snr"+str(snr))
 
