@@ -72,7 +72,7 @@ def toIm(kspace,maps):
 
 # %% sampling
 factor = 8
-snr = 3
+snr = 10
 sigma =  0.15*math.sqrt(8)/snr
 print("SNR:", snr, flush = True)
 print('uniform', flush = True)
@@ -113,19 +113,23 @@ max_epochs = 50
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
     trainloss = 0
+    trainloss_normalized = 0
     for kspace, maps in train_dataloader:
         
         gt = toIm(kspace, maps)
+        support = fastmri.complex_abs(torch.sum(fastmri.complex_mul(maps,fastmri.complex_conj(maps)),dim=1))
         
         kspace_noise = sample_model(kspace)
         image_noise = fastmri.ifft2c(kspace_noise)
         image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
         image_output = recon_model(image_input).to(device)
         recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
+        recon = recon * support
         #recon = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
 
         loss = Loss(recon.to(device),gt.to(device))
         trainloss += loss.item()
+        trainloss_normalized += loss.item()/Loss(0*gt,gt)
 
         loss.backward()
         recon_optimizer.step()
@@ -133,19 +137,25 @@ for epoch in range(max_epochs):
 
     with torch.no_grad():
         valloss = 0
+        valloss_normalized = 0
         for kspace, maps in val_dataloader:
             recon_model.eval()
             gt = toIm(kspace, maps)
-        
+            support = fastmri.complex_abs(torch.sum(fastmri.complex_mul(maps,fastmri.complex_conj(maps)),dim=1))
+
             kspace_noise = sample_model(kspace)
             image_noise = fastmri.ifft2c(kspace_noise)
             image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
             image_output = recon_model(image_input).to(device)
             recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)        
-            
-            valloss += Loss(recon.to(device),gt.to(device))
+            recon = recon * support
+
+            loss = Loss(recon.to(device),gt.to(device))
+            valloss += loss.item()
+            valloss_normalized += loss.item()/Loss(0*gt,gt)
 
     print("train loss:",trainloss/331/8," val loss:",valloss/42/8, flush = True)
+    print("normalized train loss:",trainloss_normalized/331/8," normalized val loss:",valloss_normalized/42/8, flush = True)
 
     torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_mse_snr"+str(snr))
 

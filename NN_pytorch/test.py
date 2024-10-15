@@ -238,6 +238,7 @@ with torch.no_grad():
   for kspace, maps in test_dataloader:
     count += 1
     gt = toIm(kspace, maps)
+    support = fastmri.complex_abs(torch.sum(fastmri.complex_mul(maps,fastmri.complex_conj(maps)),dim=1)).squeeze()
     scale = gt.max()
     l2scale = gt.norm(p=2)
     l1scale = gt.norm(p=1)
@@ -245,10 +246,9 @@ with torch.no_grad():
     # uni recon
     kspace_noise = sample_uni(kspace)
     image_noise = fastmri.ifft2c(kspace_noise)
-    image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1)
-    image_output = recon_uni(image_input)
-    image_recon = torch.cat((image_output[:,torch.arange(Nc),:,:].unsqueeze(4),image_output[:,torch.arange(Nc,2*Nc),:,:].unsqueeze(4)),4)
-    image_uni = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
+    image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
+    image_output = recon_uni(image_input).to(device)
+    image_uni = support*fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
     ssim_uni += ssim_module(gt.unsqueeze(0).unsqueeze(1)/scale*256, image_uni.unsqueeze(0).unsqueeze(1)/scale*256)
     nrmse_uni += (image_uni-gt).norm(p=2)/l2scale
     nmae_uni += (image_uni-gt).norm(p=1)/l1scale
@@ -256,10 +256,9 @@ with torch.no_grad():
     # lwo50 recon
     kspace_noise = sample_low50(kspace)
     image_noise = fastmri.ifft2c(kspace_noise)
-    image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1)
-    image_output = recon_low50(image_input)
-    image_recon = torch.cat((image_output[:,torch.arange(Nc),:,:].unsqueeze(4),image_output[:,torch.arange(Nc,2*Nc),:,:].unsqueeze(4)),4)
-    image_low50 = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
+    image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
+    image_output = recon_low50(image_input).to(device)
+    image_low50 = support*fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
     ssim_low50 +=ssim_module(gt.unsqueeze(0).unsqueeze(1)/scale*256, image_low50.unsqueeze(0).unsqueeze(1)/scale*256)
     nrmse_low50 += (image_low50-gt).norm(p=2)/l2scale
     nmae_low50 += (image_low50-gt).norm(p=1)/l1scale
@@ -267,9 +266,9 @@ with torch.no_grad():
     # lwo25 recon
     #kspace_noise = sample_low25(kspace)
     #image_noise = fastmri.ifft2c(kspace_noise)
-    #image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1)
-    #image_output = recon_low25(image_input)
-    #image_recon = torch.cat((image_output[:,torch.arange(Nc),:,:].unsqueeze(4),image_output[:,torch.arange(Nc,2*Nc),:,:].unsqueeze(4)),4)
+    #image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
+    #image_output = recon_low25(image_input).to(device)
+    #image_low25 = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
     #image_low25 = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
     #ssim_low25 += ssim_module(gt.unsqueeze(0).unsqueeze(1)/scale*256, image_low25.unsqueeze(0).unsqueeze(1)/scale*256)
     #nrmse_low25 += (image_low25-gt).norm(p=2)/l2scale
@@ -278,10 +277,9 @@ with torch.no_grad():
     # opt recon
     kspace_noise = sample_opt(kspace)
     image_noise = fastmri.ifft2c(kspace_noise)
-    image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1)
-    image_output = recon_opt(image_input)
-    image_recon = torch.cat((image_output[:,torch.arange(Nc),:,:].unsqueeze(4),image_output[:,torch.arange(Nc,2*Nc),:,:].unsqueeze(4)),4)
-    image_opt = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
+    image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
+    image_output = recon_opt(image_input).to(device)
+    image_opt = support*fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
     ssim_opt += ssim_module(gt.unsqueeze(0).unsqueeze(1)/scale*256, image_opt.unsqueeze(0).unsqueeze(1)/scale*256)
     nrmse_opt += (image_opt-gt).norm(p=2)/l2scale
     nmae_opt += (image_opt-gt).norm(p=1)/l1scale
