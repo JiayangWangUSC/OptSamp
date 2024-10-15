@@ -81,7 +81,7 @@ def toIm(kspace,maps):
 
 # %% sampling
 factor = 8
-snr = 3
+snr = 10
 sigma =  0.15*math.sqrt(8)/snr
 print("SNR:", snr, flush = True)
 print('opt', flush = True)
@@ -114,7 +114,7 @@ print('L2 Loss', flush = True)
 #Loss = torch.nn.L1Loss()
 Loss = torch.nn.MSELoss()
 
-step = 1
+step = 3
 
 # %% training
 max_epochs = 50
@@ -196,8 +196,8 @@ for epoch in range(max_epochs):
 
     print("weight max:",weight.max(),"min:",weight.min(),"mean:", weight.mean(), flush = True)
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_snr"+str(snr))
-    torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_mask_snr"+str(snr))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_step3_mse_snr"+str(snr))
+    torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_step3_mse_mask_snr"+str(snr))
 
 
 # %%
