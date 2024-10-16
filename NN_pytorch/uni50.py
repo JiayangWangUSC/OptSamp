@@ -64,10 +64,8 @@ class Sample(torch.nn.Module):
     def forward(self,kspace):
         noise = self.sigma*torch.randn_like(kspace)
         
-        # low_50(80,240)
-        # low_25(120,200)
         support = torch.zeros(N2)
-        support[torch.arange(120,200)] = 1
+        support[torch.arange(80,240)] = 1
         noise = noise/math.sqrt(factor*4)
         
         kspace_noise = torch.mul(kspace + noise, support.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),Nc,N1,1,2))
@@ -84,7 +82,6 @@ def toIm(kspace,maps):
 factor = 8
 sigma =  0.15*math.sqrt(8)/snr
 print("SNR:", snr, flush = True)
-
 
 sample_model = Sample(sigma,factor)
 
