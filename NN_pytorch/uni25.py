@@ -19,6 +19,8 @@ from my_data import *
 
 #from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
+snr = 10
+
 N1 = 320
 N2 = 320
 Nc = 16
@@ -78,7 +80,7 @@ def toIm(kspace,maps):
 
 # %% sampling
 factor = 8
-snr = 10
+
 sigma =  0.15*math.sqrt(8)/snr
 print("SNR:", snr, flush = True)
 
@@ -128,7 +130,7 @@ for epoch in range(max_epochs):
         image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
         image_output = recon_model(image_input).to(device)
         recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
-        recon = recon * support
+        recon = recon * support.to(device)
 
         loss = Loss(recon.to(device),gt.to(device))
         trainloss += loss.item()
@@ -152,7 +154,7 @@ for epoch in range(max_epochs):
             image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
             image_output = recon_model(image_input).to(device)
             recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
-            recon = recon * support
+            recon = recon * support.to(device)
 
             loss = Loss(recon.to(device),gt.to(device))
             valloss += loss.item()

@@ -19,6 +19,8 @@ from my_data import *
 
 #from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
+snr = 10
+
 N1 = 320
 N2 = 320
 Nc = 16
@@ -72,7 +74,6 @@ def toIm(kspace,maps):
 
 # %% sampling
 factor = 8
-snr = 10
 sigma =  0.15*math.sqrt(8)/snr
 print("SNR:", snr, flush = True)
 print('uni100', flush = True)
