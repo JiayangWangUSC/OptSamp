@@ -66,7 +66,7 @@ class Sample(torch.nn.Module):
         
         support = torch.zeros(N2)
         support[torch.arange(80,240)] = 1
-        noise = noise/math.sqrt(factor*4)
+        noise = noise/math.sqrt(factor*2)
         
         kspace_noise = torch.mul(kspace + noise, support.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),Nc,N1,1,2))
         
