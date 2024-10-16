@@ -5,7 +5,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=12GB
-#SBATCH --time=24:00:00
+#SBATCH --time=36:00:00
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=jiayangw@usc.edu
 #SBATCH --account=jhaldar_118
@@ -14,4 +14,4 @@ module purge
 module load gcc/8.3.0
 module load cuda/11.2.0
 
-python /project/jhaldar_118/jiayangw/OptSamp/NN_pytorch/image_unet_uniform.py
+python /project/jhaldar_118/jiayangw/OptSamp/NN_pytorch/opt50.py

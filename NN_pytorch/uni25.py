@@ -50,7 +50,7 @@ val_data = SliceDataset(
 
 # %% noise generator and transform to image
 batch_size = 8
-print('low50', flush = True)
+print('uni25', flush = True)
 
 class Sample(torch.nn.Module): 
 
@@ -62,11 +62,9 @@ class Sample(torch.nn.Module):
     def forward(self,kspace):
         noise = self.sigma*torch.randn_like(kspace)
         
-        # low_50(80,240)
-        # low_25(120,200)
         support = torch.zeros(N2)
-        support[torch.arange(80,240)] = 1
-        noise = noise/math.sqrt(factor*2)
+        support[torch.arange(120,200)] = 1
+        noise = noise/math.sqrt(factor*4)
         
         kspace_noise = torch.mul(kspace + noise, support.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),Nc,N1,1,2))
         
@@ -116,7 +114,7 @@ print('L2 Loss', flush = True)
 Loss = torch.nn.MSELoss()
 
 # %% training
-max_epochs = 50
+max_epochs = 100
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
     trainloss = 0
@@ -163,6 +161,6 @@ for epoch in range(max_epochs):
     print("train loss:",trainloss/331/8," val loss:",valloss/42/8, flush = True)
     print("normalized train loss:",trainloss_normalized/331/8," normalized val loss:",valloss_normalized/42/8, flush = True)
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/low50_mse_snr"+str(snr))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni25_mse_snr"+str(snr))
 
 # %%

@@ -138,7 +138,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 test_dataloader = torch.utils.data.DataLoader(test_data,batch_size,shuffle=True)
 
 # %%
-weight = torch.load('/home/wjy/Project/optsamp_model/opt_mae_mask_snr'+str(snr))
+weight = torch.load('/home/wjy/Project/optsamp_model/opt_mse_mask_snr'+str(snr))
 
 sample_uni = Sample_uni(sigma,factor)
 sample_low50 = Sample_low50(sigma,factor)
@@ -147,10 +147,10 @@ sample_opt = Sample_opt(sigma,factor)
 sample_opt.weight = weight
 
 #recon_uni = torch.load('/home/wjy/Project/optsamp_model/basemodel',map_location=torch.device('cpu'))
-recon_uni = torch.load('/home/wjy/Project/optsamp_model/uni_mae_snr'+str(snr),map_location=torch.device('cpu'))
-recon_low50 = torch.load('/home/wjy/Project/optsamp_model/low50_mae_snr'+str(snr),map_location=torch.device('cpu'))
+recon_uni = torch.load('/home/wjy/Project/optsamp_model/uni_mse_snr'+str(snr),map_location=torch.device('cpu'))
+recon_low50 = torch.load('/home/wjy/Project/optsamp_model/low50_mse_snr'+str(snr),map_location=torch.device('cpu'))
 #recon_low25 = torch.load('/home/wjy/Project/optsamp_model/low25_mae_snr'+str(snr),map_location=torch.device('cpu'))
-recon_opt = torch.load('/home/wjy/Project/optsamp_model/opt_mae_snr'+str(snr),map_location=torch.device('cpu'))
+recon_opt = torch.load('/home/wjy/Project/optsamp_model/opt_mse_snr'+str(snr),map_location=torch.device('cpu'))
 
 
 # %% single image recon
