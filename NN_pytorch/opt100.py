@@ -81,10 +81,10 @@ def toIm(kspace,maps):
 
 # %% sampling
 factor = 8
-snr = 10
+snr = 3
 sigma =  0.15*math.sqrt(8)/snr
 print("SNR:", snr, flush = True)
-print('opt', flush = True)
+print('opt step3', flush = True)
 
 sample_model = Sample(sigma,factor)
 
@@ -92,7 +92,7 @@ sample_model = Sample(sigma,factor)
 recon_model = Unet(
   in_chans = 32,
   out_chans = 2,
-  chans = 32,
+  chans = 64,
   num_pool_layers = 3,
   drop_prob = 0.0
 )
@@ -114,13 +114,13 @@ print('L2 Loss', flush = True)
 #Loss = torch.nn.L1Loss()
 Loss = torch.nn.MSELoss()
 
-step = 1
+step = 3
 
 # %% training
 max_epochs = 50
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-    step = step * 0.9
+    step = 0.9 * step
 
     trainloss = 0
     trainloss_normalized = 0
@@ -136,7 +136,7 @@ for epoch in range(max_epochs):
         image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
         image_output = recon_model(image_input).to(device)
         recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
-        recon = recon * support
+        recon = recon * support.to(device)
 
         loss = Loss(recon.to(device),gt.to(device))
         trainloss += loss.item()
@@ -185,7 +185,7 @@ for epoch in range(max_epochs):
             image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
             image_output = recon_model(image_input).to(device)
             recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
-            recon = recon * support
+            recon = recon * support.to(device)
 
             loss = Loss(recon.to(device),gt.to(device))
             valloss += loss.item()
@@ -196,8 +196,8 @@ for epoch in range(max_epochs):
 
     print("weight max:",weight.max(),"min:",weight.min(),"mean:", weight.mean(), flush = True)
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_snr"+str(snr))
-    torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_mask_snr"+str(snr))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_step3_mse_snr"+str(snr))
+    torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_step3_mse_mask_snr"+str(snr))
 
 
 # %%

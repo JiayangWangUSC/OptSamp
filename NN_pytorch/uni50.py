@@ -50,7 +50,11 @@ val_data = SliceDataset(
 
 # %% noise generator and transform to image
 batch_size = 8
+<<<<<<< HEAD:NN_pytorch/uni50.py
 print('uni50', flush = True)
+=======
+print('low25', flush = True)
+>>>>>>> 3a3326d38ea61e8355c23821db21ee1ebebe8837:NN_pytorch/image_unet_low.py
 
 class Sample(torch.nn.Module): 
 
@@ -65,8 +69,8 @@ class Sample(torch.nn.Module):
         # low_50(80,240)
         # low_25(120,200)
         support = torch.zeros(N2)
-        support[torch.arange(80,240)] = 1
-        noise = noise/math.sqrt(factor*2)
+        support[torch.arange(120,200)] = 1
+        noise = noise/math.sqrt(factor*4)
         
         kspace_noise = torch.mul(kspace + noise, support.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),Nc,N1,1,2))
         
@@ -130,7 +134,7 @@ for epoch in range(max_epochs):
         image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
         image_output = recon_model(image_input).to(device)
         recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
-        recon = recon * support
+        recon = recon * support.to(device)
 
         loss = Loss(recon.to(device),gt.to(device))
         trainloss += loss.item()
@@ -154,7 +158,7 @@ for epoch in range(max_epochs):
             image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
             image_output = recon_model(image_input).to(device)
             recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
-            recon = recon * support
+            recon = recon * support.to(device)
 
             loss = Loss(recon.to(device),gt.to(device))
             valloss += loss.item()
@@ -163,6 +167,10 @@ for epoch in range(max_epochs):
     print("train loss:",trainloss/331/8," val loss:",valloss/42/8, flush = True)
     print("normalized train loss:",trainloss_normalized/331/8," normalized val loss:",valloss_normalized/42/8, flush = True)
 
+<<<<<<< HEAD:NN_pytorch/uni50.py
     torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni50_mse_snr"+str(snr))
+=======
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/low25_mse_snr"+str(snr))
+>>>>>>> 3a3326d38ea61e8355c23821db21ee1ebebe8837:NN_pytorch/image_unet_low.py
 
 # %%
