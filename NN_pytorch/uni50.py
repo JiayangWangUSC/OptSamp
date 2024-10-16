@@ -50,11 +50,7 @@ val_data = SliceDataset(
 
 # %% noise generator and transform to image
 batch_size = 8
-<<<<<<< HEAD:NN_pytorch/uni50.py
 print('uni50', flush = True)
-=======
-print('low25', flush = True)
->>>>>>> 3a3326d38ea61e8355c23821db21ee1ebebe8837:NN_pytorch/image_unet_low.py
 
 class Sample(torch.nn.Module): 
 
@@ -167,10 +163,6 @@ for epoch in range(max_epochs):
     print("train loss:",trainloss/331/8," val loss:",valloss/42/8, flush = True)
     print("normalized train loss:",trainloss_normalized/331/8," normalized val loss:",valloss_normalized/42/8, flush = True)
 
-<<<<<<< HEAD:NN_pytorch/uni50.py
     torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni50_mse_snr"+str(snr))
-=======
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/low25_mse_snr"+str(snr))
->>>>>>> 3a3326d38ea61e8355c23821db21ee1ebebe8837:NN_pytorch/image_unet_low.py
 
 # %%
