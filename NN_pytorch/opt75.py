@@ -58,7 +58,7 @@ class Sample(torch.nn.Module):
     def __init__(self,sigma,factor):
         super().__init__()
 
-        self.weight = torch.zeros(N2)
+        self.weight = 1e-7*torch.ones(N2)
         self.weight[torch.arange(40,280)] = factor*4/3
         self.factor = factor
         self.sigma = sigma

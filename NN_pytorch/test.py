@@ -36,7 +36,7 @@ def data_transform(kspace,maps):
     return kspace, maps
 
 test_data = SliceDataset(
-    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1/'),
     #root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/'),
     transform=data_transform,
     challenge='multicoil'
