@@ -91,7 +91,7 @@ class Sample_uni75(torch.nn.Module):
         
         support = torch.zeros(N2)
         support[torch.arange(40,280)] = 1
-        noise = noise/math.sqrt(factor*1.25)
+        noise = noise/math.sqrt(factor*4/3)
         
         kspace_noise = torch.mul(kspace + noise, support.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),Nc,N1,1,2))
         
@@ -144,7 +144,7 @@ def toIm(kspace,maps):
 
 # %% parameters
 factor = 8
-snr = 10
+snr = 5
 sigma =  0.15*math.sqrt(8)/snr
 
 # %% GPU 
