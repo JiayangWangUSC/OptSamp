@@ -142,15 +142,16 @@ def toIm(kspace,maps):
     image = fastmri.complex_abs(torch.sum(fastmri.complex_mul(fastmri.ifft2c(kspace),fastmri.complex_conj(maps)),dim=1))
     return image.squeeze()
 
-# %% parameters
-factor = 8
-snr = 5
-sigma =  0.15*math.sqrt(8)/snr
-
 # %% GPU 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 test_dataloader = torch.utils.data.DataLoader(test_data,batch_size,shuffle=True)
+
+# %% parameters
+factor = 8
+snr = 10
+sigma =  0.15*math.sqrt(8)/snr
+
 
 # %%
 #weight = torch.load('/home/wjy/Project/optsamp_model/opt_mse_mask_snr'+str(snr))
