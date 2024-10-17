@@ -298,8 +298,6 @@ with torch.no_grad():
     nrmse_uni25 += (image_uni25-gt).norm(p=2)/l2scale
     nmae_uni25 += (image_uni25-gt).norm(p=1)/l1scale
 
-
-
     # opt recon
     #kspace_noise = sample_opt(kspace)
     #image_noise = fastmri.ifft2c(kspace_noise)
