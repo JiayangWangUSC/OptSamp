@@ -86,8 +86,6 @@ def toIm(kspace,maps):
 factor = 8
 sigma =  0.15*math.sqrt(8)/snr
 
-
-
 sample_model = Sample(sigma,factor)
 
 # %% unet loader

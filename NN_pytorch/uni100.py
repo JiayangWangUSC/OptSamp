@@ -84,8 +84,8 @@ sample_model = Sample(sigma,factor)
 recon_model = Unet(
   in_chans = 32,
   out_chans = 2,
-  chans = 128,
-  num_pool_layers = 4,
+  chans = 64,
+  num_pool_layers = 3,
   drop_prob = 0.0
 )
 
@@ -158,5 +158,5 @@ for epoch in range(max_epochs):
     print("train loss:",trainloss/331/8," val loss:",valloss/42/8, flush = True)
     print("normalized train loss:",trainloss_normalized/331/8," normalized val loss:",valloss_normalized/42/8, flush = True)
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni100_trial_mse_snr"+str(snr))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni100_mse_snr"+str(snr))
 
