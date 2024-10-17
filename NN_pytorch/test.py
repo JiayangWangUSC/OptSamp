@@ -149,9 +149,8 @@ test_dataloader = torch.utils.data.DataLoader(test_data,batch_size,shuffle=True)
 
 # %% parameters
 factor = 8
-snr = 5
+snr = 10
 sigma =  0.15*math.sqrt(8)/snr
-
 
 # %%
 #weight = torch.load('/home/wjy/Project/optsamp_model/opt_mse_mask_snr'+str(snr))
