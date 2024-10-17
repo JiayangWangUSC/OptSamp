@@ -19,7 +19,7 @@ from my_data import *
 
 #from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
-snr = 3
+snr = 10
 
 N1 = 320
 N2 = 320
@@ -67,7 +67,7 @@ class Sample(torch.nn.Module):
 
         support = torch.zeros(N2)
         support[torch.arange(40,280)] = 1
-        noise = noise/math.sqrt(factor*1.5)
+        noise = noise/math.sqrt(factor*4/3)
         
         kspace_noise = torch.mul(kspace + noise, support.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),Nc,N1,1,2))
         

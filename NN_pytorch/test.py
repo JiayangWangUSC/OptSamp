@@ -45,7 +45,7 @@ test_data = SliceDataset(
 # %% noise generator and transform to image
 batch_size = 1
 
-class Sample_opt(torch.nn.Module): 
+class Sample_opt100(torch.nn.Module): 
 
     def __init__(self,sigma,factor):
         super().__init__()
@@ -54,8 +54,7 @@ class Sample_opt(torch.nn.Module):
         self.sigma = sigma
 
     def forward(self,kspace):
-        #sample_mask = torch.sqrt(1 + F.softmax(self.mask)*(self.factor-1)*N2)
-        
+    
         support = self.weight >= 1
         support = support.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2)
 
@@ -68,7 +67,19 @@ class Sample_opt(torch.nn.Module):
         kspace_noise = support * (kspace + mask * noise) 
         return kspace_noise
 
-class Sample_low50(torch.nn.Module): 
+class Sample_uni100(torch.nn.Module): 
+
+    def __init__(self,sigma,factor):
+        super().__init__()
+        self.mask = factor*torch.ones(N2)
+        self.sigma = sigma
+
+    def forward(self,kspace):
+        noise = self.sigma*torch.randn_like(kspace)
+        kspace_noise = kspace + torch.div(noise,torch.sqrt(self.mask).unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
+        return kspace_noise
+    
+class Sample_uni75(torch.nn.Module): 
 
     def __init__(self,sigma,factor):
         super().__init__()
@@ -78,8 +89,24 @@ class Sample_low50(torch.nn.Module):
     def forward(self,kspace):
         noise = self.sigma*torch.randn_like(kspace)
         
-        # low_50(80,240)
-        # low_25(120,200)
+        support = torch.zeros(N2)
+        support[torch.arange(40,280)] = 1
+        noise = noise/math.sqrt(factor*1.25)
+        
+        kspace_noise = torch.mul(kspace + noise, support.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),Nc,N1,1,2))
+        
+        return kspace_noise
+
+class Sample_uni50(torch.nn.Module): 
+
+    def __init__(self,sigma,factor):
+        super().__init__()
+        self.mask = factor*torch.ones(N2)
+        self.sigma = sigma
+
+    def forward(self,kspace):
+        noise = self.sigma*torch.randn_like(kspace)
+        
         support = torch.zeros(N2)
         support[torch.arange(80,240)] = 1
         noise = noise/math.sqrt(factor*2)
@@ -88,7 +115,7 @@ class Sample_low50(torch.nn.Module):
         
         return kspace_noise
 
-class Sample_low25(torch.nn.Module): 
+class Sample_uni25(torch.nn.Module): 
 
     def __init__(self,sigma,factor):
         super().__init__()
@@ -106,18 +133,6 @@ class Sample_low25(torch.nn.Module):
         
         kspace_noise = torch.mul(kspace + noise, support.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),Nc,N1,1,2))
         
-        return kspace_noise
-
-class Sample_uni(torch.nn.Module): 
-
-    def __init__(self,sigma,factor):
-        super().__init__()
-        self.mask = factor*torch.ones(N2)
-        self.sigma = sigma
-
-    def forward(self,kspace):
-        noise = self.sigma*torch.randn_like(kspace)
-        kspace_noise = kspace + torch.div(noise,torch.sqrt(self.mask).unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2))  # need to reshape mask        image = fastmri.ifft2c(kspace_noise)
         return kspace_noise
 
 
@@ -138,19 +153,18 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 test_dataloader = torch.utils.data.DataLoader(test_data,batch_size,shuffle=True)
 
 # %%
-weight = torch.load('/home/wjy/Project/optsamp_model/opt_mse_mask_snr'+str(snr))
+#weight = torch.load('/home/wjy/Project/optsamp_model/opt_mse_mask_snr'+str(snr))
 
-sample_uni = Sample_uni(sigma,factor)
-sample_low50 = Sample_low50(sigma,factor)
-#sample_low25 = Sample_low25(sigma,factor)
-sample_opt = Sample_opt(sigma,factor)
-sample_opt.weight = weight
+sample_uni100 = Sample_uni100(sigma,factor)
+sample_uni75 = Sample_uni75(sigma,factor)
+sample_uni50 = Sample_uni50(sigma,factor)
+sample_uni25 = Sample_uni25(sigma,factor)
 
-#recon_uni = torch.load('/home/wjy/Project/optsamp_model/basemodel',map_location=torch.device('cpu'))
-recon_uni = torch.load('/home/wjy/Project/optsamp_model/uni_mse_snr'+str(snr),map_location=torch.device('cpu'))
-recon_low50 = torch.load('/home/wjy/Project/optsamp_model/low50_mse_snr'+str(snr),map_location=torch.device('cpu'))
-#recon_low25 = torch.load('/home/wjy/Project/optsamp_model/low25_mae_snr'+str(snr),map_location=torch.device('cpu'))
-recon_opt = torch.load('/home/wjy/Project/optsamp_model/opt_mse_snr'+str(snr),map_location=torch.device('cpu'))
+recon_uni100 = torch.load('/home/wjy/Project/optsamp_model/uni100_mse_snr'+str(snr),map_location=torch.device('cpu'))
+recon_uni75 = torch.load('/home/wjy/Project/optsamp_model/uni75_mse_snr'+str(snr),map_location=torch.device('cpu'))
+recon_uni50 = torch.load('/home/wjy/Project/optsamp_model/uni50_mse_snr'+str(snr),map_location=torch.device('cpu'))
+recon_uni25 = torch.load('/home/wjy/Project/optsamp_model/uni25_mse_snr'+str(snr),map_location=torch.device('cpu'))
+#recon_opt = torch.load('/home/wjy/Project/optsamp_model/opt_mse_snr'+str(snr),map_location=torch.device('cpu'))
 
 
 # %% single image recon
@@ -228,9 +242,9 @@ with torch.no_grad():
 from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 ssim_module = SSIM(data_range=255, size_average=True, channel=1)
 
-ssim_uni, ssim_opt, ssim_low50, ssim_low25 = 0, 0, 0, 0
-nrmse_uni, nrmse_opt, nrmse_low50, nrmse_low25 = 0, 0, 0, 0 
-nmae_uni, nmae_opt, nmae_low50, nmae_low25 = 0, 0, 0, 0
+ssim_uni100, ssim_uni75, ssim_uni50, ssim_uni25 = 0, 0, 0, 0
+nrmse_uni100, nrmse_uni75, nrmse_uni50, nrmse_uni25 = 0, 0, 0, 0 
+nmae_uni100, nmae_uni75, nmae_uni50, nmae_uni25 = 0, 0, 0, 0
 
 # %% recon
 count = 0
@@ -243,50 +257,61 @@ with torch.no_grad():
     l2scale = gt.norm(p=2)
     l1scale = gt.norm(p=1)
 
-    # uni recon
-    kspace_noise = sample_uni(kspace)
-    image_noise = fastmri.ifft2c(kspace_noise)
-    image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
-    image_output = recon_uni(image_input).to(device)
-    image_uni = support*fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
-    ssim_uni += ssim_module(gt.unsqueeze(0).unsqueeze(1)/scale*256, image_uni.unsqueeze(0).unsqueeze(1)/scale*256)
-    nrmse_uni += (image_uni-gt).norm(p=2)/l2scale
-    nmae_uni += (image_uni-gt).norm(p=1)/l1scale
+    # uni100 recon
+    kspace_uni100 = sample_uni100(kspace)
+    noise_uni100 = fastmri.ifft2c(kspace_uni100)
+    input_uni100 = torch.cat((noise_uni100[:,:,:,:,0],noise_uni100[:,:,:,:,1]),1).to(device)
+    output_uni100 = recon_uni100(input_uni100).to(device)
+    image_uni100 = support*fastmri.complex_abs(torch.cat((output_uni100[:,0,:,:].unsqueeze(1).unsqueeze(4),output_uni100[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
+    ssim_uni100 += ssim_module(image_uni100.unsqueeze(0).unsqueeze(1)/scale*256, gt.unsqueeze(0).unsqueeze(1)/scale*256)
+    nrmse_uni100 += (image_uni100-gt).norm(p=2)/l2scale
+    nmae_uni100 += (image_uni100-gt).norm(p=1)/l1scale
 
-    # lwo50 recon
-    kspace_noise = sample_low50(kspace)
-    image_noise = fastmri.ifft2c(kspace_noise)
-    image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
-    image_output = recon_low50(image_input).to(device)
-    image_low50 = support*fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
-    ssim_low50 +=ssim_module(gt.unsqueeze(0).unsqueeze(1)/scale*256, image_low50.unsqueeze(0).unsqueeze(1)/scale*256)
-    nrmse_low50 += (image_low50-gt).norm(p=2)/l2scale
-    nmae_low50 += (image_low50-gt).norm(p=1)/l1scale
+    # uni75 recon
+    kspace_uni75 = sample_uni75(kspace)
+    noise_uni75 = fastmri.ifft2c(kspace_uni75)
+    input_uni75 = torch.cat((noise_uni75[:,:,:,:,0],noise_uni75[:,:,:,:,1]),1).to(device)
+    output_uni75 = recon_uni75(input_uni75).to(device)
+    image_uni75 = support*fastmri.complex_abs(torch.cat((output_uni75[:,0,:,:].unsqueeze(1).unsqueeze(4),output_uni75[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
+    ssim_uni75 += ssim_module(image_uni75.unsqueeze(0).unsqueeze(1)/scale*256, gt.unsqueeze(0).unsqueeze(1)/scale*256)
+    nrmse_uni75 += (image_uni75-gt).norm(p=2)/l2scale
+    nmae_uni75 += (image_uni75-gt).norm(p=1)/l1scale
 
-    # lwo25 recon
-    #kspace_noise = sample_low25(kspace)
-    #image_noise = fastmri.ifft2c(kspace_noise)
-    #image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
-    #image_output = recon_low25(image_input).to(device)
-    #image_low25 = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
-    #image_low25 = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
-    #ssim_low25 += ssim_module(gt.unsqueeze(0).unsqueeze(1)/scale*256, image_low25.unsqueeze(0).unsqueeze(1)/scale*256)
-    #nrmse_low25 += (image_low25-gt).norm(p=2)/l2scale
-    #nmae_low25 += (image_low25-gt).norm(p=1)/l1scale
+    # uni50 recon
+    kspace_uni50 = sample_uni50(kspace)
+    noise_uni50 = fastmri.ifft2c(kspace_uni50)
+    input_uni50 = torch.cat((noise_uni50[:,:,:,:,0],noise_uni50[:,:,:,:,1]),1).to(device)
+    output_uni50 = recon_uni50(input_uni50).to(device)
+    image_uni50 = support*fastmri.complex_abs(torch.cat((output_uni50[:,0,:,:].unsqueeze(1).unsqueeze(4),output_uni50[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
+    ssim_uni50 += ssim_module(image_uni50.unsqueeze(0).unsqueeze(1)/scale*256, gt.unsqueeze(0).unsqueeze(1)/scale*256)
+    nrmse_uni50 += (image_uni50-gt).norm(p=2)/l2scale
+    nmae_uni50 += (image_uni50-gt).norm(p=1)/l1scale
+
+    # uni25 recon
+    kspace_uni25 = sample_uni25(kspace)
+    noise_uni25 = fastmri.ifft2c(kspace_uni25)
+    input_uni25 = torch.cat((noise_uni25[:,:,:,:,0],noise_uni25[:,:,:,:,1]),1).to(device)
+    output_uni25 = recon_uni25(input_uni25).to(device)
+    image_uni25 = support*fastmri.complex_abs(torch.cat((output_uni25[:,0,:,:].unsqueeze(1).unsqueeze(4),output_uni25[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
+    ssim_uni25 += ssim_module(image_uni25.unsqueeze(0).unsqueeze(1)/scale*256, gt.unsqueeze(0).unsqueeze(1)/scale*256)
+    nrmse_uni25 += (image_uni25-gt).norm(p=2)/l2scale
+    nmae_uni25 += (image_uni25-gt).norm(p=1)/l1scale
+
+
 
     # opt recon
-    kspace_noise = sample_opt(kspace)
-    image_noise = fastmri.ifft2c(kspace_noise)
-    image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
-    image_output = recon_opt(image_input).to(device)
-    image_opt = support*fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
-    ssim_opt += ssim_module(gt.unsqueeze(0).unsqueeze(1)/scale*256, image_opt.unsqueeze(0).unsqueeze(1)/scale*256)
-    nrmse_opt += (image_opt-gt).norm(p=2)/l2scale
-    nmae_opt += (image_opt-gt).norm(p=1)/l1scale
+    #kspace_noise = sample_opt(kspace)
+    #image_noise = fastmri.ifft2c(kspace_noise)
+    #image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
+    #image_output = recon_opt(image_input).to(device)
+    #image_opt = support*fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
+    #ssim_opt += ssim_module(gt.unsqueeze(0).unsqueeze(1)/scale*256, image_opt.unsqueeze(0).unsqueeze(1)/scale*256)
+    #nrmse_opt += (image_opt-gt).norm(p=2)/l2scale
+    #nmae_opt += (image_opt-gt).norm(p=1)/l1scale
 
-print('ssim: ', 'uni',ssim_uni/count, ' low50',ssim_low50/count, ' low25',ssim_low25/count, ' opt',ssim_opt/count)
-print('nrmse: ', 'uni',nrmse_uni/count, ' low50',nrmse_low50/count, ' low25',nrmse_low25/count, ' opt',nrmse_opt/count)
-print('nmae: ', 'uni',nmae_uni/count, ' low50',nmae_low50/count, ' low25',nmae_low25/count, ' opt',nmae_opt/count)
+print('ssim: ', 'uni100',ssim_uni100/count, ' uni75',ssim_uni75/count, ' uni50',ssim_uni50/count, ' uni25',ssim_uni25/count,)
+print('nrmse: ', 'uni100',nrmse_uni100/count, ' uni75',nrmse_uni75/count, ' uni50',nrmse_uni50/count, ' uni25',nrmse_uni25/count,)
+print('nmae: ', 'uni100',nmae_uni100/count,  ' uni75',nmae_uni75/count, ' uni50',nmae_uni50/count, ' uni25',nmae_uni25/count,)
 
 # %%
 
