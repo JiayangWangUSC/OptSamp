@@ -45,28 +45,6 @@ test_data = SliceDataset(
 # %% noise generator and transform to image
 batch_size = 1
 
-class Sample_opt100(torch.nn.Module): 
-
-    def __init__(self,sigma,factor):
-        super().__init__()
-        self.weight = factor*torch.ones(N2)
-        self.factor = factor
-        self.sigma = sigma
-
-    def forward(self,kspace):
-    
-        support = self.weight >= 1
-        support = support.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2)
-
-        mask = self.weight.clone() 
-        mask = 1.0 / (self.weight ** 0.5)
-        mask = mask.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2)
-        
-        
-        noise = self.sigma*torch.randn_like(kspace)
-        kspace_noise = support * (kspace + mask * noise) 
-        return kspace_noise
-
 class Sample_uni100(torch.nn.Module): 
 
     def __init__(self,sigma,factor):
@@ -135,6 +113,99 @@ class Sample_uni25(torch.nn.Module):
         
         return kspace_noise
 
+class Sample_opt100(torch.nn.Module): 
+
+    def __init__(self,sigma,factor):
+        super().__init__()
+        self.weight = factor*torch.ones(N2)
+        self.factor = factor
+        self.sigma = sigma
+
+    def forward(self,kspace):
+    
+        support = self.weight >= 1
+        support = support.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2)
+
+        mask = self.weight.clone() 
+        mask = 1.0 / (self.weight ** 0.5)
+        mask = mask.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2)
+        
+        
+        noise = self.sigma*torch.randn_like(kspace)
+        kspace_noise = support * (kspace + mask * noise) 
+        return kspace_noise
+
+class Sample_opt75(torch.nn.Module): 
+
+    def __init__(self,sigma,factor):
+        super().__init__()
+
+        self.weight = 1e-7*torch.ones(N2)
+        self.weight[torch.arange(40,280)] = factor*4/3
+        self.factor = factor
+        self.sigma = sigma
+
+    def forward(self,kspace):
+        #sample_mask = torch.sqrt(1 + F.softmax(self.mask)*(self.factor-1)*N2)
+        
+        support = self.weight >= 1
+        support = support.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2)
+
+        mask = self.weight.clone() 
+        mask = 1.0 / (self.weight ** 0.5)
+        mask = mask.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2)
+        
+        noise = self.sigma*torch.randn_like(kspace)
+        kspace_noise = support * (kspace + mask * noise) 
+        return kspace_noise
+    
+class Sample_opt50(torch.nn.Module): 
+
+    def __init__(self,sigma,factor):
+        super().__init__()
+
+        self.weight = 1e-7*torch.ones(N2)
+        self.weight[torch.arange(80,240)] = 2*factor
+        self.factor = factor
+        self.sigma = sigma
+
+    def forward(self,kspace):
+        #sample_mask = torch.sqrt(1 + F.softmax(self.mask)*(self.factor-1)*N2)
+        
+        support = self.weight >= 1
+        support = support.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2)
+
+        mask = self.weight.clone() 
+        mask = 1.0 / (self.weight ** 0.5)
+        mask = mask.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2)
+        
+        noise = self.sigma*torch.randn_like(kspace)
+        kspace_noise = support * (kspace + mask * noise) 
+        return kspace_noise
+
+class Sample_opt25(torch.nn.Module): 
+
+    def __init__(self,sigma,factor):
+        super().__init__()
+
+        self.weight = 1e-7*torch.ones(N2)
+        self.weight[torch.arange(120,200)] = 4*factor
+        self.factor = factor
+        self.sigma = sigma
+
+    def forward(self,kspace):
+        #sample_mask = torch.sqrt(1 + F.softmax(self.mask)*(self.factor-1)*N2)
+        
+        support = self.weight >= 1
+        support = support.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2)
+
+        mask = self.weight.clone() 
+        mask = 1.0 / (self.weight ** 0.5)
+        mask = mask.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2)
+        
+        noise = self.sigma*torch.randn_like(kspace)
+        kspace_noise = support * (kspace + mask * noise) 
+        return kspace_noise
 
 def toIm(kspace,maps): 
     # kspace-(batch,Nc,N1,N2,2) maps-(batch,Nc,N1,N2,2)
@@ -153,7 +224,6 @@ snr = 10
 sigma =  0.15*math.sqrt(8)/snr
 
 # %%
-#weight = torch.load('/home/wjy/Project/optsamp_model/opt_mse_mask_snr'+str(snr))
 
 sample_uni100 = Sample_uni100(sigma,factor)
 sample_uni75 = Sample_uni75(sigma,factor)
@@ -165,6 +235,25 @@ recon_uni75 = torch.load('/home/wjy/Project/optsamp_model/uni75_mse_snr'+str(snr
 recon_uni50 = torch.load('/home/wjy/Project/optsamp_model/uni50_mse_snr'+str(snr),map_location=torch.device('cpu'))
 recon_uni25 = torch.load('/home/wjy/Project/optsamp_model/uni25_mse_snr'+str(snr),map_location=torch.device('cpu'))
 #recon_opt = torch.load('/home/wjy/Project/optsamp_model/opt_mse_snr'+str(snr),map_location=torch.device('cpu'))
+
+weight100 = torch.load('/home/wjy/Project/optsamp_model/opt100_mse_mask_snr'+str(snr))
+sample_opt100 = Sample_opt100(sigma,factor)
+sample_opt100.weight = weight100
+weight75 = torch.load('/home/wjy/Project/optsamp_model/opt75_mse_mask_snr'+str(snr))
+sample_opt75 = Sample_opt75(sigma,factor)
+sample_opt75.weight = weight75
+weight50 = torch.load('/home/wjy/Project/optsamp_model/opt50_mse_mask_snr'+str(snr))
+sample_opt50 = Sample_opt50(sigma,factor)
+sample_opt50.weight = weight50
+weight25 = torch.load('/home/wjy/Project/optsamp_model/opt25_mse_mask_snr'+str(snr))
+sample_opt25 = Sample_opt25(sigma,factor)
+sample_opt25.weight = weight25
+
+recon_opt100 = torch.load('/home/wjy/Project/optsamp_model/opt100_mse_snr'+str(snr),map_location=torch.device('cpu'))
+recon_opt75 = torch.load('/home/wjy/Project/optsamp_model/opt75_mse_snr'+str(snr),map_location=torch.device('cpu'))
+recon_opt50 = torch.load('/home/wjy/Project/optsamp_model/opt50_mse_snr'+str(snr),map_location=torch.device('cpu'))
+recon_opt25 = torch.load('/home/wjy/Project/optsamp_model/opt25_mse_snr'+str(snr),map_location=torch.device('cpu'))
+
 
 
 # %% single image recon
@@ -246,6 +335,11 @@ ssim_uni100, ssim_uni75, ssim_uni50, ssim_uni25 = 0, 0, 0, 0
 nrmse_uni100, nrmse_uni75, nrmse_uni50, nrmse_uni25 = 0, 0, 0, 0 
 nmae_uni100, nmae_uni75, nmae_uni50, nmae_uni25 = 0, 0, 0, 0
 
+ssim_opt100, ssim_opt75, ssim_opt50, ssim_opt25 = 0, 0, 0, 0
+nrmse_opt100, nrmse_opt75, nrmse_opt50, nrmse_opt25 = 0, 0, 0, 0 
+nmae_opt100, nmae_opt75, nmae_opt50, nmae_opt25 = 0, 0, 0, 0
+
+
 # %% recon
 count = 0
 with torch.no_grad():
@@ -297,21 +391,65 @@ with torch.no_grad():
     nrmse_uni25 += (image_uni25-gt).norm(p=2)/l2scale
     nmae_uni25 += (image_uni25-gt).norm(p=1)/l1scale
 
-    # opt recon
-    #kspace_noise = sample_opt(kspace)
-    #image_noise = fastmri.ifft2c(kspace_noise)
-    #image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
-    #image_output = recon_opt(image_input).to(device)
-    #image_opt = support*fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
-    #ssim_opt += ssim_module(gt.unsqueeze(0).unsqueeze(1)/scale*256, image_opt.unsqueeze(0).unsqueeze(1)/scale*256)
-    #nrmse_opt += (image_opt-gt).norm(p=2)/l2scale
-    #nmae_opt += (image_opt-gt).norm(p=1)/l1scale
-
 print('ssim: ', 'uni100',ssim_uni100/count, ' uni75',ssim_uni75/count, ' uni50',ssim_uni50/count, ' uni25',ssim_uni25/count,)
 print('nrmse: ', 'uni100',nrmse_uni100/count, ' uni75',nrmse_uni75/count, ' uni50',nrmse_uni50/count, ' uni25',nrmse_uni25/count,)
 print('nmae: ', 'uni100',nmae_uni100/count,  ' uni75',nmae_uni75/count, ' uni50',nmae_uni50/count, ' uni25',nmae_uni25/count,)
 
-# %%
+# %% recon
+count = 0
+with torch.no_grad():
+  for kspace, maps in test_dataloader:
+    count += 1
+    gt = toIm(kspace, maps)
+    support = fastmri.complex_abs(torch.sum(fastmri.complex_mul(maps,fastmri.complex_conj(maps)),dim=1)).squeeze()
+    scale = gt.max()
+    l2scale = gt.norm(p=2)
+    l1scale = gt.norm(p=1)
+
+    # opt100 recon
+    kspace_opt100 = sample_opt100(kspace)
+    noise_opt100 = fastmri.ifft2c(kspace_opt100)
+    input_opt100 = torch.cat((noise_opt100[:,:,:,:,0],noise_opt100[:,:,:,:,1]),1).to(device)
+    output_opt100 = recon_opt100(input_opt100).to(device)
+    image_opt100 = support*fastmri.complex_abs(torch.cat((output_opt100[:,0,:,:].unsqueeze(1).unsqueeze(4),output_opt100[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
+    ssim_opt100 += ssim_module(image_opt100.unsqueeze(0).unsqueeze(1)/scale*256, gt.unsqueeze(0).unsqueeze(1)/scale*256)
+    nrmse_opt100 += (image_opt100-gt).norm(p=2)/l2scale
+    nmae_opt100 += (image_opt100-gt).norm(p=1)/l1scale
+
+    # opt75 recon
+    kspace_opt75 = sample_opt75(kspace)
+    noise_opt75 = fastmri.ifft2c(kspace_opt75)
+    input_opt75 = torch.cat((noise_opt75[:,:,:,:,0],noise_opt75[:,:,:,:,1]),1).to(device)
+    output_opt75 = recon_opt75(input_opt75).to(device)
+    image_opt75 = support*fastmri.complex_abs(torch.cat((output_opt75[:,0,:,:].unsqueeze(1).unsqueeze(4),output_opt75[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
+    ssim_opt75 += ssim_module(image_opt75.unsqueeze(0).unsqueeze(1)/scale*256, gt.unsqueeze(0).unsqueeze(1)/scale*256)
+    nrmse_opt75 += (image_opt75-gt).norm(p=2)/l2scale
+    nmae_opt75 += (image_opt75-gt).norm(p=1)/l1scale
+
+    # opt50 recon
+    kspace_opt50 = sample_opt50(kspace)
+    noise_opt50 = fastmri.ifft2c(kspace_opt50)
+    input_opt50 = torch.cat((noise_opt50[:,:,:,:,0],noise_opt50[:,:,:,:,1]),1).to(device)
+    output_opt50 = recon_opt50(input_opt50).to(device)
+    image_opt50 = support*fastmri.complex_abs(torch.cat((output_opt50[:,0,:,:].unsqueeze(1).unsqueeze(4),output_opt50[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
+    ssim_opt50 += ssim_module(image_opt50.unsqueeze(0).unsqueeze(1)/scale*256, gt.unsqueeze(0).unsqueeze(1)/scale*256)
+    nrmse_opt50 += (image_opt50-gt).norm(p=2)/l2scale
+    nmae_opt50 += (image_opt50-gt).norm(p=1)/l1scale
+
+    # opt25 recon
+    kspace_opt25 = sample_opt25(kspace)
+    noise_opt25 = fastmri.ifft2c(kspace_opt25)
+    input_opt25 = torch.cat((noise_opt25[:,:,:,:,0],noise_opt25[:,:,:,:,1]),1).to(device)
+    output_opt25 = recon_uni25(input_opt25).to(device)
+    image_opt25 = support*fastmri.complex_abs(torch.cat((output_opt25[:,0,:,:].unsqueeze(1).unsqueeze(4),output_opt25[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
+    ssim_opt25 += ssim_module(image_opt25.unsqueeze(0).unsqueeze(1)/scale*256, gt.unsqueeze(0).unsqueeze(1)/scale*256)
+    nrmse_opt25 += (image_opt25-gt).norm(p=2)/l2scale
+    nmae_opt25 += (image_opt25-gt).norm(p=1)/l1scale
+
+print('ssim: ', 'opt100',ssim_opt100/count, ' opt75',ssim_opt75/count, ' opt50',ssim_opt50/count, ' opt25',ssim_opt25/count,)
+print('nrmse: ', 'opt100',nrmse_opt100/count, ' opt75',nrmse_opt75/count, ' opt50',nrmse_opt50/count, ' opt25',nrmse_opt25/count,)
+print('nmae: ', 'opt100',nmae_opt100/count,  ' opt75',nmae_opt75/count, ' opt50',nmae_opt50/count, ' opt25',nmae_opt25/count,)
+
 
 
 
