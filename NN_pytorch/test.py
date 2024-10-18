@@ -220,7 +220,7 @@ test_dataloader = torch.utils.data.DataLoader(test_data,batch_size,shuffle=True)
 
 # %% parameters
 factor = 8
-snr = 10
+snr = 3
 sigma =  0.15*math.sqrt(8)/snr
 
 # %%
@@ -235,7 +235,7 @@ recon_uni75 = torch.load('/home/wjy/Project/optsamp_model/uni75_mse_snr'+str(snr
 recon_uni50 = torch.load('/home/wjy/Project/optsamp_model/uni50_mse_snr'+str(snr),map_location=torch.device('cpu'))
 recon_uni25 = torch.load('/home/wjy/Project/optsamp_model/uni25_mse_snr'+str(snr),map_location=torch.device('cpu'))
 #recon_opt = torch.load('/home/wjy/Project/optsamp_model/opt_mse_snr'+str(snr),map_location=torch.device('cpu'))
-
+# %%
 weight100 = torch.load('/home/wjy/Project/optsamp_model/opt100_mse_mask_snr'+str(snr))
 sample_opt100 = Sample_opt100(sigma,factor)
 sample_opt100.weight = weight100
