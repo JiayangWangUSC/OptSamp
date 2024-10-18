@@ -17,9 +17,8 @@ import matplotlib.pyplot as plt
 
 from my_data import *
 
-#from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
-snr = 5
+snr = 3
 print("SNR:", snr, flush = True)
 
 N1 = 320
