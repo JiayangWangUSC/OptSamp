@@ -19,7 +19,7 @@ from my_data import *
 
 #from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
-snr = 3
+snr = 10
 print("SNR:", snr, flush = True)
 
 N1 = 320
@@ -97,7 +97,9 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/uni25_mse_snr"+str(snr))
+recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt25_mse_snr"+str(snr))
+weight = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt25_mse_mask_snr"+str(snr))
+sample_model.weight = weight
 
 # %% data loader
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -114,13 +116,13 @@ print('L2 Loss', flush = True)
 #Loss = torch.nn.L1Loss()
 Loss = torch.nn.MSELoss()
 
-step = 0.3
+step = 0.1
 
 # %% training
 max_epochs = 50
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-    if epoch < 20:
+    if epoch < 10:
         step = 0.9 * step
         trainloss = 0
         trainloss_normalized = 0
