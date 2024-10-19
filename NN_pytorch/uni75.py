@@ -19,7 +19,7 @@ from my_data import *
 
 #from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
-snr = 3
+snr = 2
 
 N1 = 320
 N2 = 320
@@ -84,9 +84,7 @@ factor = 8
 sigma =  0.15*math.sqrt(8)/snr
 print("SNR:", snr, flush = True)
 
-
 sample_model = Sample(sigma,factor)
-
 
 # %% unet loader
 recon_model = Unet(
@@ -97,7 +95,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/uni75_mse_snr"+str(snr))
+#recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/uni75_mse_snr"+str(snr))
 
 # %% GPU 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -116,7 +114,7 @@ print('L2 Loss', flush = True)
 Loss = torch.nn.MSELoss()
 
 # %% training
-max_epochs = 30
+max_epochs = 100
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
     trainloss = 0

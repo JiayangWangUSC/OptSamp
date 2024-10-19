@@ -220,7 +220,7 @@ test_dataloader = torch.utils.data.DataLoader(test_data,batch_size,shuffle=True)
 
 # %% parameters
 factor = 8
-snr = 5
+snr = 3
 sigma =  0.15*math.sqrt(8)/snr
 
 # %%
