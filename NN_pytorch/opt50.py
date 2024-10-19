@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 from my_data import *
 
 # %% data loader
-snr = 10
+snr = 5
 print("SNR:", snr, flush = True)
 
 N1 = 320

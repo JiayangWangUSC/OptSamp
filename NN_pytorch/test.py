@@ -413,3 +413,5 @@ with torch.no_grad():
 print('ssim: ', 'opt100',ssim_opt100/count, ' opt75',ssim_opt75/count, ' opt50',ssim_opt50/count)
 print('nrmse: ', 'opt100',nrmse_opt100/count, ' opt75',nrmse_opt75/count, ' opt50',nrmse_opt50/count)
 
+
+# %%
