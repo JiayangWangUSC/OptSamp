@@ -220,7 +220,7 @@ test_dataloader = torch.utils.data.DataLoader(test_data,batch_size,shuffle=True)
 
 # %% parameters
 factor = 8
-snr = 3
+snr = 5
 sigma =  0.15*math.sqrt(8)/snr
 
 # %%
@@ -325,11 +325,8 @@ ssim_module = SSIM(data_range=255, size_average=True, channel=1)
 ssim_uni100, ssim_uni75, ssim_uni50, ssim_uni25 = 0, 0, 0, 0
 nrmse_uni100, nrmse_uni75, nrmse_uni50, nrmse_uni25 = 0, 0, 0, 0 
 
-
 ssim_opt100, ssim_opt75, ssim_opt50, ssim_opt25 = 0, 0, 0, 0
 nrmse_opt100, nrmse_opt75, nrmse_opt50, nrmse_opt25 = 0, 0, 0, 0 
-
-
 
 # %% recon
 count = 0
