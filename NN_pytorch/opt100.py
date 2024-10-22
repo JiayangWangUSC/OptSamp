@@ -116,7 +116,7 @@ print('L1 Loss', flush = True)
 Loss = torch.nn.L1Loss()
 #Loss = torch.nn.MSELoss()
 
-step = 0.3
+step = 0.1
 
 # %% training
 max_epochs = 100

@@ -220,7 +220,7 @@ test_dataloader = torch.utils.data.DataLoader(test_data,batch_size,shuffle=True)
 
 # %% parameters
 factor = 8
-snr = 10
+snr = 5
 sigma =  0.15*math.sqrt(8)/snr
 
 # %%
@@ -321,12 +321,12 @@ with torch.no_grad():
 
 # %% save single image
 save_image(gt/gt.max()*2,'/home/wjy/Project/optsamp_result/gt.png')
-save_image(image_uni100/gt.max()*2,'/home/wjy/Project/optsamp_result/uni100_snr10.png')
-save_image(image_uni75/gt.max()*2,'/home/wjy/Project/optsamp_result/uni75_snr10.png')
-save_image(image_uni50/gt.max()*2,'/home/wjy/Project/optsamp_result/uni50_snr10.png')
+save_image(image_uni100/gt.max()*2,'/home/wjy/Project/optsamp_result/uni100_snr5.png')
+save_image(image_uni75/gt.max()*2,'/home/wjy/Project/optsamp_result/uni75_snr5.png')
+save_image(image_uni50/gt.max()*2,'/home/wjy/Project/optsamp_result/uni50_snr5.png')
 
-save_image(image_optmse/gt.max()*2,'/home/wjy/Project/optsamp_result/optmse_snr10.png')
-save_image(image_optmae/gt.max()*2,'/home/wjy/Project/optsamp_result/optmae_snr10.png')
+save_image(image_optmse/gt.max()*2,'/home/wjy/Project/optsamp_result/optmse_snr5.png')
+save_image(image_optmae/gt.max()*2,'/home/wjy/Project/optsamp_result/optmae_snr5.png')
 
 # %% save error map
 #error = (image_low25-gt).abs()/gt.max()*5
