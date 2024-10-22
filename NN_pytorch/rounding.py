@@ -20,6 +20,6 @@ import numpy as np
 # %%
 import scipy.io as sio
 
-weight = torch.load("/home/wjy/Project/optsamp_model/opt_mae_mask_snr10")
+weight = torch.load("/home/wjy/Project/optsamp_model/opt100_mse_mask_snr3")
 weight = weight.numpy()
-sio.savemat('opt_mae_mask_snr10.mat',{'weight':weight})
+sio.savemat('opt100_mse_mask_snr3.mat',{'weight':weight})

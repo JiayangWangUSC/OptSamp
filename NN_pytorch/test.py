@@ -220,7 +220,7 @@ test_dataloader = torch.utils.data.DataLoader(test_data,batch_size,shuffle=True)
 
 # %% parameters
 factor = 8
-snr = 5
+snr = 10
 sigma =  0.15*math.sqrt(8)/snr
 
 # %%
@@ -247,57 +247,86 @@ recon_opt100 = torch.load('/home/wjy/Project/optsamp_model/opt100_mse_snr'+str(s
 recon_opt75 = torch.load('/home/wjy/Project/optsamp_model/opt75_mse_snr'+str(snr),map_location=torch.device('cpu'))
 recon_opt50 = torch.load('/home/wjy/Project/optsamp_model/opt50_mse_snr'+str(snr),map_location=torch.device('cpu'))
 
+# %%
+weight_mse = torch.load('/home/wjy/Project/optsamp_model/opt100_mse_mask_snr'+str(snr))
+sample_opt_mse = Sample_opt100(sigma,factor)
+sample_opt_mse.weight = weight_mse
+
+weight_mae = torch.load('/home/wjy/Project/optsamp_model/opt100_mae_mask_snr'+str(snr))
+sample_opt_mae = Sample_opt100(sigma,factor)
+sample_opt_mae.weight = weight_mae
+
+recon_optmse = torch.load('/home/wjy/Project/optsamp_model/opt100_mse_snr'+str(snr),map_location=torch.device('cpu'))
+recon_optmae = torch.load('/home/wjy/Project/optsamp_model/opt100_mae_snr'+str(snr),map_location=torch.device('cpu'))
+
 # %% single image recon
 seed = 0
 with torch.no_grad():
-    kspace, maps = test_data[0]  
+    kspace, maps = test_data[10]  
     kspace = kspace.unsqueeze(0)
     maps = maps.unsqueeze(0)
     gt = toIm(kspace, maps).squeeze()
+    support = fastmri.complex_abs(torch.sum(fastmri.complex_mul(maps,fastmri.complex_conj(maps)),dim=1))
    
+    # uni100 recon
+    torch.manual_seed(seed=seed)
+    kspace_noise = sample_uni100(kspace)
+    image_noise_uni100 = toIm(kspace_noise, maps).squeeze()
+    image_noise = fastmri.ifft2c(kspace_noise)
+    image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1)
+    image_output = recon_uni100(image_input)
+    recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
+    image_uni100 = recon * support.to(device)
     
-    # uni recon
-    torch.manual_seed(seed=seed)
-    kspace_noise = sample_uni(kspace)
-    image_noise_uni = toIm(kspace_noise, maps).squeeze()
-    image_noise = fastmri.ifft2c(kspace_noise)
-    image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1)
-    image_output = recon_uni(image_input)
-    image_recon = torch.cat((image_output[:,torch.arange(Nc),:,:].unsqueeze(4),image_output[:,torch.arange(Nc,2*Nc),:,:].unsqueeze(4)),4)
-    image_uni = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
 
-    # lwo50 recon
+    # uni75 recon
     torch.manual_seed(seed=seed)
-    kspace_noise = sample_low50(kspace)
-    image_noise_low50 = toIm(kspace_noise, maps).squeeze()
+    kspace_noise = sample_uni75(kspace)
+    image_noise_uni75 = toIm(kspace_noise, maps).squeeze()
     image_noise = fastmri.ifft2c(kspace_noise)
     image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1)
-    image_output = recon_low50(image_input)
-    image_recon = torch.cat((image_output[:,torch.arange(Nc),:,:].unsqueeze(4),image_output[:,torch.arange(Nc,2*Nc),:,:].unsqueeze(4)),4)
-    image_low50 = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
+    image_output = recon_uni75(image_input)
+    recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
+    image_uni75 = recon * support.to(device)
 
-    # lwo25 recon
+    # uni50 recon
     torch.manual_seed(seed=seed)
-    kspace_noise = sample_low25(kspace)
-    image_noise_low25 = toIm(kspace_noise, maps).squeeze()
+    kspace_noise = sample_uni50(kspace)
+    image_noise_uni50 = toIm(kspace_noise, maps).squeeze()
     image_noise = fastmri.ifft2c(kspace_noise)
     image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1)
-    image_output = recon_low25(image_input)
-    image_recon = torch.cat((image_output[:,torch.arange(Nc),:,:].unsqueeze(4),image_output[:,torch.arange(Nc,2*Nc),:,:].unsqueeze(4)),4)
-    image_low25 = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
+    image_output = recon_uni50(image_input)
+    recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
+    image_uni50 = recon * support.to(device)
 
-    # opt recon
+    # opt mse recon
     torch.manual_seed(seed=seed)
-    kspace_noise = sample_opt(kspace)
-    image_noise_opt = toIm(kspace_noise, maps).squeeze()
+    kspace_noise = sample_opt_mse(kspace)
+    image_noise_optmse = toIm(kspace_noise, maps).squeeze()
     image_noise = fastmri.ifft2c(kspace_noise)
     image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1)
-    image_output = recon_opt(image_input)
-    image_recon = torch.cat((image_output[:,torch.arange(Nc),:,:].unsqueeze(4),image_output[:,torch.arange(Nc,2*Nc),:,:].unsqueeze(4)),4)
-    image_opt = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
+    image_output = recon_optmse(image_input)
+    recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
+    image_optmse = recon * support.to(device)
+
+    # opt mae recon
+    torch.manual_seed(seed=seed)
+    kspace_noise = sample_opt_mae(kspace)
+    image_noise_optmae = toIm(kspace_noise, maps).squeeze()
+    image_noise = fastmri.ifft2c(kspace_noise)
+    image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1)
+    image_output = recon_optmae(image_input)
+    recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
+    image_optmae = recon * support.to(device)
 
 # %% save single image
-#save_image(image_low25/gt.max()*2,'/home/wjy/Project/optsamp_result/low25_mse_snr10.png')
+save_image(gt/gt.max()*2,'/home/wjy/Project/optsamp_result/gt.png')
+save_image(image_uni100/gt.max()*2,'/home/wjy/Project/optsamp_result/uni100_snr10.png')
+save_image(image_uni75/gt.max()*2,'/home/wjy/Project/optsamp_result/uni75_snr10.png')
+save_image(image_uni50/gt.max()*2,'/home/wjy/Project/optsamp_result/uni50_snr10.png')
+
+save_image(image_optmse/gt.max()*2,'/home/wjy/Project/optsamp_result/optmse_snr10.png')
+save_image(image_optmae/gt.max()*2,'/home/wjy/Project/optsamp_result/optmae_snr10.png')
 
 # %% save error map
 #error = (image_low25-gt).abs()/gt.max()*5
