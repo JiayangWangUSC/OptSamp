@@ -96,7 +96,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt75_mae_snr"+str(10))
+recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt75_mse_snr"+str(10))
 #weight = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt75_mse_mask_snr"+str(snr))
 #sample_model.weight = weight
 
@@ -111,9 +111,9 @@ recon_model.to(device)
 
 # %% optimization parameters
 recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
-print('L1 Loss', flush = True)
-Loss = torch.nn.L1Loss()
-#Loss = torch.nn.MSELoss()
+print('L2 Loss', flush = True)
+#Loss = torch.nn.L1Loss()
+Loss = torch.nn.MSELoss()
 
 step = 0.1
 
@@ -223,7 +223,7 @@ for epoch in range(max_epochs):
     print("train loss:",trainloss/331/8," val loss:",valloss/42/8, flush = True)
     print("normalized train loss:",trainloss_normalized/331/8," normalized val loss:",valloss_normalized/42/8, flush = True)
     
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt75_mae_snr"+str(snr))
-    torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/opt75_mae_mask_snr"+str(snr))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt75_mse_snr"+str(snr))
+    torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/opt75_mse_mask_snr"+str(snr))
 
 # %%
