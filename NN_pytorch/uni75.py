@@ -19,7 +19,7 @@ from my_data import *
 
 #from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
-snr = 30
+snr = 3
 
 N1 = 320
 N2 = 320
@@ -49,7 +49,6 @@ val_data = SliceDataset(
     challenge='multicoil'
 )
 
-
 # %% noise generator and transform to image
 batch_size = 8
 print('uni75', flush = True)
@@ -63,7 +62,6 @@ class Sample(torch.nn.Module):
 
     def forward(self,kspace):
         noise = self.sigma*torch.randn_like(kspace)
-        
 
         support = torch.zeros(N2)
         support[torch.arange(40,280)] = 1
@@ -76,6 +74,9 @@ class Sample(torch.nn.Module):
 def toIm(kspace,maps): 
     # kspace-(batch,Nc,N1,N2,2) maps-(batch,Nc,N1,N2,2)
     # image-(batch,N1,N2)
+    resolution = torch.zeros_like(kspace)
+    resolution[:,:,:,torch.arange(40,280),:] = 1
+    kspace = kspace * resolution
     image = fastmri.complex_abs(torch.sum(fastmri.complex_mul(fastmri.ifft2c(kspace),fastmri.complex_conj(maps)),dim=1))
     return image.squeeze()
 
@@ -95,7 +96,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-#recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/uni75_mse_snr"+str(snr))
+recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/uni75_mse_snr"+str(snr))
 
 # %% GPU 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -114,7 +115,7 @@ print('L2 Loss', flush = True)
 Loss = torch.nn.MSELoss()
 
 # %% training
-max_epochs = 100
+max_epochs = 50
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
     trainloss = 0
