@@ -19,7 +19,7 @@ from my_data import *
 
 #from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
-snr = 3
+snr = 5
 
 N1 = 320
 N2 = 320
