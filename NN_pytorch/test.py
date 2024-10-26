@@ -248,16 +248,20 @@ recon_opt75 = torch.load('/home/wjy/Project/optsamp_model/opt75_mse_snr'+str(snr
 recon_opt50 = torch.load('/home/wjy/Project/optsamp_model/opt50_mse_snr'+str(snr),map_location=torch.device('cpu'))
 
 # %%
-weight_mse = torch.load('/home/wjy/Project/optsamp_model/opt100_mse_mask_snr'+str(snr))
-sample_opt_mse = Sample_opt100(sigma,factor)
-sample_opt_mse.weight = weight_mse
+weight100 = torch.load('/home/wjy/Project/optsamp_model/opt100_mse_mask_snr'+str(snr))
+sample_opt100 = Sample_opt100(sigma,factor)
+sample_opt100.weight = weight100
+recon_opt100 = torch.load('/home/wjy/Project/optsamp_model/opt100_mse_snr'+str(snr),map_location=torch.device('cpu'))
 
-weight_mae = torch.load('/home/wjy/Project/optsamp_model/opt100_mae_mask_snr'+str(snr))
-sample_opt_mae = Sample_opt100(sigma,factor)
-sample_opt_mae.weight = weight_mae
+weight75 = torch.load('/home/wjy/Project/optsamp_model/opt75_mse_mask_snr'+str(snr))
+sample_opt75 = Sample_opt100(sigma,factor)
+sample_opt75.weight = weight75
+recon_opt75 = torch.load('/home/wjy/Project/optsamp_model/opt75_mse_snr'+str(snr),map_location=torch.device('cpu'))
 
-recon_optmse = torch.load('/home/wjy/Project/optsamp_model/opt100_mse_snr'+str(snr),map_location=torch.device('cpu'))
-recon_optmae = torch.load('/home/wjy/Project/optsamp_model/opt100_mae_snr'+str(snr),map_location=torch.device('cpu'))
+weight50 = torch.load('/home/wjy/Project/optsamp_model/opt50_mse_mask_snr'+str(snr))
+sample_opt50 = Sample_opt100(sigma,factor)
+sample_opt50.weight = weight50
+recon_opt50 = torch.load('/home/wjy/Project/optsamp_model/opt50_mse_snr'+str(snr),map_location=torch.device('cpu'))
 
 # %% single image recon
 seed = 0
@@ -299,6 +303,7 @@ with torch.no_grad():
     recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
     image_uni50 = recon * support.to(device)
 
+# %%
     # opt mse recon
     torch.manual_seed(seed=seed)
     kspace_noise = sample_opt_mse(kspace)
