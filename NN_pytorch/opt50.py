@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 from my_data import *
 
 # %% data loader
-snr = 10
+snr = 20
 print("SNR:", snr, flush = True)
 
 N1 = 320
@@ -99,8 +99,8 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt50_mse_snr"+str(10))
-weight = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt50_mse_mask_snr"+str(snr))
+recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt50_mae_snr"+str(snr))
+weight = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt50_mae_mask_snr"+str(snr))
 sample_model.weight = weight
 
 # %% data loader
