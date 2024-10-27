@@ -220,7 +220,7 @@ test_dataloader = torch.utils.data.DataLoader(test_data,batch_size,shuffle=True)
 
 # %% parameters
 factor = 8
-snr = 5
+snr = 10
 sigma =  0.15*math.sqrt(8)/snr
 
 # %%
@@ -443,6 +443,5 @@ with torch.no_grad():
 
 print('ssim: ', 'opt100',ssim_opt100/count, ' opt75',ssim_opt75/count, ' opt50',ssim_opt50/count)
 print('nrmse: ', 'opt100',nrmse_opt100/count, ' opt75',nrmse_opt75/count, ' opt50',nrmse_opt50/count)
-
 
 # %%
