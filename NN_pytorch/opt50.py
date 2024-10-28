@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from my_data import *
 
 # %% data loader
-snr = 30
+snr = 3
 print("SNR:", snr, flush = True)
 
 N1 = 320
@@ -111,9 +111,9 @@ recon_model.to(device)
 
 # %% optimization parameters
 recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
-print('L2 Loss', flush = True)
-#Loss = torch.nn.L1Loss()
-Loss = torch.nn.MSELoss()
+print('L1 Loss', flush = True)
+Loss = torch.nn.L1Loss()
+#Loss = torch.nn.MSELoss()
 
 step = 0.1
 
@@ -223,7 +223,7 @@ for epoch in range(max_epochs):
     print("train loss:",trainloss/331/8," val loss:",valloss/42/8, flush = True)
     print("normalized train loss:",trainloss_normalized/331/8," normalized val loss:",valloss_normalized/42/8, flush = True)
     
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt50_mse_snr"+str(snr))
-    torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/opt50_mse_mask_snr"+str(snr))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt50_mae_snr"+str(snr))
+    torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/opt50_mae_mask_snr"+str(snr))
 
 # %%
