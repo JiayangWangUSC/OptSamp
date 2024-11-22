@@ -58,16 +58,12 @@ class Sample(torch.nn.Module):
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.weight = factor*torch.ones(N2)
-        self.factor = factor
+        self.weight = factor*N1/(N1-10*reso)*N2/(N2-10*reso) * torch.ones(N2)
         self.sigma = sigma
 
     def forward(self,kspace):
-        #sample_mask = torch.sqrt(1 + F.softmax(self.mask)*(self.factor-1)*N2)
-        
-        support = self.weight >= 1
-        support = support.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2)
 
+            
         mask = self.weight.clone() 
         mask = 1.0 / (self.weight ** 0.5)
         mask = mask.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2)
@@ -80,7 +76,9 @@ class Sample(torch.nn.Module):
 def toIm(kspace,maps): 
     # kspace-(batch,Nc,N1,N2,2) maps-(batch,Nc,N1,N2,2)
     # image-(batch,N1,N2)
-    image = fastmri.complex_abs(torch.sum(fastmri.complex_mul(fastmri.ifft2c(kspace),fastmri.complex_conj(maps)),dim=1))
+    kmask = torch.zeros_like(kspace)
+    kmask[:,:,5*reso:N1-5*reso,5*reso:N2-5*reso,:] = 1
+    image = fastmri.complex_abs(torch.sum(fastmri.complex_mul(fastmri.ifft2c(kmask*kspace),fastmri.complex_conj(maps)),dim=1))
     return image.squeeze()
 
 # %% sampling
