@@ -24,6 +24,7 @@ from my_data import *
 N1 = 320
 N2 = 320
 Nc = 16
+
 def data_transform(kspace,maps):
     # Transform the kspace to tensor format
     kspace = transforms.to_tensor(kspace)
@@ -36,7 +37,7 @@ def data_transform(kspace,maps):
     return kspace, maps
 
 test_data = SliceDataset(
-    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
     #root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/'),
     transform=data_transform,
     challenge='multicoil'
@@ -220,7 +221,7 @@ test_dataloader = torch.utils.data.DataLoader(test_data,batch_size,shuffle=True)
 
 # %% parameters
 factor = 8
-snr = 20
+snr = 3
 sigma =  0.15*math.sqrt(8)/snr
 
 # %%
@@ -233,22 +234,15 @@ recon_uni75 = torch.load('/home/wjy/Project/optsamp_model/uni75_mse_snr'+str(snr
 recon_uni50 = torch.load('/home/wjy/Project/optsamp_model/uni50_mse_snr'+str(snr),map_location=torch.device('cpu'))
 
 # %%
-weight100 = torch.load('/home/wjy/Project/optsamp_model/opt100_mse_mask_snr'+str(snr))
-sample_opt100 = Sample_opt100(sigma,factor)
-sample_opt100.weight = weight100
-weight75 = torch.load('/home/wjy/Project/optsamp_model/opt75_mse_mask_snr'+str(snr))
-sample_opt75 = Sample_opt75(sigma,factor)
-sample_opt75.weight = weight75
-weight50 = torch.load('/home/wjy/Project/optsamp_model/opt50_mse_mask_snr'+str(snr))
-sample_opt50 = Sample_opt50(sigma,factor)
-sample_opt50.weight = weight50
+weight = torch.load('/home/wjy/Project/optsamp_model/opt75_mse_mask_snr'+str(snr))
+sample_opt = Sample_opt100(sigma,factor)
+sample_opt.weight = weight
 
-recon_opt100 = torch.load('/home/wjy/Project/optsamp_model/opt100_mse_snr'+str(snr),map_location=torch.device('cpu'))
-recon_opt75 = torch.load('/home/wjy/Project/optsamp_model/opt75_mse_snr'+str(snr),map_location=torch.device('cpu'))
-recon_opt50 = torch.load('/home/wjy/Project/optsamp_model/opt50_mse_snr'+str(snr),map_location=torch.device('cpu'))
+
+recon_opt = torch.load('/home/wjy/Project/optsamp_model/opt75_mse_snr'+str(snr),map_location=torch.device('cpu'))
 
 # %% single image recon
-seed = 0
+seed = 360
 with torch.no_grad():
     kspace, maps = test_data[0]  
     kspace = kspace.unsqueeze(0)
@@ -265,7 +259,6 @@ with torch.no_grad():
     image_output = recon_uni100(image_input)
     recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
     image_uni100 = recon * support.to(device)
-    
 
     # uni75 recon
     torch.manual_seed(seed=seed)
@@ -290,43 +283,39 @@ with torch.no_grad():
 with torch.no_grad():
     # opt100 recon
     torch.manual_seed(seed=seed)
-    kspace_noise = sample_opt100(kspace)
-    image_noise_opt100 = toIm(kspace_noise, maps).squeeze()
+    kspace_noise = sample_opt(kspace)
+    image_noise_opt = toIm(kspace_noise, maps).squeeze()
     image_noise = fastmri.ifft2c(kspace_noise)
     image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1)
-    image_output = recon_opt100(image_input)
+    image_output = recon_opt(image_input)
     recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
-    image_opt100 = recon * support.to(device)
-
-
+    image_opt = recon * support.to(device)
 
 # %% save single image
-save_image(gt/gt.max()*2,'/home/wjy/Project/optsamp_result/gt.png')
-save_image(image_uni100/gt.max()*2,'/home/wjy/Project/optsamp_result/uni100_snr5.png')
-save_image(image_uni75/gt.max()*2,'/home/wjy/Project/optsamp_result/uni75_snr5.png')
-save_image(image_uni50/gt.max()*2,'/home/wjy/Project/optsamp_result/uni50_snr5.png')
+save_image(gt/gt.max()*1.5,'/home/wjy/Project/optsamp_result/gt.png')
+save_image(image_uni100/gt.max()*1.5,'/home/wjy/Project/optsamp_result/uni100_snr'+str(snr)+'.png')
+save_image(image_uni75/gt.max()*1.5,'/home/wjy/Project/optsamp_result/uni75_snr'+str(snr)+'.png')
+save_image(image_uni50/gt.max()*1.5,'/home/wjy/Project/optsamp_result/uni50_snr'+str(snr)+'.png')
 
-save_image(image_optmse/gt.max()*2,'/home/wjy/Project/optsamp_result/optmse_snr5.png')
-save_image(image_optmae/gt.max()*2,'/home/wjy/Project/optsamp_result/optmae_snr5.png')
+save_image(image_opt/gt.max()*1.5,'/home/wjy/Project/optsamp_result/opt_snr'+str(snr)+'.png')
 
 # %% save error map
-#error = (image_low25-gt).abs()/gt.max()*5
-#error = error.numpy()
-#plt.imshow(error, cmap='hot',vmax=0.5,vmin=0.08)
+error = (image_uni100-gt).abs()/gt.max()
+error = error.squeeze().numpy()
+plt.imshow(error, cmap='hot',vmax=0.14,vmin=0.028)
 #plt.colorbar()  # Optional colorbar
-#plt.axis('off')
+plt.axis('off')
 # Save the image
-#plt.savefig('/home/wjy/Project/optsamp_result/low25_error_mse_snr10.png', bbox_inches='tight', pad_inches=0) 
+plt.savefig('/home/wjy/Project/optsamp_result/uni100_error_snr'+str(snr)+'.png', bbox_inches='tight', pad_inches=0) 
 
 # %% save patch
-#resize_transform = torchvision.transforms.Resize((256, 256), interpolation=torchvision.transforms.InterpolationMode.NEAREST)
+resize_transform = torchvision.transforms.Resize((256, 256), interpolation=torchvision.transforms.InterpolationMode.NEAREST)
 
-#patch1 = resize_transform(gt[120:200,170:250].unsqueeze(0))/torch.max(gt)*2
-#save_image(patch1,'/home/wjy/Project/optsamp_result/gt_p1.png')
+patch1 = resize_transform(gt[160:240,100:180].unsqueeze(0))/torch.max(gt)*1.5
+save_image(patch1,'/home/wjy/Project/optsamp_result/gt_p1_snr'+str(snr)+'.png')
 
 #patch2 = resize_transform(gt[160:240,60:140].unsqueeze(0))/torch.max(gt)*2
 #save_image(patch2,'/home/wjy/Project/optsamp_result/gt_p2.png')
-
 
 # %%
 from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
@@ -340,6 +329,7 @@ nrmse_opt100, nrmse_opt75, nrmse_opt50, nrmse_opt25 = 0, 0, 0, 0
 
 # %% recon
 count = 0
+
 with torch.no_grad():
   for kspace, maps in test_dataloader:
     count += 1
@@ -381,6 +371,7 @@ print('nrmse: ', 'uni100',nrmse_uni100/count, ' uni75',nrmse_uni75/count, ' uni5
 
 # %% recon
 count = 0
+
 with torch.no_grad():
   for kspace, maps in test_dataloader:
     count += 1
@@ -421,3 +412,12 @@ print('ssim: ', 'opt100',ssim_opt100/count, ' opt75',ssim_opt75/count, ' opt50',
 print('nrmse: ', 'opt100',nrmse_opt100/count, ' opt75',nrmse_opt75/count, ' opt50',nrmse_opt50/count)
 
 # %%
+
+
+
+
+
+
+
+
+

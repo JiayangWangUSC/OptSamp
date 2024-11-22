@@ -20,10 +20,14 @@ from my_data import *
 #from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
 snr = 30
+reso = 0
+print("SNR:", snr, flush = True)
+print('resolution:', reso, flush = True)
 
 N1 = 320
 N2 = 320
 Nc = 16
+
 def data_transform(kspace,maps):
     # Transform the kspace to tensor format
     kspace = transforms.to_tensor(kspace)
@@ -49,44 +53,36 @@ val_data = SliceDataset(
     challenge='multicoil'
 )
 
+
 # %% noise generator and transform to image
 batch_size = 8
-print('uni50', flush = True)
 
 class Sample(torch.nn.Module): 
-
+    
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = factor*torch.ones(N2)
+        self.mask = factor*N1/(N1-10*reso)*N2/(N2-10*reso) * torch.ones(N1,N2)
+        self.mask[:,torch.arange(0,5*reso)] = 1e-7 
+        self.mask[:,torch.arange(N2-5*reso,N2)] = 1e-7
+        self.mask[torch.arange(0,5*reso),:] = 1e-7 
+        self.mask[torch.arange(N1-5*reso,N1),:] = 1e-7
         self.sigma = sigma
 
     def forward(self,kspace):
         noise = self.sigma*torch.randn_like(kspace)
-        
-        support = torch.zeros(N2)
-        support[torch.arange(80,240)] = 1
-        noise = noise/math.sqrt(factor*2)
-        
-        kspace_noise = torch.mul(kspace + noise, support.unsqueeze(0).unsqueeze(1).unsqueeze(3).unsqueeze(0).repeat(kspace.size(0),Nc,N1,1,2))
-        
+        kspace_noise = kspace + torch.div(noise,torch.sqrt(self.mask).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,1,1,2))  
         return kspace_noise
 
 def toIm(kspace,maps): 
     # kspace-(batch,Nc,N1,N2,2) maps-(batch,Nc,N1,N2,2)
     # image-(batch,N1,N2)
-    resolution = torch.zeros_like(kspace)
-    resolution[:,:,:,torch.arange(80,240),:] = 1
-    kspace = kspace * resolution
     image = fastmri.complex_abs(torch.sum(fastmri.complex_mul(fastmri.ifft2c(kspace),fastmri.complex_conj(maps)),dim=1))
     return image.squeeze()
 
 # %% sampling
 factor = 8
 sigma =  0.15*math.sqrt(8)/snr
-print("SNR:", snr, flush = True)
-
 sample_model = Sample(sigma,factor)
-
 
 # %% unet loader
 recon_model = Unet(
@@ -97,7 +93,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/uni50_mse_snr"+str(snr))
+recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/uni100_mse_snr"+str(snr))
 
 # %% GPU 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -108,6 +104,7 @@ val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
 sample_model.to(device)
 recon_model.to(device)
 
+
 # %% optimizer
 recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
 
@@ -117,27 +114,29 @@ Loss = torch.nn.MSELoss()
 
 # %% training
 max_epochs = 50
+
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
     trainloss = 0
     trainloss_normalized = 0
     for kspace, maps in train_dataloader:
+        
         gt = toIm(kspace, maps)
         support = fastmri.complex_abs(torch.sum(fastmri.complex_mul(maps,fastmri.complex_conj(maps)),dim=1))
-
+        
         kspace_noise = sample_model(kspace)
         image_noise = fastmri.ifft2c(kspace_noise)
         image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
         image_output = recon_model(image_input).to(device)
         recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
         recon = recon * support.to(device)
+        #recon = fastmri.complex_abs(torch.sum(fastmri.complex_mul(image_recon,fastmri.complex_conj(maps.to(device))),dim=1)).squeeze()
 
         loss = Loss(recon.to(device),gt.to(device))
         trainloss += loss.item()
         trainloss_normalized += loss.item()/Loss(0*gt,gt)
 
         loss.backward()
-
         recon_optimizer.step()
         recon_optimizer.zero_grad()
 
@@ -148,12 +147,12 @@ for epoch in range(max_epochs):
             recon_model.eval()
             gt = toIm(kspace, maps)
             support = fastmri.complex_abs(torch.sum(fastmri.complex_mul(maps,fastmri.complex_conj(maps)),dim=1))
-        
+
             kspace_noise = sample_model(kspace)
             image_noise = fastmri.ifft2c(kspace_noise)
             image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
             image_output = recon_model(image_input).to(device)
-            recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
+            recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)        
             recon = recon * support.to(device)
 
             loss = Loss(recon.to(device),gt.to(device))
@@ -163,6 +162,5 @@ for epoch in range(max_epochs):
     print("train loss:",trainloss/331/8," val loss:",valloss/42/8, flush = True)
     print("normalized train loss:",trainloss_normalized/331/8," normalized val loss:",valloss_normalized/42/8, flush = True)
 
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni50_mse_snr"+str(snr))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_mse_snr"+str(snr)+"_reso"+str(reso))
 
-# %%
