@@ -19,7 +19,9 @@ from my_data import *
 
 # %% data loader
 snr = 20
+reso = 0
 print("SNR:", snr, flush = True)
+print('resolution:', reso, flush = True)
 
 N1 = 320
 N2 = 320
@@ -97,8 +99,6 @@ recon_model = Unet(
 )
 
 recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt100_mae_snr"+str(snr))
-weight = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt100_mae_mask_snr"+str(snr))
-sample_model.weight = weight
 
 # %% data loader
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

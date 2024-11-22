@@ -19,7 +19,7 @@ from my_data import *
 
 #from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
-snr = 30
+snr = 20
 reso = 0
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
@@ -58,7 +58,7 @@ val_data = SliceDataset(
 batch_size = 8
 
 class Sample(torch.nn.Module): 
-    
+
     def __init__(self,sigma,factor):
         super().__init__()
         self.mask = factor*N1/(N1-10*reso)*N2/(N2-10*reso) * torch.ones(N1,N2)
