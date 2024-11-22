@@ -61,11 +61,8 @@ class Sample(torch.nn.Module):
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask = factor*N1/(N1-10*reso)*N2/(N2-10*reso) * torch.ones(N1,N2)
-        self.mask[:,torch.arange(0,5*reso)] = 1e-7 
-        self.mask[:,torch.arange(N2-5*reso,N2)] = 1e-7
-        self.mask[torch.arange(0,5*reso),:] = 1e-7 
-        self.mask[torch.arange(N1-5*reso,N1),:] = 1e-7
+        self.mask =  1e-7 * torch.ones((N1,N2))
+        self.mask[5*reso:N1-5*reso,5*reso:N2-5*reso] = factor*N1/(N1-10*reso)*N2/(N2-10*reso) 
         self.sigma = sigma
 
     def forward(self,kspace):
@@ -76,7 +73,9 @@ class Sample(torch.nn.Module):
 def toIm(kspace,maps): 
     # kspace-(batch,Nc,N1,N2,2) maps-(batch,Nc,N1,N2,2)
     # image-(batch,N1,N2)
-    image = fastmri.complex_abs(torch.sum(fastmri.complex_mul(fastmri.ifft2c(kspace),fastmri.complex_conj(maps)),dim=1))
+    kmask = torch.zeros_like(kspace)
+    kmask[:,:,5*reso:N1-5*reso,5*reso:N2-5*reso,:] = 1
+    image = fastmri.complex_abs(torch.sum(fastmri.complex_mul(fastmri.ifft2c(kmask*kspace),fastmri.complex_conj(maps)),dim=1))
     return image.squeeze()
 
 # %% sampling
@@ -103,7 +102,6 @@ val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
 
 sample_model.to(device)
 recon_model.to(device)
-
 
 # %% optimizer
 recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)

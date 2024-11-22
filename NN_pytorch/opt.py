@@ -98,7 +98,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt100_mae_snr"+str(snr))
+recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/uni100_mse_snr"+str(snr))
 
 # %% data loader
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -224,7 +224,7 @@ for epoch in range(max_epochs):
     print("train loss:",trainloss/331/8," val loss:",valloss/42/8, flush = True)
     print("normalized train loss:",trainloss_normalized/331/8," normalized val loss:",valloss_normalized/42/8, flush = True)
     
-    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt100_mse_snr"+str(snr))
-    torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/opt100_mse_mask_snr"+str(snr))
+    torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_snr"+str(snr)+"_reso"+str(reso))
+    torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_mask_snr"+str(snr)+"_reso"+str(reso))
 
 # %%
