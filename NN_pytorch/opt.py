@@ -59,13 +59,13 @@ class Sample(torch.nn.Module):
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.weight = factor*N1/(N1-10*reso)*N2/(N2-10*reso) * torch.ones(N2)
+        self.weight = factor*N1/(N1-10*reso)*N2/(N2-10*reso) * torch.ones(N2-10*reso)
         self.sigma = sigma
 
     def forward(self,kspace):
 
         mask =  torch.zeros((N1,N2))
-        mask[(5*reso):(N1-5*reso),(5*reso):(N2-5*reso)] =  1.0 / (self.weight ** 0.5).unsqueeze(0).repeat(N1,1)
+        mask[(5*reso):(N1-5*reso),(5*reso):(N2-5*reso)] =  1.0 / (self.weight ** 0.5).unsqueeze(0).repeat(N1-10*reso,1)
         mask = mask.unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,1,1,2)
         
         noise = self.sigma*torch.randn_like(kspace)
