@@ -64,14 +64,12 @@ class Sample(torch.nn.Module):
 
     def forward(self,kspace):
 
-        mask = 1e-7torch.
-        mask = self.weight.clone() 
-        mask = 1.0 / (self.weight ** 0.5)
-        mask = mask.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2)
-        
+        mask =  torch.zeros((N1,N2))
+        mask[(5*reso):(N1-5*reso),(5*reso):(N2-5*reso)] =  1.0 / (self.weight ** 0.5).unsqueeze(0).repeat(N1,1)
+        mask = mask.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,1,1,2)
         
         noise = self.sigma*torch.randn_like(kspace)
-        kspace_noise = support * (kspace + mask * noise) 
+        kspace_noise =  (mask>0) * kspace + mask * noise 
         return kspace_noise
 
 def toIm(kspace,maps): 
@@ -84,7 +82,7 @@ def toIm(kspace,maps):
 
 # %% sampling
 factor = 8
-sigma =  0.15*math.sqrt(8)/snr
+sigma =  0.12*math.sqrt(8)/snr
 
 sample_model = Sample(sigma,factor)
 
@@ -148,24 +146,11 @@ for epoch in range(max_epochs):
         
             # optimize mask
             with torch.no_grad():
-
                 weight = sample_model.weight.clone() 
-                ind = torch.where(weight >= 1)[0]
-
                 grad = sample_model.weight.grad
-                temp = grad[ind]
-                temp = temp - temp.mean()
-                temp = temp/temp.norm()
-                grad = 0 * grad
-                grad[ind] = temp
-
+                grad = grad - grad.mean()
+                grad = grad/grad.norm()
                 weight = weight - step * grad
-                weight[weight<1] = 1e-7
-                ind = torch.where(weight >= 1)[0]
-            
-                temp = weight[ind] - 1
-                temp = temp/temp.mean()*(factor*N2/len(ind)-1)
-                weight[ind] = temp + 1
 
                 sample_model.weight = weight
         
@@ -173,7 +158,7 @@ for epoch in range(max_epochs):
             recon_optimizer.step()
             recon_optimizer.zero_grad()
 
-            print("weight max:",weight.max(),"min:",temp.min()+1, "nonzero:", temp.size(0), flush = True)
+            print("weight max:",weight.max(),"weight min:",weight.min(), flush = True)
 
     else:
         sample_model.weight.requires_grad = False
