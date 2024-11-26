@@ -76,7 +76,7 @@ def toIm(kspace,maps):
     # kspace-(batch,Nc,N1,N2,2) maps-(batch,Nc,N1,N2,2)
     # image-(batch,N1,N2)
     kmask = torch.zeros_like(kspace)
-    kmask[:,:,5*reso:N1-5*reso,5*reso:N2-5*reso,:] = 1
+    kmask[:,:,(5*reso):(N1-5*reso),(5*reso):(N2-5*reso),:] = 1
     image = fastmri.complex_abs(torch.sum(fastmri.complex_mul(fastmri.ifft2c(kmask*kspace),fastmri.complex_conj(maps)),dim=1))
     return image.squeeze()
 
