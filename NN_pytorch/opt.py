@@ -64,7 +64,7 @@ class Sample(torch.nn.Module):
 
     def forward(self,kspace):
 
-            
+        mask = 1e-7torch.
         mask = self.weight.clone() 
         mask = 1.0 / (self.weight ** 0.5)
         mask = mask.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,N1,1,2)

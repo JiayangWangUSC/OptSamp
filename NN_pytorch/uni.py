@@ -20,7 +20,7 @@ from my_data import *
 #from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
 snr = 20
-reso = 7
+reso = 1
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
 
@@ -61,13 +61,13 @@ class Sample(torch.nn.Module):
 
     def __init__(self,sigma,factor):
         super().__init__()
-        self.mask =  1e-7 * torch.ones((N1,N2))
-        self.mask[(5*reso):(N1-5*reso),(5*reso):(N2-5*reso)] = factor*N1/(N1-10*reso)*N2/(N2-10*reso) 
+        self.mask =  torch.zeros((N1,N2))
+        self.mask[(5*reso):(N1-5*reso),(5*reso):(N2-5*reso)] = 1/(factor*N1/(N1-10*reso)*N2/(N2-10*reso))
         self.sigma = sigma
 
     def forward(self,kspace):
         noise = self.sigma*torch.randn_like(kspace)
-        kspace_noise = kspace + torch.div(noise,torch.sqrt(self.mask).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,1,1,2))  
+        kspace_noise = (self.mask>0) * kspace + noise * torch.sqrt(self.mask).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,1,1,2) 
         return kspace_noise
 
 def toIm(kspace,maps): 
