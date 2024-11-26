@@ -53,7 +53,8 @@ val_data = SliceDataset(
 
 # %% noise generator and transform to image
 batch_size = 8
-print('opt100', flush = True)
+print('opt', flush = True)
+
 class Sample(torch.nn.Module): 
 
     def __init__(self,sigma,factor):
