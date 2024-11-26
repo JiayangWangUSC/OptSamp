@@ -67,6 +67,8 @@ class Sample(torch.nn.Module):
 
     def forward(self,kspace):
         noise = self.sigma*torch.randn_like(kspace)
+        print(self.mask.size())
+        print(torch.sqrt(self.mask).unsqueeze(0).unsqueeze(0).unsqueeze(4).size())
         self.mask = torch.sqrt(self.mask).unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,1,1,2) 
         kspace_noise = (self.mask>0) * kspace + noise * self.mask
         return kspace_noise
