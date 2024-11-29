@@ -20,7 +20,7 @@ from my_data import *
 #from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
 snr = 20
-reso = 17
+reso = 1
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
 
@@ -62,7 +62,7 @@ class Sample(torch.nn.Module):
     def __init__(self,sigma,factor):
         super().__init__()
         self.weight =  torch.zeros((N1,N2))
-        self.weight[(5*reso):(N1-5*reso),(5*reso):(N2-5*reso)] = 1/(factor*N1/(N1-10*reso)*N2/(N2-10*reso))
+        self.weight[(16*reso):(N1-16*reso),(16*reso):(N2-16*reso)] = 1/(factor*N1/(N1-32*reso)*N2/(N2-32*reso))
         self.sigma = sigma
 
     def forward(self,kspace):
@@ -75,7 +75,7 @@ def toIm(kspace,maps):
     # kspace-(batch,Nc,N1,N2,2) maps-(batch,Nc,N1,N2,2)
     # image-(batch,N1,N2)
     kmask = torch.zeros_like(kspace)
-    kmask[:,:,(5*reso):(N1-5*reso),(5*reso):(N2-5*reso),:] = 1
+    kmask[:,:,(16*reso):(N1-16*reso),(16*reso):(N2-16*reso),:] = 1
     image = fastmri.complex_abs(torch.sum(fastmri.complex_mul(fastmri.ifft2c(kmask*kspace),fastmri.complex_conj(maps)),dim=1))
     return image.squeeze()
 
