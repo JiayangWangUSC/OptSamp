@@ -20,7 +20,7 @@ from my_data import *
 # %% parameters
 factor = 8
 snr = 3
-reso = 2
+reso = 0
 sigma =  0.12*math.sqrt(8)/snr
 
 # %% data loader
@@ -86,13 +86,6 @@ def toIm(kspace,maps):
     image = fastmri.complex_abs(torch.sum(fastmri.complex_mul(fastmri.ifft2c(kmask*kspace),fastmri.complex_conj(maps)),dim=1))
     return image.squeeze()
 
-def fullIm(kspace,maps): 
-    # kspace-(batch,Nc,N1,N2,2) maps-(batch,Nc,N1,N2,2)
-    # image-(batch,N1,N2)
-
-    image = fastmri.complex_abs(torch.sum(fastmri.complex_mul(fastmri.ifft2c(kspace),fastmri.complex_conj(maps)),dim=1))
-    return image.squeeze()
-
 # %% GPU 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 test_dataloader = torch.utils.data.DataLoader(test_data,batch_size,shuffle=True)
@@ -106,51 +99,50 @@ sample_opt = Sample_opt(sigma,factor)
 sample_opt.weight = weight
 recon_opt = torch.load('/home/wjy/Project/optsamp_model/opt_mse_snr'+str(snr)+'_reso'+str(reso),map_location=torch.device('cpu'))
 
-# %%
-from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
-ssim_module = SSIM(data_range=255, size_average=True, channel=1)
 
-# %% recon
-count = 0
-ssim_uni, ssim_opt, ssim_uni_ft, ssim_opt_ft = 0, 0, 0, 0
-nrmse_uni, nrmse_opt, nrmse_uni_ft, nrmse_opt_ft = 0, 0, 0, 0
-
+# %% single image recon
+seed = 360
 with torch.no_grad():
-  for kspace, maps in test_dataloader:
-    count += 1
-    gt = fullIm(kspace, maps)
-    support = fastmri.complex_abs(torch.sum(fastmri.complex_mul(maps,fastmri.complex_conj(maps)),dim=1)).squeeze()
-    scale = gt.max()
-    l2scale = gt.norm(p=2)
-    l1scale = gt.norm(p=1)
+    kspace, maps = test_data[0]  
+    kspace = kspace.unsqueeze(0)
+    maps = maps.unsqueeze(0)
+    gt = toIm(kspace, maps).squeeze()
+    support = fastmri.complex_abs(torch.sum(fastmri.complex_mul(maps,fastmri.complex_conj(maps)),dim=1))
+   
+    # uni100 recon
+    torch.manual_seed(seed=seed)
+    kspace_noise = sample_uni100(kspace)
+    image_noise_uni100 = toIm(kspace_noise, maps).squeeze()
+    image_noise = fastmri.ifft2c(kspace_noise)
+    image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1)
+    image_output = recon_uni100(image_input)
+    recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
+    image_uni100 = recon * support.to(device)
 
-    # uni recon
-    kspace_uni = sample_uni(kspace)
-    noise_uni = fastmri.ifft2c(kspace_uni)
-    input_uni = torch.cat((noise_uni[:,:,:,:,0],noise_uni[:,:,:,:,1]),1).to(device)
-    output_uni = recon_uni(input_uni).to(device)
-    image_uni = support*fastmri.complex_abs(torch.cat((output_uni[:,0,:,:].unsqueeze(1).unsqueeze(4),output_uni[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
-    ssim_uni += ssim_module(image_uni.unsqueeze(0).unsqueeze(1)/scale*256, gt.unsqueeze(0).unsqueeze(1)/scale*256)
-    nrmse_uni += (image_uni-gt).norm(p=2)/l2scale
-    
-    image_uni_ft = toIm(kspace_uni,maps)
-    ssim_uni_ft += ssim_module(image_uni_ft.unsqueeze(0).unsqueeze(1)/scale*256, gt.unsqueeze(0).unsqueeze(1)/scale*256)
-    nrmse_uni_ft += (image_uni_ft-gt).norm(p=2)/l2scale
+    # opt100 recon
+    torch.manual_seed(seed=seed)
+    kspace_noise = sample_opt(kspace)
+    image_noise_opt = toIm(kspace_noise, maps).squeeze()
+    image_noise = fastmri.ifft2c(kspace_noise)
+    image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1)
+    image_output = recon_opt(image_input)
+    recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
+    image_opt = recon * support.to(device)
 
-    # opt recon
-    kspace_opt = sample_opt(kspace)
-    noise_opt = fastmri.ifft2c(kspace_opt)
-    input_opt = torch.cat((noise_opt[:,:,:,:,0],noise_opt[:,:,:,:,1]),1).to(device)
-    output_opt = recon_opt(input_uni).to(device)
-    image_opt = support*fastmri.complex_abs(torch.cat((output_opt[:,0,:,:].unsqueeze(1).unsqueeze(4),output_opt[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
-    ssim_opt += ssim_module(image_opt.unsqueeze(0).unsqueeze(1)/scale*256, gt.unsqueeze(0).unsqueeze(1)/scale*256)
-    nrmse_opt += (image_opt-gt).norm(p=2)/l2scale
+# %% save single image
+save_image(gt/gt.max()*1.5,'/home/wjy/Project/optsamp_result/gt.png')
+save_image(image_uni100/gt.max()*1.5,'/home/wjy/Project/optsamp_result/uni100_snr'+str(snr)+'.png')
+save_image(image_opt/gt.max()*1.5,'/home/wjy/Project/optsamp_result/opt_snr'+str(snr)+'.png')
 
-    image_opt_ft = toIm(kspace_opt,maps)
-    ssim_opt_ft += ssim_module(image_opt_ft.unsqueeze(0).unsqueeze(1)/scale*256, gt.unsqueeze(0).unsqueeze(1)/scale*256)
-    nrmse_opt_ft += (image_opt_ft-gt).norm(p=2)/l2scale
+# %% save error map
+error = (image_uni100-gt).abs()/gt.max()
+error = error.squeeze().numpy()
+plt.imshow(error, cmap='hot',vmax=0.14,vmin=0.028)
+plt.axis('off')
+plt.savefig('/home/wjy/Project/optsamp_result/uni100_error_snr'+str(snr)+'.png', bbox_inches='tight', pad_inches=0) 
 
-print('ssim: ', 'uni',ssim_uni/count, ' opt',ssim_opt/count, 'uni_ft',ssim_uni_ft/count, ' opt_ft',ssim_opt_ft/count)
-print('nrmse: ', 'uni',nrmse_uni/count, ' opt',nrmse_opt/count, 'uni_ft',nrmse_uni_ft/count, ' opt_ft',nrmse_opt_ft/count)
+# %% save patch
+resize_transform = torchvision.transforms.Resize((256, 256), interpolation=torchvision.transforms.InterpolationMode.NEAREST)
 
-# %%
+patch1 = resize_transform(gt[160:240,100:180].unsqueeze(0))/torch.max(gt)*1.5
+save_image(patch1,'/home/wjy/Project/optsamp_result/gt_p1_snr'+str(snr)+'.png')
