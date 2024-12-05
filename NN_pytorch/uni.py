@@ -1,4 +1,3 @@
-
 # %%
 import fastmri
 import torch
@@ -6,20 +5,17 @@ import torch.nn as nn
 import torch.nn.functional as F
 from fastmri.data import transforms
 from fastmri.models import Unet
-
 import numpy as np
 import pathlib
 import torch.optim as optim
 from fastmri.data import  mri_data
 import math
-
 import matplotlib.pyplot as plt
-
 from my_data import *
 
 #from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
-snr = 10
+snr = 2
 reso = 0
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
@@ -52,7 +48,6 @@ val_data = SliceDataset(
     transform=data_transform,
     challenge='multicoil'
 )
-
 
 # %% noise generator and transform to image
 batch_size = 8
@@ -93,7 +88,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/uni_mse_snr"+str(snr)+"_reso"+str(reso))
+recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/uni_mse_snr3_reso"+str(reso))
 
 # %% GPU 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -112,7 +107,7 @@ print('L2 Loss', flush = True)
 Loss = torch.nn.MSELoss()
 
 # %% training
-max_epochs = 5
+max_epochs = 20
 
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)

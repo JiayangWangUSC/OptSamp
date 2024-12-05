@@ -1,4 +1,3 @@
-
 # %%
 import fastmri
 import torch
@@ -18,8 +17,8 @@ import matplotlib.pyplot as plt
 from my_data import *
 
 # %% data loader
-snr = 10
-reso = 6
+snr = 2
+reso = 0
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
 
@@ -85,7 +84,7 @@ factor = 8
 sigma =  0.12*math.sqrt(8)/snr
 
 sample_model = Sample(sigma,factor)
-weight = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_mask_snr"+str(snr)+"_reso"+str(reso))
+weight = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_mask_snr3_reso"+str(reso))
 sample_model.weight = weight
 
 # %% unet loader
@@ -97,7 +96,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_snr"+str(snr)+"_reso"+str(reso))
+recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_snr3_reso"+str(reso))
 
 # %% data loader
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -115,13 +114,13 @@ print('L2 Loss', flush = True)
 #Loss = torch.nn.L1Loss()
 Loss = torch.nn.MSELoss()
 
-step = 1e-3
+step = 1e-2
 
 # %% training
-max_epochs = 10
+max_epochs = 50
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-    if epoch < 5:
+    if epoch < 20:
         step = 0.9 * step
         trainloss = 0
         trainloss_normalized = 0
