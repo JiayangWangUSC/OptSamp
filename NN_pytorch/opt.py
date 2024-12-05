@@ -118,10 +118,10 @@ Loss = torch.nn.MSELoss()
 step = 1e-3
 
 # %% training
-max_epochs = 30
+max_epochs = 10
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-    if epoch < 10:
+    if epoch < 5:
         step = 0.9 * step
         trainloss = 0
         trainloss_normalized = 0

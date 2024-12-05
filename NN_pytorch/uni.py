@@ -112,7 +112,7 @@ print('L2 Loss', flush = True)
 Loss = torch.nn.MSELoss()
 
 # %% training
-max_epochs = 10
+max_epochs = 5
 
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
