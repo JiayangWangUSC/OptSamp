@@ -19,7 +19,7 @@ from my_data import *
 
 # %% parameters
 factor = 8
-snr = 20
+snr = 10
 reso = 0
 sigma =  0.12*math.sqrt(8)/snr
 
@@ -39,7 +39,7 @@ def data_transform(kspace,maps):
     return kspace, maps
 
 test_data = SliceDataset(
-    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
     #root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/'),
     transform=data_transform,
     challenge='multicoil'
