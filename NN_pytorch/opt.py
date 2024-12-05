@@ -85,6 +85,8 @@ factor = 8
 sigma =  0.12*math.sqrt(8)/snr
 
 sample_model = Sample(sigma,factor)
+weight = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_mask_snr"+str(snr)+"_reso"+str(reso))
+sample_model.weight = weight
 
 # %% unet loader
 recon_model = Unet(
@@ -95,7 +97,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/uni_mse_snr"+str(snr)+"_reso"+str(reso))
+recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_snr"+str(snr)+"_reso"+str(reso))
 
 # %% data loader
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -113,13 +115,13 @@ print('L2 Loss', flush = True)
 #Loss = torch.nn.L1Loss()
 Loss = torch.nn.MSELoss()
 
-step = 0.1
+step = 1e-3
 
 # %% training
-max_epochs = 100
+max_epochs = 30
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-    if epoch < 30:
+    if epoch < 10:
         step = 0.9 * step
         trainloss = 0
         trainloss_normalized = 0
