@@ -19,8 +19,8 @@ from my_data import *
 
 # %% parameters
 factor = 8
-snr = 10
-reso = 3
+snr = 3
+reso = 0
 sigma =  0.12*math.sqrt(8)/snr
 
 # %% data loader
@@ -154,3 +154,6 @@ print('ssim: ', 'uni',ssim_uni/count, ' opt',ssim_opt/count, 'uni_ft',ssim_uni_f
 print('nrmse: ', 'uni',nrmse_uni/count, ' opt',nrmse_opt/count, 'uni_ft',nrmse_uni_ft/count, ' opt_ft',nrmse_opt_ft/count)
 
 # %%
+
+
+
