@@ -18,7 +18,7 @@ from my_data import *
 
 # %% data loader
 snr = 2
-reso = 5
+reso = 6
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
 
