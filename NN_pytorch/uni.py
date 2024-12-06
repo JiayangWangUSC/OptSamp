@@ -16,7 +16,7 @@ from my_data import *
 #from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
 snr = 2
-reso = 8
+reso = 9
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
 
