@@ -15,8 +15,9 @@ from my_data import *
 
 #from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
-snr = 2
-reso = 9
+snr = 10
+reso = 0
+print("uniform")
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
 
@@ -88,7 +89,7 @@ recon_model = Unet(
   drop_prob = 0.0
 )
 
-recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/uni_mse_snr3_reso"+str(reso))
+recon_model = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/uni_mse_snr"+str(snr)+"_reso"+str(reso))
 
 # %% GPU 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -100,14 +101,14 @@ sample_model.to(device)
 recon_model.to(device)
 
 # %% optimizer
-recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
+recon_optimizer = optim.Adam(recon_model.parameters(),lr=1e-4)
 
 print('L2 Loss', flush = True)
 #Loss = torch.nn.L1Loss()
 Loss = torch.nn.MSELoss()
 
 # %% training
-max_epochs = 20
+max_epochs = 5
 
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
