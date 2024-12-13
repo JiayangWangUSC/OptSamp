@@ -20,7 +20,7 @@ from my_data import *
 # %% parameters
 factor = 8
 snr = 10
-reso = 1
+reso = 3
 sigma =  0.12*math.sqrt(8)/snr
 
 # %% data loader
@@ -77,7 +77,6 @@ class Sample_opt(torch.nn.Module):
         kspace_noise =  (mask>0) * kspace + mask * noise 
         return kspace_noise
 
-
 def toIm(kspace,maps): 
     # kspace-(batch,Nc,N1,N2,2) maps-(batch,Nc,N1,N2,2)
     # image-(batch,N1,N2)
@@ -89,7 +88,6 @@ def toIm(kspace,maps):
 def fullIm(kspace,maps): 
     # kspace-(batch,Nc,N1,N2,2) maps-(batch,Nc,N1,N2,2)
     # image-(batch,N1,N2)
-
     image = fastmri.complex_abs(torch.sum(fastmri.complex_mul(fastmri.ifft2c(kspace),fastmri.complex_conj(maps)),dim=1))
     return image.squeeze()
 
@@ -154,6 +152,3 @@ print('ssim: ', 'uni',ssim_uni/count, ' opt',ssim_opt/count, 'uni_ft',ssim_uni_f
 print('nrmse: ', 'uni',nrmse_uni/count, ' opt',nrmse_opt/count, 'uni_ft',nrmse_uni_ft/count, ' opt_ft',nrmse_opt_ft/count)
 
 # %%
-
-
-
