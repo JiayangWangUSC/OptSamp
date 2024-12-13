@@ -18,7 +18,7 @@ from my_data import *
 
 # %% data loader
 snr = 5
-reso = 5
+reso = 6
 print('non-uniform')
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
