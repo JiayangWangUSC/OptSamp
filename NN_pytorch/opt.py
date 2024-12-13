@@ -11,14 +11,12 @@ import pathlib
 import torch.optim as optim
 from fastmri.data import  mri_data
 import math
-
 import matplotlib.pyplot as plt
-
 from my_data import *
 
 # %% data loader
 snr = 5
-reso = 6
+reso = 7
 print('non-uniform')
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
