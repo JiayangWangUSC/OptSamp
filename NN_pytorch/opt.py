@@ -15,8 +15,8 @@ import matplotlib.pyplot as plt
 from my_data import *
 
 # %% data loader
-snr = 2
-reso = 8
+snr = 5
+reso = 0
 print('non-uniform')
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
@@ -116,7 +116,7 @@ Loss = torch.nn.MSELoss()
 step = 1e-2
 
 # %% training
-max_epochs = 5
+max_epochs = 3
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
     if epoch < 0:
