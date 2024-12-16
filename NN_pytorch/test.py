@@ -20,7 +20,7 @@ from my_data import *
 # %% parameters
 factor = 8
 snr = 5
-reso = 3
+reso = 7
 sigma =  0.12*math.sqrt(8)/snr
 
 # %% data loader
