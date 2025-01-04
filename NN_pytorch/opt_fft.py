@@ -102,7 +102,7 @@ step = 1e-1
 max_epochs = 20
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-    if epoch < 0:
+    if epoch < 20:
         step = 0.9 * step
         trainloss = 0
         trainloss_normalized = 0
