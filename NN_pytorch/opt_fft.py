@@ -16,7 +16,7 @@ from my_data import *
 
 # %% data loader
 snr = 10
-reso = 1
+reso = 0
 print('optimized fft')
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
@@ -102,7 +102,7 @@ step = 1e-1
 max_epochs = 20
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-    if epoch < 0:
+    if epoch < 20:
         step = 0.9 * step
         trainloss = 0
         trainloss_normalized = 0
