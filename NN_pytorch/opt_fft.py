@@ -96,7 +96,7 @@ sample_model.to(device)
 # %% optimization parameters
 Loss = torch.nn.MSELoss()
 
-step = 1e-1
+step = 1
 
 # %% training
 max_epochs = 20
