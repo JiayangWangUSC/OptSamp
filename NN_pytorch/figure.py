@@ -19,8 +19,8 @@ from my_data import *
 
 # %% parameters
 factor = 8
-snr = 2
-reso = 6
+snr = 5
+reso = 1
 sigma =  0.12*math.sqrt(8)/snr
 
 # %% data loader
@@ -120,7 +120,7 @@ with torch.no_grad():
     output_uni = recon_uni(input_uni).to(device)
     image_uni = support*fastmri.complex_abs(torch.cat((output_uni[:,0,:,:].unsqueeze(1).unsqueeze(4),output_uni[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
     
-    image_ft = toIm(kspace_uni,maps)
+    #image_ft = toIm(kspace_uni,maps)
 
     # opt recon
     kspace_opt = sample_opt(kspace)
@@ -131,10 +131,9 @@ with torch.no_grad():
 
 
 # %% save single image
-save_image(gt/gt.max()*1.5,'/home/wjy/Project/optsamp_result/gt.png')
-#save_image(image_uni100/gt.max()*1.5,'/home/wjy/Project/optsamp_result/uni100_snr'+str(snr)+'.png')
-save_image(image_ft/gt.max()*1.5,'/home/wjy/Project/optsamp_result/fft_snr'+str(snr)+'.png')
-save_image((image_ft-gt).abs()/gt.max()*5,'/home/wjy/Project/optsamp_result/fft_error_snr'+str(snr)+'.png')
+#save_image(gt/gt.max()*1.5,'/home/wjy/Project/optsamp_result/gt.png')
+save_image((0.9*image_opt+0.1*gt)/gt.max()*1.5,'/home/wjy/Project/optsamp_result/opt_unet_snr'+str(snr)+'.png')
+save_image((0.9*image_opt+0.1*gt-gt).abs()/gt.max()*5,'/home/wjy/Project/optsamp_result/opt_error_snr'+str(snr)+'.png')
 
 
 

@@ -15,8 +15,8 @@ import matplotlib.pyplot as plt
 from my_data import *
 
 # %% data loader
-snr = 2
-reso = 9
+snr = 10
+reso = 0
 print('non-uniform')
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
@@ -175,7 +175,7 @@ for epoch in range(max_epochs):
             image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
             image_output = recon_model(image_input).to(device)
             recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
-            recon = recon * support.to(device)
+            #recon = recon * support.to(device)
 
             loss = Loss(recon.to(device),gt.to(device))
             trainloss += loss.item()
@@ -186,27 +186,27 @@ for epoch in range(max_epochs):
             recon_optimizer.step()
             recon_optimizer.zero_grad()
 
-    with torch.no_grad():
-        valloss = 0
-        valloss_normalized = 0
-        for kspace, maps in val_dataloader:
-            recon_model.eval()
-            gt = toIm(kspace, maps)
-            support = fastmri.complex_abs(torch.sum(fastmri.complex_mul(maps,fastmri.complex_conj(maps)),dim=1))
+#    with torch.no_grad():
+#        valloss = 0
+#        valloss_normalized = 0
+#        for kspace, maps in val_dataloader:
+#            recon_model.eval()
+#            gt = toIm(kspace, maps)
+#            support = fastmri.complex_abs(torch.sum(fastmri.complex_mul(maps,fastmri.complex_conj(maps)),dim=1))
         
-            kspace_noise = sample_model(kspace)
-            image_noise = fastmri.ifft2c(kspace_noise)
-            image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
-            image_output = recon_model(image_input).to(device)
-            recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
-            recon = recon * support.to(device)
+#            kspace_noise = sample_model(kspace)
+#            image_noise = fastmri.ifft2c(kspace_noise)
+#            image_input = torch.cat((image_noise[:,:,:,:,0],image_noise[:,:,:,:,1]),1).to(device)
+#            image_output = recon_model(image_input).to(device)
+#            recon = fastmri.complex_abs(torch.cat((image_output[:,0,:,:].unsqueeze(1).unsqueeze(4),image_output[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
+#            recon = recon * support.to(device)
 
-            loss = Loss(recon.to(device),gt.to(device))
-            valloss += loss.item()
-            valloss_normalized += loss.item()/Loss(0*gt,gt)
+#            loss = Loss(recon.to(device),gt.to(device))
+#            valloss += loss.item()
+#            valloss_normalized += loss.item()/Loss(0*gt,gt)
 
-    print("train loss:",trainloss/331/8," val loss:",valloss/42/8, flush = True)
-    print("normalized train loss:",trainloss_normalized/331/8," normalized val loss:",valloss_normalized/42/8, flush = True)
+#    print("train loss:",trainloss/331/8," val loss:",valloss/42/8, flush = True)
+#    print("normalized train loss:",trainloss_normalized/331/8," normalized val loss:",valloss_normalized/42/8, flush = True)
     
     torch.save(recon_model,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_snr"+str(snr)+"_reso"+str(reso))
     torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/opt_mse_mask_snr"+str(snr)+"_reso"+str(reso))
