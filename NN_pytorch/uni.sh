@@ -14,4 +14,6 @@ module purge
 module load gcc/13.3.0
 module load cuda/12.4.0
 
+source ~/venvs/fastmri-env/bin/activate
+
 python /project/jhaldar_118/jiayangw/OptSamp/NN_pytorch/uni.py
