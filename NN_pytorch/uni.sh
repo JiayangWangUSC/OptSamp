@@ -11,7 +11,7 @@
 #SBATCH --account=jhaldar_118
 
 module purge
-module load gcc/8.3.0
+module load gcc/12.3.0
 module load cuda/12.4.0
 
 python /project/jhaldar_118/jiayangw/OptSamp/NN_pytorch/uni.py
