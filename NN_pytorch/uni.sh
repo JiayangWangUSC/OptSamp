@@ -12,6 +12,6 @@
 
 module purge
 module load gcc/8.3.0
-module load cuda/11.2.0
+module load cuda/12.4.0
 
 python /project/jhaldar_118/jiayangw/OptSamp/NN_pytorch/uni.py
