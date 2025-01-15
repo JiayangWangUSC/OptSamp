@@ -118,7 +118,7 @@ step = 1e-2
 # %% training
 max_epochs = 5
 for epoch in range(max_epochs):
-    print("epoch:",epoch+1)
+    print("epoch:",epoch,flush = True)
     if epoch < 0:
         step = 0.9 * step
         trainloss = 0

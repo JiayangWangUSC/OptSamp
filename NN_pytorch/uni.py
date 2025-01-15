@@ -16,7 +16,7 @@ from my_data import *
 #from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
 snr = 10
-reso = 1
+reso = 2
 print("uniform", flush = True)
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
@@ -111,7 +111,7 @@ Loss = torch.nn.MSELoss()
 max_epochs = 5
 
 for epoch in range(max_epochs):
-    print("epoch:",epoch+1)
+    print("epoch:",epoch, flush = True)
     trainloss = 0
     trainloss_normalized = 0
     for kspace, maps in train_dataloader:
