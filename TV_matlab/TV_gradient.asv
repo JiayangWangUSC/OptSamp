@@ -2,6 +2,12 @@ clear all;
 close all;
 clc;
 
+%% define snr w. 8-averaging
+factor = 8;
+SNR = 10; % SNR after uniform averaging
+reso = 0;
+sigma = 0.12*sqrt(8)/SNR; % 
+
 %% load data
 fft2c = @(x) fftshift(fft2(ifftshift(x)))/sqrt(size(x(:),1))*4;
 ifft2c = @(x) fftshift(ifft2(ifftshift(x)))*sqrt(size(x(:),1))/4; 
@@ -14,7 +20,7 @@ N1 = 320; N2 = 320; Nc = 16; Ns =8;
 
 d1 = diag(ones(N1,1));
 for n = 1:N1-1
-    d1(n,n+1) = -1;    
+    d1(n,n+1) = -1;
 end
 d1(N1,1) = -1;
 
@@ -28,29 +34,26 @@ D = @(x) difference(reshape(ifft2c(reshape(x,N1,N2,Nc)),[],1),N1,N2,Nc,d1,d2);
 Dh = @(x) reshape(fft2c(reshape(difference_H(x,N1,N2,Nc,d1,d2),N1,N2,Nc)),[],1);
 DhD = reshape(real(Dh(D(ones(N1,N2,Nc)))),N1,N2,Nc);
 
-%% define snr w. 8-averaging
-factor = 8;
-SNR = 10; % SNR after uniform averaging
-sigma = 0.15*sqrt(8)/SNR; % 
-
 %% reconstruction parameters initialization
-if SNR == 3
+if SNR == 1
+    rho = 0.6; beta = 0.5;
+elseif SNR == 2
     rho = 0.6; beta = 0.5;
 elseif SNR == 5
     rho = 0.3; beta = 0.5;
-elseif SNR ==10
+elseif SNR == 10
     rho = 0.1; beta = 0.5;
 end
 
 MaxIter = 20;
 
 %%
-epoch_max = 30;
-step = 1;
+epoch_max = 5;
+step = 0.1;
 train_loss = zeros(1,epoch_max);
 
-%weight = factor * ones(1,N2);
-load(['./weight_snr',num2str(int8(SNR))])
+weight = factor*N1/(N1-32*reso)*N2/(N2-32*reso) * ones(1,N2-32*reso);
+%load(['./weight_snr',num2str(int8(SNR))])
 
 for epoch = 1:epoch_max
     disp(epoch);
@@ -58,16 +61,16 @@ for epoch = 1:epoch_max
     loss = 0;
     for sub_num = 3:length(dirname)
         kspace = h5read([datapath,dirname(sub_num).name],'/kspace_central');
-        
         Maps = h5read([datapath,dirname(sub_num).name],'/sense_central');
         
-
        % Gradient = zeros(N1,N2,Ns);
         l2loss = zeros(1,Ns);
         
         for slice_num = 1:Ns
             % operator for updated mask
-            kMask = repmat(sqrt(weight),[N1,1,Nc]);
+            kMask = zeros(N1,N2);
+            kMask((16*reso+1):(N1-16*reso),(16*reso+1):(N2-16*reso)) = repmat(sqrt(weight),[N1-32*reso,1]);
+            kMask = repmat(kMask,[1,1,Nc]);
             kMask_dagger = kMask;
             kMask_dagger(find(kMask)) = 1./kMask(find(kMask));
             AhA = kMask.*kMask + rho*DhD;
@@ -75,8 +78,8 @@ for epoch = 1:epoch_max
             AhA_dagger(find(AhA)) = 1./AhA(find(AhA));
             
             % load slice
-            kData = complex(kspace(:,:,1:20,slice_num),kspace(:,:,21:40,slice_num));
-            maps = complex(Maps(:,:,1:20,slice_num),Maps(:,:,21:40,slice_num));
+            kData = complex(kspace(:,:,1:Nc,slice_num),kspace(:,:,Nc+1:2*Nc,slice_num));
+            maps = complex(Maps(:,:,1:Nc,slice_num),Maps(:,:,Nc+1:2*Nc,slice_num));
             
             % generate noisy acquisition
             noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
@@ -106,9 +109,6 @@ for epoch = 1:epoch_max
             ImR = sum(imr.*conj(maps),3);
             Im = sum(ifft2c(kData).*conj(maps),3);
             
-            %support = zeros(N1,N2);
-            %support(Im>0.06*max(Im(:))) = 1;
-            
             %% backward propagation
             Grad = 0;
             dx = fft2c(repmat(2*(ImR-Im),[1,1,Nc]).*maps);
@@ -134,23 +134,18 @@ for epoch = 1:epoch_max
             
             Grad = reshape(Grad,N1,N2,Nc);
             Grad = sum(sum(real(Grad)+imag(Grad),3),1);
-
+            
+            Grad = Grad((16*reso+1):(N2-16*reso));
             Grad = Grad-mean(Grad(:));
             Grad = Grad/norm(Grad(:));
-
+           
             weight = weight - step * Grad;
-            weight(weight<1) = 0;
-            ind = find(weight>=1);
-            temp = weight(ind);
-            for p = 1:10
-                temp = temp - mean(temp(:)) + factor*N2/length(ind);
-                temp(temp < 1) = 1;
-            end
-            weight(ind) = temp;
-            
-            
-            disp(['epoch:',num2str(epoch),' subject:',num2str(sub_num-2),' slice:',num2str(slice_num),' NRMSE:',num2str(norm(ImR(:)-Im(:))/norm(Im(:)))]);
-            
+            weight = weight - 1;
+            total = sum(weight);
+            weight(weight<0) = 0;
+            weight = weight/sum(weight)*total;
+            weight = weight + 1;
+
             l2loss(slice_num) = sum(abs(ImR(:)-Im(:)).^2);
     
         end
@@ -161,11 +156,9 @@ for epoch = 1:epoch_max
     end
     train_loss(epoch) = loss/(length(dirname)-2);
     
-    %save(['/project/jhaldar_118/jiayangw/OptSamp/model/TV_mask_noise',num2str(int8(10*sigma))], 'weight')
-    save(['./weight_snr',num2str(int8(SNR))], 'weight')
+    save(['./weight_snr',num2str(int8(SNR)),'_reso',num2str(int8(reso))], 'weight')
 end
 
-%save TV_noise08_train_loss train_loss
 
 
 %%

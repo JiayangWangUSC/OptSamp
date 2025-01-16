@@ -4,9 +4,9 @@ clear all;
 close all;
 clc;
 
-SNR = 10;
-load(['./weight_snr',num2str(int8(SNR))]);
-%load(['./opt_mae_mask_snr',num2str(int8(SNR))]);
+SNR = 3;
+%load(['./weight_snr',num2str(int8(SNR))]);
+load(['./opt75_mse_mask_snr',num2str(int8(SNR))]);
 total = round(sum(weight));
 weight_int = round(weight);
 fraction = weight_int - weight;
@@ -21,5 +21,5 @@ elseif total_round < total
     weight_int(ind) = weight_int(ind) + 1;
 end
 
-save(['./weight_int_snr',num2str(int8(SNR))], 'weight_int')
-%save(['./opt_mae_maskint_snr',num2str(int8(SNR))],'weight_int');
+%save(['./weight_int_snr',num2str(int8(SNR))], 'weight_int')
+save(['./opt75_mse_maskint_snr',num2str(int8(SNR))],'weight_int');

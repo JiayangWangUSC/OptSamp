@@ -6,15 +6,11 @@ clc;
 fft2c = @(x) fftshift(fft2(ifftshift(x)))/sqrt(size(x(:),1))*4;
 ifft2c = @(x) fftshift(ifft2(ifftshift(x)))*sqrt(size(x(:),1))/4; 
 
-datapath = '/home/wjy/Project/fastmri_dataset/brain_T1/';
+datapath = '/home/wjy/Project/fastmri_dataset/brain_T1_demo/';
 dirname = dir(datapath);
 
 %% single image recon
 N1 = 320; N2 = 320; Nc = 16; Ns =8;
-%kspace = h5read([datapath,dirname(3).name],'/kspace_central');
-%kspace = complex(kspace(:,:,1:Nc,1),kspace(:,:,Nc+1:2*Nc,1));
-%maps = h5read([datapath,dirname(3).name],'/sense_central');
-%maps = complex(maps(:,:,1:Nc,1),maps(:,:,Nc+1:2*Nc,1));
 
 %% difference matrix
 d1 = diag(ones(N1,1));
@@ -35,9 +31,9 @@ DhD = reshape(real(Dh(D(ones(N1,N2,Nc)))),N1,N2,Nc);
 
 %% define snr w. 8-averaging
 factor = 8;
-SNR = 2; % SNR after uniform averaging
+SNR = 5; % SNR after uniform averaging
 sigma = sqrt(8)*0.12/SNR; % 
-reso = 9;
+reso = 1;
 
 %% reconstruction parameters initialization
 if SNR == 2
@@ -63,42 +59,55 @@ opt_mask = zeros(N1,N2);
 opt_mask((16*reso+1):(N1-16*reso),(16*reso+1):(N2-16*reso)) = repmat(weight,[N1-32*reso,1]);
 opt_mask = repmat(opt_mask,[1,1,Nc]);
 
+%%
+disp([datapath,dirname(3).name]);
+kspace = h5read([datapath,dirname(3).name],'/kspace_central');
+Maps = h5read([datapath,dirname(3).name],'/sense_central');    
+
+kData = complex(kspace(:,:,1:Nc,1),kspace(:,:,Nc+1:2*Nc,1));
+maps = complex(Maps(:,:,1:Nc,1),Maps(:,:,Nc+1:2*Nc,1));
+noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
+gt = abs(sum(ifft2c(kData).*conj(maps),3));
+support = sum(maps.*conj(maps),3);
+
 %% 
-count = 0;
-ssim_uni = 0; ssim_opt = 0;
-nrmse_uni = 0; nrmse_opt = 0;
+ncalib = 24; % use 24 calibration lines to compute compression
+ksize = [6,6]; % kernel size
 
-for sub_num = 3 :length(dirname)
-    disp([datapath,dirname(sub_num).name]);
-    kspace = h5read([datapath,dirname(sub_num).name],'/kspace_central');
-    Maps = h5read([datapath,dirname(sub_num).name],'/sense_central');    
+% Threshold for picking singular vercors of the calibration matrix
+% (relative to largest singlular value.
 
-    for slice_num = 1 :Ns
-    count = count + 1;
-    
-    kData = complex(kspace(:,:,1:Nc,slice_num),kspace(:,:,Nc+1:2*Nc,slice_num));
-    maps = complex(Maps(:,:,1:Nc,slice_num),Maps(:,:,Nc+1:2*Nc,slice_num));
-    noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
-    gt = abs(sum(ifft2c(kData).*conj(maps),3));
+eigThresh_1 = 0.02;
 
-    pixelscale = max(gt(:));
-    l2scale = norm(gt(:));
-    
-    recon_uni = TV(sqrt(uni_mask).*kData + noise,sqrt(uni_mask),rho,beta,MaxIter,D,Dh,DhD);
-    recon_uni = abs(sum(ifft2c(reshape(recon_uni,N1,N2,Nc)).*conj(maps),3));
-    ssim_uni = ssim_uni + ssim(recon_uni/pixelscale,gt/pixelscale,'DynamicRange', 1);
-    nrmse_uni = nrmse_uni + norm(recon_uni(:)-gt(:))/l2scale;
+% threshold of eigen vector decomposition in image space.
+eigThresh_2 = 0.9;
 
-    %recon_opt = TV(sqrt(opt_mask).*kData + noise,sqrt(opt_mask),rho,beta,MaxIter,D,Dh,DhD);
-    %recon_opt = abs(sum(ifft2c(reshape(recon_opt,N1,N2,Nc)).*conj(maps),3));
-    %ssim_opt = ssim_opt + ssim(recon_opt/pixelscale,gt/pixelscale,'DynamicRange', 1);
-    %nrmse_opt = nrmse_opt + norm(recon_opt(:)-gt(:))/l2scale;
+% crop a calibration area
+calib = crop(kData,[ncalib,ncalib,Nc]);
 
-    end
+% compute Calibration matrix, perform 1st SVD and convert singular vectors
+% into k-space kernels
 
-    disp([ssim_uni/count,nrmse_uni/count;ssim_opt/count,nrmse_opt/count]);
+[k,S] = dat2Kernel(calib,ksize);
+idx = max(find(S >= S(1)*eigThresh_1));
 
-end
+[M,W] = kernelEig(k(:,:,:,1:idx),[N1,N2]);
+maps = M(:,:,:,end);
+
+
+%%
+recon_uni = TV(sqrt(uni_mask).*kData + noise,sqrt(uni_mask),rho,beta,MaxIter,D,Dh,DhD);
+recon_uni = abs(sum(ifft2c(reshape(recon_uni,N1,N2,Nc)).*conj(maps),3));
+imwrite(recon_uni/max(gt(:))*1.5,['/home/wjy/Project/optsamp_result/base_tv_snr',num2str(SNR),'.png'])
+imwrite((abs(recon_uni-gt).*support)/max(gt(:))*5,['/home/wjy/Project/optsamp_result/base_tv_error_snr',num2str(SNR),'.png'])
+
+
+%%
+recon_opt = TV(sqrt(opt_mask).*kData + noise,sqrt(opt_mask),rho,beta,MaxIter,D,Dh,DhD);
+recon_opt = abs(sum(ifft2c(0.95*reshape(recon_opt,N1,N2,Nc)+0.05*kData).*conj(maps),3));
+
+imwrite(recon_opt/max(gt(:))*1.5,['/home/wjy/Project/optsamp_result/opt_tv_snr',num2str(SNR),'.png'])
+imwrite((abs(recon_opt-gt).*support)/max(gt(:))*5,['/home/wjy/Project/optsamp_result/opt_tv_error_snr',num2str(SNR),'.png'])
 
 %%
 function recon = TV(usData,kMask,rho,beta,MaxIter,D,Dh,DhD)
