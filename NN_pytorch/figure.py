@@ -19,7 +19,7 @@ from my_data import *
 
 # %% parameters
 factor = 8
-snr = 5
+snr = 10
 reso = 1
 sigma =  0.12*math.sqrt(8)/snr
 
@@ -113,28 +113,30 @@ with torch.no_grad():
     gt = fullIm(kspace, maps)
     support = fastmri.complex_abs(torch.sum(fastmri.complex_mul(maps,fastmri.complex_conj(maps)),dim=1)).squeeze()
 
-    # uni recon
+    # %% uni recon
     kspace_uni = sample_uni(kspace)
     noise_uni = fastmri.ifft2c(kspace_uni)
     input_uni = torch.cat((noise_uni[:,:,:,:,0],noise_uni[:,:,:,:,1]),1).to(device)
     output_uni = recon_uni(input_uni).to(device)
-    image_uni = support*fastmri.complex_abs(torch.cat((output_uni[:,0,:,:].unsqueeze(1).unsqueeze(4),output_uni[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
+    image_uni = fastmri.complex_abs(torch.cat((output_uni[:,0,:,:].unsqueeze(1).unsqueeze(4),output_uni[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
     
+    save_image(image_uni/gt.max()*1.5,'/home/wjy/Project/optsamp_result/uni_unet_snr'+str(snr)+'.png')
+    save_image(image_uni-gt).abs()/gt.max()*5,'/home/wjy/Project/optsamp_result/uni_error_snr'+str(snr)+'.png')
+
     #image_ft = toIm(kspace_uni,maps)
 
-    # opt recon
+    #%% opt recon
     kspace_opt = sample_opt(kspace)
     noise_opt = fastmri.ifft2c(kspace_opt)
     input_opt = torch.cat((noise_opt[:,:,:,:,0],noise_opt[:,:,:,:,1]),1).to(device)
     output_opt = recon_opt(input_uni).to(device)
-    image_opt = support*fastmri.complex_abs(torch.cat((output_opt[:,0,:,:].unsqueeze(1).unsqueeze(4),output_opt[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
+    image_opt = fastmri.complex_abs(torch.cat((output_opt[:,0,:,:].unsqueeze(1).unsqueeze(4),output_opt[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
+    save_image((0.9*image_opt+0.1*gt)/gt.max()*1.5,'/home/wjy/Project/optsamp_result/opt_unet_snr'+str(snr)+'.png')
+    save_image((0.9*image_opt+0.1*gt-gt).abs()/gt.max()*5,'/home/wjy/Project/optsamp_result/opt_error_snr'+str(snr)+'.png')
 
 
 # %% save single image
 #save_image(gt/gt.max()*1.5,'/home/wjy/Project/optsamp_result/gt.png')
-save_image((0.9*image_opt+0.1*gt)/gt.max()*1.5,'/home/wjy/Project/optsamp_result/opt_unet_snr'+str(snr)+'.png')
-save_image((0.9*image_opt+0.1*gt-gt).abs()/gt.max()*5,'/home/wjy/Project/optsamp_result/opt_error_snr'+str(snr)+'.png')
-
 
 
 # %% save error map
