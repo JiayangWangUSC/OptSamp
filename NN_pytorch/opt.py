@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from my_data import *
 
 # %% data loader
-snr = 10
+snr = 5
 reso = 1
 print('non-uniform')
 print("SNR:", snr, flush = True)
