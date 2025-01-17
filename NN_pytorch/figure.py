@@ -121,7 +121,7 @@ with torch.no_grad():
     image_uni = fastmri.complex_abs(torch.cat((output_uni[:,0,:,:].unsqueeze(1).unsqueeze(4),output_uni[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
     
     save_image(image_uni/gt.max()*1.5,'/home/wjy/Project/optsamp_result/uni_unet_snr'+str(snr)+'.png')
-    save_image(image_uni-gt).abs()/gt.max()*5,'/home/wjy/Project/optsamp_result/uni_error_snr'+str(snr)+'.png')
+    save_image((image_uni-gt).abs()/gt.max()*5,'/home/wjy/Project/optsamp_result/uni_error_snr'+str(snr)+'.png')
 
     #image_ft = toIm(kspace_uni,maps)
 
@@ -129,7 +129,7 @@ with torch.no_grad():
     kspace_opt = sample_opt(kspace)
     noise_opt = fastmri.ifft2c(kspace_opt)
     input_opt = torch.cat((noise_opt[:,:,:,:,0],noise_opt[:,:,:,:,1]),1).to(device)
-    output_opt = recon_opt(input_uni).to(device)
+    output_opt = recon_opt(input_opt).to(device)
     image_opt = fastmri.complex_abs(torch.cat((output_opt[:,0,:,:].unsqueeze(1).unsqueeze(4),output_opt[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)
     save_image((0.9*image_opt+0.1*gt)/gt.max()*1.5,'/home/wjy/Project/optsamp_result/opt_unet_snr'+str(snr)+'.png')
     save_image((0.9*image_opt+0.1*gt-gt).abs()/gt.max()*5,'/home/wjy/Project/optsamp_result/opt_error_snr'+str(snr)+'.png')
