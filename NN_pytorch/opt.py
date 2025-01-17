@@ -15,8 +15,8 @@ import matplotlib.pyplot as plt
 from my_data import *
 
 # %% data loader
-snr = 5
-reso = 1
+snr = 3
+reso = 3
 print('non-uniform')
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
