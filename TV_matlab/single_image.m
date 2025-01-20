@@ -32,7 +32,7 @@ DhD = reshape(real(Dh(D(ones(N1,N2,Nc)))),N1,N2,Nc);
 %% define snr w. 8-averaging
 factor = 8;
 SNR = 5; % SNR after uniform averaging
-sigma = sqrt(8)*0.12/SNR; % 
+sigma = sqrt(8)*0.12/SNR;  
 reso = 1;
 
 %% reconstruction parameters initialization
@@ -70,40 +70,15 @@ noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
 gt = abs(sum(ifft2c(kData).*conj(maps),3));
 support = sum(maps.*conj(maps),3);
 
-%% 
-ncalib = 24; % use 24 calibration lines to compute compression
-ksize = [6,6]; % kernel size
-
-% Threshold for picking singular vercors of the calibration matrix
-% (relative to largest singlular value.
-
-eigThresh_1 = 0.02;
-
-% threshold of eigen vector decomposition in image space.
-eigThresh_2 = 0.9;
-
-% crop a calibration area
-calib = crop(kData,[ncalib,ncalib,Nc]);
-
-% compute Calibration matrix, perform 1st SVD and convert singular vectors
-% into k-space kernels
-
-[k,S] = dat2Kernel(calib,ksize);
-idx = max(find(S >= S(1)*eigThresh_1));
-
-[M,W] = kernelEig(k(:,:,:,1:idx),[N1,N2]);
-maps = M(:,:,:,end);
-
-
 %%
-recon_uni = TV(sqrt(uni_mask).*kData + noise,sqrt(uni_mask),rho,beta,MaxIter,D,Dh,DhD);
+recon_uni = TV(sqrt(uni_mask).*kData + (uni_mask>0).*noise,sqrt(uni_mask),rho,beta,MaxIter,D,Dh,DhD);
 recon_uni = abs(sum(ifft2c(reshape(recon_uni,N1,N2,Nc)).*conj(maps),3));
 imwrite(recon_uni/max(gt(:))*1.5,['/home/wjy/Project/optsamp_result/base_tv_snr',num2str(SNR),'.png'])
 imwrite((abs(recon_uni-gt).*support)/max(gt(:))*5,['/home/wjy/Project/optsamp_result/base_tv_error_snr',num2str(SNR),'.png'])
 
 
 %%
-recon_opt = TV(sqrt(opt_mask).*kData + noise,sqrt(opt_mask),rho,beta,MaxIter,D,Dh,DhD);
+recon_opt = TV(sqrt(opt_mask).*kData + (opt_mask>0).*noise,sqrt(opt_mask),rho,beta,MaxIter,D,Dh,DhD);
 recon_opt = abs(sum(ifft2c(0.95*reshape(recon_opt,N1,N2,Nc)+0.05*kData).*conj(maps),3));
 
 imwrite(recon_opt/max(gt(:))*1.5,['/home/wjy/Project/optsamp_result/opt_tv_snr',num2str(SNR),'.png'])

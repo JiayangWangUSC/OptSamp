@@ -66,7 +66,7 @@ class Sample(torch.nn.Module):
         mask[(16*reso):(N1-16*reso),(16*reso):(N2-16*reso)] =  1.0 / (self.weight ** 0.5).unsqueeze(0).repeat(N1-32*reso,1)
         mask = mask.unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,1,1,2)
         
-        noise = self.sigma*torch.randn_like(kspace)
+        noise = self.sigma * torch.randn_like(kspace)
         kspace_noise =  (mask>0) * kspace + mask * noise 
         return kspace_noise
 

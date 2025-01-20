@@ -4,7 +4,7 @@ clc;
 
 %% define snr w. 8-averaging
 factor = 8;
-SNR = 2; % SNR after uniform averaging
+SNR = 5; % SNR after uniform averaging
 
 sigma = 0.12*sqrt(8)/SNR;  
 
@@ -46,15 +46,16 @@ elseif SNR == 10
 end
 
 MaxIter = 20;
+
 %%
-for reso = 0:9
+for reso = 0:7
 
 epoch_max = 2;
 step = 0.1;
 train_loss = zeros(1,epoch_max);
 
 %weight = factor*N1/(N1-32*reso)*N2/(N2-32*reso) * ones(1,N2-32*reso);
-load(['./weight_snr',num2str(int8(3)),'_reso',num2str(int8(reso))])
+load(['./weight_snr',num2str(int8(SNR)),'_reso',num2str(int8(reso))])
 
 for epoch = 1:epoch_max
     disp(epoch);
@@ -84,8 +85,8 @@ for epoch = 1:epoch_max
             
             % generate noisy acquisition
             noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
-            usData = kMask.*kData + noise;
-        
+            usData = kMask.*kData + (kMask>0).*noise;
+            
             %recon
             x = usData.*kMask_dagger;
             x = x(:);

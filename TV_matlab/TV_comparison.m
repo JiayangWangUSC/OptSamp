@@ -84,12 +84,12 @@ for sub_num = 3 :length(dirname)
     pixelscale = max(gt(:));
     l2scale = norm(gt(:));
     
-    recon_uni = TV(sqrt(uni_mask).*kData + noise,sqrt(uni_mask),rho,beta,MaxIter,D,Dh,DhD);
+    recon_uni = TV(sqrt(uni_mask).*kData + (uni_mask>0).*noise,sqrt(uni_mask),rho,beta,MaxIter,D,Dh,DhD);
     recon_uni = abs(sum(ifft2c(reshape(recon_uni,N1,N2,Nc)).*conj(maps),3));
     ssim_uni = ssim_uni + ssim(recon_uni/pixelscale,gt/pixelscale,'DynamicRange', 1);
     nrmse_uni = nrmse_uni + norm(recon_uni(:)-gt(:))/l2scale;
 
-    %recon_opt = TV(sqrt(opt_mask).*kData + noise,sqrt(opt_mask),rho,beta,MaxIter,D,Dh,DhD);
+    %recon_opt = TV(sqrt(opt_mask).*kData + (opt_mask>0).*noise,sqrt(opt_mask),rho,beta,MaxIter,D,Dh,DhD);
     %recon_opt = abs(sum(ifft2c(reshape(recon_opt,N1,N2,Nc)).*conj(maps),3));
     %ssim_opt = ssim_opt + ssim(recon_opt/pixelscale,gt/pixelscale,'DynamicRange', 1);
     %nrmse_opt = nrmse_opt + norm(recon_opt(:)-gt(:))/l2scale;
