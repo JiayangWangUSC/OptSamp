@@ -37,7 +37,7 @@ def data_transform(kspace,maps):
 
 train_data = SliceDataset(
     #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_test/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -110,13 +110,13 @@ recon_model.to(device)
 # %% optimization parameters
 recon_optimizer = optim.Adam(recon_model.parameters(),lr=1e-4)
 print('L2 Loss', flush = True)
-Loss = torch.nn.L1Loss()
+Loss = torch.nn.L2Loss()
 #Loss = torch.nn.MSELoss()
 
 step = 1e-2
 
 # %% training
-max_epochs = 10
+max_epochs = 20
 for epoch in range(max_epochs):
     print("epoch:",epoch,flush = True)
     if epoch < 0:
