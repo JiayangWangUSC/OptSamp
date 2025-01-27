@@ -110,8 +110,8 @@ recon_model.to(device)
 # %% optimization parameters
 recon_optimizer = optim.Adam(recon_model.parameters(),lr=1e-4)
 print('L2 Loss', flush = True)
-Loss = torch.nn.L2Loss()
-#Loss = torch.nn.MSELoss()
+#Loss = torch.nn.LLoss()
+Loss = torch.nn.MSELoss()
 
 step = 1e-2
 
