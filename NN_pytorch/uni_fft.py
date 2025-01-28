@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from my_data import *
 
 # %% data loader
-snr = 10
+snr = 3
 reso = 0
 print('uni fft')
 print("SNR:", snr, flush = True)
@@ -31,20 +31,20 @@ def data_transform(kspace,maps):
     kspace = torch.cat((kspace[torch.arange(Nc),:,:].unsqueeze(3),kspace[torch.arange(Nc,2*Nc),:,:].unsqueeze(3)),3)
     maps = torch.cat((maps[torch.arange(Nc),:,:].unsqueeze(3),maps[torch.arange(Nc,2*Nc),:,:].unsqueeze(3)),3)
     kspace = kspace.permute([0,2,1,3])
-    maps = maps.permute([0,2,1,3]) + 1e-7
+    maps = maps.permute([0,2,1,3])
 
     return kspace, maps
 
 train_data = SliceDataset(
-    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
-    #root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
+    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/'),
     transform=data_transform,
     challenge='multicoil'
 )
 
 val_data = SliceDataset(
-    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
-    #root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
+    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -110,10 +110,10 @@ recon_model.to(device)
 # %% optimization parameters
 Loss = torch.nn.MSELoss()
 
-step = 10
+step = 100
 
 # %% training
-max_epochs = 10
+max_epochs = 50
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
 
@@ -148,6 +148,6 @@ for epoch in range(max_epochs):
         
         print("weight max:",weight.max(),"weight min:",weight.min(), flush = True)
 
-    #torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_window_snr"+str(snr)+"_reso"+str(reso))
+    torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_window_snr"+str(snr)+"_reso"+str(reso))
 
 # %%
