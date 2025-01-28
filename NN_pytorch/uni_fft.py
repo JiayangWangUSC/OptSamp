@@ -36,15 +36,15 @@ def data_transform(kspace,maps):
     return kspace, maps
 
 train_data = SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
+    #root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
     transform=data_transform,
     challenge='multicoil'
 )
 
 val_data = SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
+    #root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -73,7 +73,7 @@ class Recon(torch.nn.Module):
 
     def __init__(self):
         super().__init__()
-        self.weight =  torch.ones(N1-32*reso) * torch.ones(N2-32*reso)
+        self.weight = torch.ones(N1-32*reso, N2-32*reso)
 
     def forward(self,kspace):
         mask =  torch.zeros((N1,N2))
@@ -86,9 +86,9 @@ class Recon(torch.nn.Module):
 def toIm(kspace,maps): 
     # kspace-(batch,Nc,N1,N2,2) maps-(batch,Nc,N1,N2,2)
     # image-(batch,N1,N2)
-    kmask = torch.zeros_like(kspace)
-    kmask[:,:,(16*reso):(N1-16*reso),(16*reso):(N2-16*reso),:] = 1
-    image = fastmri.complex_abs(torch.sum(fastmri.complex_mul(fastmri.ifft2c(kmask*kspace),fastmri.complex_conj(maps)),dim=1))
+    #kmask = torch.zeros_like(kspace)
+    #kmask[:,:,(16*reso):(N1-16*reso),(16*reso):(N2-16*reso),:] = 1
+    image = fastmri.complex_abs(torch.sum(fastmri.complex_mul(fastmri.ifft2c(kspace),fastmri.complex_conj(maps)),dim=1))
     return image.squeeze()
 
 # %% sampling
@@ -110,10 +110,10 @@ recon_model.to(device)
 # %% optimization parameters
 Loss = torch.nn.MSELoss()
 
-step = 1e-3
+step = 10
 
 # %% training
-max_epochs = 50
+max_epochs = 10
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
 
@@ -148,6 +148,6 @@ for epoch in range(max_epochs):
         
         print("weight max:",weight.max(),"weight min:",weight.min(), flush = True)
 
-    torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_window_snr"+str(snr)+"_reso"+str(reso))
+    #torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_window_snr"+str(snr)+"_reso"+str(reso))
 
 # %%
