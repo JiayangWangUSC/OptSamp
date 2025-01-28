@@ -121,7 +121,7 @@ for epoch in range(max_epochs):
     #trainloss = 0
     #trainloss_normalized = 0
     for kspace, maps in train_dataloader:
-        
+        sample_model.weight.requires_grad = True
         recon_model.weight.requires_grad = True
         gt = toIm(kspace, maps) # ground truth
 
