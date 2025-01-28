@@ -19,8 +19,8 @@ from my_data import *
 
 # %% parameters
 factor = 8
-snr = 5
-reso = 3
+snr = 10
+reso = 0
 sigma =  0.12*math.sqrt(8)/snr
 
 # %% data loader
@@ -119,8 +119,8 @@ with torch.no_grad():
     input_uni = torch.cat((noise_uni[:,:,:,:,0],noise_uni[:,:,:,:,1]),1).to(device)
     output_uni = recon_uni(input_uni).to(device)
     image_uni = fastmri.complex_abs(torch.cat((output_uni[:,0,:,:].unsqueeze(1).unsqueeze(4),output_uni[:,1,:,:].unsqueeze(1).unsqueeze(4)),4)).squeeze().to(device)    
-    save_image(image_uni/gt.max()*1.5,'/home/wjy/Project/optsamp_result/uni_unet_snr'+str(snr)+'.png')
-    save_image((image_uni-gt).abs()/gt.max()*5,'/home/wjy/Project/optsamp_result/uni_error_snr'+str(snr)+'.png')
+    save_image(image_uni/gt.max()*1.5,'/home/wjy/Project/optsamp_result/base_unet_snr'+str(snr)+'.png')
+    save_image((image_uni-gt).abs()/gt.max()*5,'/home/wjy/Project/optsamp_result/base_error_snr'+str(snr)+'.png')
 
     #%% opt recon
     kspace_opt = sample_opt(kspace)

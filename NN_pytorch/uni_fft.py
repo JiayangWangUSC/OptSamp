@@ -141,8 +141,8 @@ for epoch in range(max_epochs):
             grad = recon_model.weight.grad
             
             weight = weight - step * grad
-            weight(weight > 1) = 1
-            weight(weight < 0) = 0
+            weight[weight > 1] = 1
+            weight[weight < 0] = 0
 
             recon_model.weight = weight
         

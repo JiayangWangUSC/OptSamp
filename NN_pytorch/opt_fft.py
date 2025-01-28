@@ -68,6 +68,20 @@ class Sample(torch.nn.Module):
         noise = self.sigma*torch.randn_like(kspace)
         kspace_noise =  (mask>0) * kspace + mask * noise 
         return kspace_noise
+    
+class Recon(torch.nn.Module): 
+
+    def __init__(self):
+        super().__init__()
+        self.weight =  torch.ones(N1-32*reso) * torch.ones(N2-32*reso)
+
+    def forward(self,kspace):
+        mask =  torch.zeros((N1,N2))
+        mask[(16*reso):(N1-16*reso),(16*reso):(N2-16*reso)] =  self.weight
+        mask = mask.unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,1,1,2)
+        kspace =  mask * kspace 
+
+        return kspace
 
 def toIm(kspace,maps): 
     # kspace-(batch,Nc,N1,N2,2) maps-(batch,Nc,N1,N2,2)
@@ -82,6 +96,7 @@ factor = 8
 sigma =  0.12*math.sqrt(8)/snr
 
 sample_model = Sample(sigma,factor)
+recon_model = Recon()
 
 # %% data loader
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -90,47 +105,47 @@ train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=Tru
 val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
 
 sample_model.to(device)
-
+recon_model.to(device)
 
 # %% optimization parameters
 Loss = torch.nn.MSELoss()
 
-step = 1
+step = 1e-3
 
 # %% training
-max_epochs = 20
+max_epochs = 50
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
-    if epoch < 20:
-        step = 0.9 * step
-        trainloss = 0
-        trainloss_normalized = 0
-        for kspace, maps in train_dataloader:
-            sample_model.weight.requires_grad = True
 
-            gt = toIm(kspace, maps) # ground truth
-            kspace_noise = sample_model(kspace) # add noise
-            recon = toIm(kspace_noise, maps)
-
-            loss = Loss(recon.to(device),gt.to(device))
-            trainloss += loss.item()
-            trainloss_normalized += loss.item()/Loss(0*gt,gt)
-
-            # backward
-            loss.backward()
+    step = 0.9 * step
+    #trainloss = 0
+    #trainloss_normalized = 0
+    for kspace, maps in train_dataloader:
         
-            # optimize mask
-            with torch.no_grad():
-                weight = sample_model.weight.clone() 
-                grad = sample_model.weight.grad
-                grad = grad - grad.mean()
-                grad = grad/grad.norm()
-                weight = weight - step * grad
+        recon_model.weight.requires_grad = True
+        gt = toIm(kspace, maps) # ground truth
 
-                sample_model.weight = weight
+        kspace_noise = recon_model(sample_model(kspace)) # add noise and apply window
+        recon = toIm(kspace_noise, maps)
+
+        loss = Loss(recon.to(device),gt.to(device))
+        #trainloss += loss.item()
+        #trainloss_normalized += loss.item()/Loss(0*gt,gt)
+
+        # backward
+        loss.backward()
         
-            print("weight max:",weight.max(),"weight min:",weight.min(), flush = True)
+        # optimize mask
+        with torch.no_grad():
+            weight = recon_model.weight.clone() 
+            grad = recon_model.weight.grad
+            
+            weight = weight - step * grad
+            weight[weight > 1] = 1
+            weight[weight < 0] = 0
 
-    torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/fft_mask_snr"+str(snr)+"_reso"+str(reso))
+            recon_model.weight = weight
+        
+        print("weight max:",weight.max(),"weight min:",weight.min(), flush = True)
 
-# %%
+    torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_window_snr"+str(snr)+"_reso"+str(reso))
