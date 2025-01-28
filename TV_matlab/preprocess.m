@@ -9,8 +9,6 @@ dirname = dir(datapath);
 
 N1 = 320; N2 = 320; Nc = 16; Ns =8;
 
-Maps = zeros(N1,N2,2*Nc,Ns);   
-
 %%
 ncalib = 24; % use 24 calibration lines to compute compression
 ksize = [6,6]; % kernel size
@@ -25,7 +23,8 @@ eigThresh_2 = 0.9;
 
 %%
 for dnum = 3:length(dirname)
-kspace = h5read([datapath,dirname(dum).name],'/kspace_central');
+kspace = h5read([datapath,dirname(dnum).name],'/kspace_central');
+Maps = zeros(N1,N2,2*Nc,Ns);   
 for ns = 1:Ns
 kData = complex(kspace(:,:,1:Nc,ns),kspace(:,:,Nc+1:2*Nc,ns));
  
