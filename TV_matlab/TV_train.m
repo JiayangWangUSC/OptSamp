@@ -113,7 +113,7 @@ for epoch = 1:epoch_max
             
             %% backward propagation
             Grad = 0;
-            dx = fft2c(repmat(2*(ImR-Im),[1,1,Nc]).*maps);
+            dx = ifft2c(repmat(2*(ImR-Im),[1,1,Nc]).*conj(maps));
             dx = dx(:);
             for k = MaxIter:-1:1
                 dW = AhA_dagger.*AhA_dagger.*(rho*DhD.*(kData+noise.*kMask_dagger/2)-kMask.*noise/2-rho*reshape(Dh(Z(:,k)-U(:,k)),N1,N2,Nc));

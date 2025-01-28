@@ -3,11 +3,12 @@ close all;
 clc;
 
 %% load data
-datapath = '/home/wjy/Project/fastmri_dataset/brain_T1_demo/';
+%datapath = '/home/wjy/Project/fastmri_dataset/brain_T1_demo/';
+datapath = '/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/';
 dirname = dir(datapath);
 
 N1 = 320; N2 = 320; Nc = 16; Ns =8;
-kspace = h5read([datapath,dirname(3).name],'/kspace_central');
+
 Maps = zeros(N1,N2,2*Nc,Ns);   
 
 %%
@@ -22,7 +23,9 @@ eigThresh_1 = 0.02;
 % threshold of eigen vector decomposition in image space.
 eigThresh_2 = 0.9;
 
-
+%%
+for dnum = 3:length(dirname)
+kspace = h5read([datapath,dirname(dum).name],'/kspace_central');
 for ns = 1:Ns
 kData = complex(kspace(:,:,1:Nc,ns),kspace(:,:,Nc+1:2*Nc,ns));
  
@@ -39,8 +42,8 @@ idx = max(find(S >= S(1)*eigThresh_1));
 maps = M(:,:,:,end);
 maps = cat(3,real(maps),imag(maps));
 Maps(:,:,:,ns) = maps;
-
+end
+h5write([datapath,dirname(dnum).name],'/sense_central',single(Maps));
 end
 
 %%
-h5write([datapath,dirname(3).name],'/sense_central',single(Maps));

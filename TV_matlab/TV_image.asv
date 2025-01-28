@@ -31,9 +31,9 @@ DhD = reshape(real(Dh(D(ones(N1,N2,Nc)))),N1,N2,Nc);
 
 %% define snr w. 8-averaging
 factor = 8;
-SNR = 5; % SNR after uniform averaging
+SNR = 10; % SNR after uniform averaging
 sigma = sqrt(8)*0.12/SNR;  
-reso = 1;
+reso = ;
 
 %% reconstruction parameters initialization
 if SNR == 2
@@ -74,15 +74,15 @@ support = sum(maps.*conj(maps),3);
 recon_uni = TV(sqrt(uni_mask).*kData + (uni_mask>0).*noise,sqrt(uni_mask),rho,beta,MaxIter,D,Dh,DhD);
 recon_uni = abs(sum(ifft2c(reshape(recon_uni,N1,N2,Nc)).*conj(maps),3));
 imwrite(recon_uni/max(gt(:))*1.5,['/home/wjy/Project/optsamp_result/base_tv_snr',num2str(SNR),'.png'])
-imwrite((abs(recon_uni-gt).*support)/max(gt(:))*5,['/home/wjy/Project/optsamp_result/base_tv_error_snr',num2str(SNR),'.png'])
+imwrite((abs(recon_uni-gt))/max(gt(:))*5,['/home/wjy/Project/optsamp_result/base_tv_error_snr',num2str(SNR),'.png'])
 
 
 %%
-recon_opt = TV(sqrt(opt_mask).*kData + (opt_mask>0).*noise,sqrt(opt_mask),rho,beta,MaxIter,D,Dh,DhD);
-recon_opt = abs(sum(ifft2c(0.95*reshape(recon_opt,N1,N2,Nc)+0.05*kData).*conj(maps),3));
+%recon_opt = TV(sqrt(opt_mask).*kData + (opt_mask>0).*noise,sqrt(opt_mask),rho,beta,MaxIter,D,Dh,DhD);
+%recon_opt = abs(sum(ifft2c(0.95*reshape(recon_opt,N1,N2,Nc)+0.05*kData).*conj(maps),3));
 
-imwrite(recon_opt/max(gt(:))*1.5,['/home/wjy/Project/optsamp_result/opt_tv_snr',num2str(SNR),'.png'])
-imwrite((abs(recon_opt-gt).*support)/max(gt(:))*5,['/home/wjy/Project/optsamp_result/opt_tv_error_snr',num2str(SNR),'.png'])
+%imwrite((recon_opt)/max(gt(:))*1.5,['/home/wjy/Project/optsamp_result/opt_tv_snr',num2str(SNR),'.png'])
+%imwrite((abs(recon_opt-gt))/max(gt(:))*5,['/home/wjy/Project/optsamp_result/opt_tv_error_snr',num2str(SNR),'.png'])
 
 %%
 function recon = TV(usData,kMask,rho,beta,MaxIter,D,Dh,DhD)
