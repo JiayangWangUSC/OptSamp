@@ -31,13 +31,13 @@ def data_transform(kspace,maps):
     kspace = torch.cat((kspace[torch.arange(Nc),:,:].unsqueeze(3),kspace[torch.arange(Nc,2*Nc),:,:].unsqueeze(3)),3)
     maps = torch.cat((maps[torch.arange(Nc),:,:].unsqueeze(3),maps[torch.arange(Nc,2*Nc),:,:].unsqueeze(3)),3)
     kspace = kspace.permute([0,2,1,3])
-    maps = maps.permute([0,2,1,3]) + 1e-7
+    maps = maps.permute([0,2,1,3]) 
 
     return kspace, maps
 
 train_data = SliceDataset(
     #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -65,8 +65,8 @@ class Sample(torch.nn.Module):
         mask[(16*reso):(N1-16*reso),(16*reso):(N2-16*reso)] =  1.0 / (self.weight ** 0.5).unsqueeze(0).repeat(N1-32*reso,1)
         mask = mask.unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,1,1,2)
         
-        noise = self.sigma*torch.randn_like(kspace)
-        kspace_noise =  (mask>0) * kspace + mask * noise 
+        noise = self.sigma * torch.randn_like(kspace)
+        kspace_noise =  (mask > 0) * kspace + mask * noise 
         return kspace_noise
     
 class Recon(torch.nn.Module): 
@@ -109,11 +109,10 @@ recon_model.to(device)
 
 # %% optimization parameters
 Loss = torch.nn.MSELoss()
-
-step = 1e-3
+step = 10
 
 # %% training
-max_epochs = 50
+max_epochs = 10
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
 
@@ -137,15 +136,15 @@ for epoch in range(max_epochs):
         
         # optimize mask
         with torch.no_grad():
-            weight = recon_model.weight.clone() 
+            weight1 = recon_model.weight.clone() 
             grad = recon_model.weight.grad
             
-            weight = weight - step * grad
-            weight[weight > 1] = 1
-            weight[weight < 0] = 0
+            weight1 = weight1 - step * grad
+            weight1[weight1 > 1] = 1
+            weight1[weight1 < 0] = 0
 
-            recon_model.weight = weight
+            recon_model.weight = weight1
         
-        print("weight max:",weight.max(),"weight min:",weight.min(), flush = True)
+        print("weight max:", weight1.max(), "weight min:", weight1.min(), flush = True)
 
-    torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_window_snr"+str(snr)+"_reso"+str(reso))
+    torch.save(weight1, "/project/jhaldar_118/jiayangw/OptSamp/model/uni_window_snr"+str(snr)+"_reso"+str(reso))

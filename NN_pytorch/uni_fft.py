@@ -110,10 +110,10 @@ recon_model.to(device)
 # %% optimization parameters
 Loss = torch.nn.MSELoss()
 
-step = 100
+step = 10
 
 # %% training
-max_epochs = 50
+max_epochs = 20
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
 
