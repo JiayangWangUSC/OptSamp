@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from my_data import *
 
 # %% data loader
-snr = 3
+snr = 10
 reso = 0
 print('uni fft')
 print("SNR:", snr, flush = True)
