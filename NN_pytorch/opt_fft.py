@@ -109,14 +109,16 @@ recon_model.to(device)
 
 # %% optimization parameters
 Loss = torch.nn.MSELoss()
-step = 10
+step1 = 10
+step2 = 0.1
 
 # %% training
 max_epochs = 10
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
 
-    step = 0.9 * step
+    step1 = 0.9 * step1
+    step2 = 0.9 * step2
     #trainloss = 0
     #trainloss_normalized = 0
     for kspace, maps in train_dataloader:
@@ -138,13 +140,21 @@ for epoch in range(max_epochs):
         with torch.no_grad():
             weight1 = recon_model.weight.clone() 
             grad = recon_model.weight.grad
-            
-            weight1 = weight1 - step * grad
+            weight1 = weight1 - step1 * grad
             weight1[weight1 > 1] = 1
             weight1[weight1 < 0] = 0
-
             recon_model.weight = weight1
+
+            weight2 = sample_model.weight.clone() 
+            grad = sample_model.weight.grad
+            grad = grad - grad.mean()
+            grad = grad/grad.norm()
+            weight2 = weight2 - step2 * grad
+            sample_model.weight = weight2
         
-        print("weight max:", weight1.max(), "weight min:", weight1.min(), flush = True)
+        print("window weight max:", weight1.max(), " min:", weight1.min(), flush = True)
+        print("sampling weight max:", weight2.max(), " min:", weight2.min(), flush = True)
 
     torch.save(weight1, "/project/jhaldar_118/jiayangw/OptSamp/model/uni_window_snr"+str(snr)+"_reso"+str(reso))
+
+# %%
