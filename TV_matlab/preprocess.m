@@ -23,8 +23,11 @@ eigThresh_2 = 0.9;
 
 %%
 for dnum = 3:length(dirname)
+
+disp([datapath,dirname(dnum).name]);
 kspace = h5read([datapath,dirname(dnum).name],'/kspace_central');
 Maps = zeros(N1,N2,2*Nc,Ns);   
+
 for ns = 1:Ns
 kData = complex(kspace(:,:,1:Nc,ns),kspace(:,:,Nc+1:2*Nc,ns));
  
@@ -42,7 +45,9 @@ maps = M(:,:,:,end);
 maps = cat(3,real(maps),imag(maps));
 Maps(:,:,:,ns) = maps;
 end
+
 h5write([datapath,dirname(dnum).name],'/sense_central',single(Maps));
+
 end
 
 
