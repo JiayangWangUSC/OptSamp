@@ -16,7 +16,7 @@ from my_data import *
 
 # %% data loader
 snr = 5
-reso = 3
+reso = 4
 print('optimized fft')
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
