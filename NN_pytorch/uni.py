@@ -15,8 +15,8 @@ from my_data import *
 
 #from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
-snr = 2
-reso = 4
+snr = 10
+reso = 0
 
 print("uniform", flush = True)
 print("SNR:", snr, flush = True)
@@ -39,7 +39,7 @@ def data_transform(kspace,maps):
 
 train_data = SliceDataset(
     #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -102,7 +102,7 @@ sample_model.to(device)
 recon_model.to(device)
 
 # %% optimizer
-recon_optimizer = optim.Adam(recon_model.parameters(),lr=1e-4)
+recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
 
 print('L2 Loss', flush = True)
 #Loss = torch.nn.L1Loss()

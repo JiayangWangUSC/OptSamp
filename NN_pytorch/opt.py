@@ -15,8 +15,8 @@ import matplotlib.pyplot as plt
 from my_data import *
 
 # %% data loader
-snr = 2
-reso = 3
+snr = 10
+reso = 1
 print('non-uniform')
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
@@ -37,7 +37,7 @@ def data_transform(kspace,maps):
 
 train_data = SliceDataset(
     #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -108,7 +108,7 @@ sample_model.to(device)
 recon_model.to(device)
 
 # %% optimization parameters
-recon_optimizer = optim.Adam(recon_model.parameters(),lr=1e-4)
+recon_optimizer = optim.Adam(recon_model.parameters(),lr=3e-4)
 print('L2 Loss', flush = True)
 #Loss = torch.nn.LLoss()
 Loss = torch.nn.MSELoss()
@@ -116,7 +116,7 @@ Loss = torch.nn.MSELoss()
 step = 1e-2
 
 # %% training
-max_epochs = 20
+max_epochs = 5
 for epoch in range(max_epochs):
     print("epoch:",epoch,flush = True)
     if epoch < 0:
