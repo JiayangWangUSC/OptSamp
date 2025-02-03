@@ -6,7 +6,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=12GB
 #SBATCH --time=24:00:00
-#SBATCH --mail-type=ALL
+#SBATCH --mail-type= END,FAIL
 #SBATCH --mail-user=jiayangw@usc.edu
 #SBATCH --account=jhaldar_118
 
