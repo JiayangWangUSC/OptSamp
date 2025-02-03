@@ -15,8 +15,8 @@ import matplotlib.pyplot as plt
 from my_data import *
 
 # %% data loader
-snr = 5
-reso = 4
+snr = 3
+reso = 0
 print('optimized fft')
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
@@ -155,6 +155,6 @@ for epoch in range(max_epochs):
         print("window weight max:", weight1.max(), " min:", weight1.min(), flush = True)
         print("sampling weight max:", weight2.max(), " min:", weight2.min(), flush = True)
 
-    torch.save(weight1, "/project/jhaldar_118/jiayangw/OptSamp/model/uni_window_snr"+str(snr)+"_reso"+str(reso))
-
+    torch.save(weight1, "/project/jhaldar_118/jiayangw/OptSamp/model/opt_window_snr"+str(snr)+"_reso"+str(reso))
+    torch.save(weight2, "/project/jhaldar_118/jiayangw/OptSamp/model/opt_mask_window_snr"+str(snr)+"_reso"+str(reso))
 # %%
