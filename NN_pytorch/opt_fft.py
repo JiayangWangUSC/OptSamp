@@ -16,7 +16,7 @@ from my_data import *
 
 # %% data loader
 snr = 3
-reso = 3
+reso = 4
 print('optimized fft')
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
@@ -67,6 +67,7 @@ class Sample(torch.nn.Module):
         
         noise = self.sigma * torch.randn_like(kspace)
         kspace_noise =  (mask > 0) * kspace + mask * noise 
+
         return kspace_noise
     
 class Recon(torch.nn.Module): 
