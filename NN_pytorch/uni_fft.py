@@ -113,7 +113,7 @@ Loss = torch.nn.MSELoss()
 step = 10
 
 # %% training
-max_epochs = 20
+max_epochs = 10
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
 
