@@ -16,7 +16,7 @@ from my_data import *
 #from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
 # %% data loader
 snr = 5
-reso = 0
+reso = 3
 
 print("uniform", flush = True)
 print("SNR:", snr, flush = True)
@@ -109,7 +109,7 @@ print('L2 Loss', flush = True)
 Loss = torch.nn.MSELoss()
 
 # %% training
-max_epochs = 10
+max_epochs = 5
 
 for epoch in range(max_epochs):
     print("epoch:",epoch, flush = True)
