@@ -15,8 +15,8 @@ import matplotlib.pyplot as plt
 from my_data import *
 
 # %% data loader
-snr = 3
-reso = 4
+snr = 10
+reso = 0
 print('uni fft')
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
@@ -24,6 +24,7 @@ print('resolution:', reso, flush = True)
 N1 = 320
 N2 = 320
 Nc = 16
+
 def data_transform(kspace,maps):
     # Transform the kspace to tensor format
     kspace = transforms.to_tensor(kspace)
@@ -64,8 +65,7 @@ class Sample(torch.nn.Module):
         mask =  torch.zeros((N1,N2))
         mask[(16*reso):(N1-16*reso),(16*reso):(N2-16*reso)] =  1.0 / (self.weight ** 0.5).unsqueeze(0).repeat(N1-32*reso,1)
         mask = mask.unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,1,1,2)
-        
-        noise = self.sigma*torch.randn_like(kspace)
+        noise = self.sigma * torch.randn_like(kspace)
         kspace_noise =  (mask>0) * kspace + mask * noise 
         return kspace_noise
     
@@ -73,14 +73,14 @@ class Recon(torch.nn.Module):
 
     def __init__(self):
         super().__init__()
-        self.weight = torch.ones(N1-32*reso, N2-32*reso)
+        self.weight = 0.01 * torch.ones(N1-32*reso, N2-32*reso)
 
     def forward(self,kspace):
+
         mask =  torch.zeros((N1,N2))
         mask[(16*reso):(N1-16*reso),(16*reso):(N2-16*reso)] =  self.weight
         mask = mask.unsqueeze(0).unsqueeze(0).unsqueeze(4).repeat(kspace.size(0),Nc,1,1,2)
         kspace =  mask * kspace 
-
         return kspace
 
 def toIm(kspace,maps): 
@@ -109,15 +109,14 @@ recon_model.to(device)
 
 # %% optimization parameters
 Loss = torch.nn.MSELoss()
-
 step = 10
 
 # %% training
-max_epochs = 10
+max_epochs = 50
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
 
-    step = 0.9 * step
+    step = 0.99 * step
     #trainloss = 0
     #trainloss_normalized = 0
     for kspace, maps in train_dataloader:
@@ -127,7 +126,6 @@ for epoch in range(max_epochs):
 
         kspace_noise = recon_model(sample_model(kspace)) # add noise and apply window
         recon = toIm(kspace_noise, maps)
-
         loss = Loss(recon.to(device),gt.to(device))
         #trainloss += loss.item()
         #trainloss_normalized += loss.item()/Loss(0*gt,gt)
@@ -147,7 +145,6 @@ for epoch in range(max_epochs):
             recon_model.weight = weight
         
         print("weight max:",weight.max(),"weight min:",weight.min(), flush = True)
+        print("Loss:", loss.item() ,flush = True)
 
     torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_window_snr"+str(snr)+"_reso"+str(reso))
-
-# %%

@@ -15,8 +15,8 @@ import matplotlib.pyplot as plt
 from my_data import *
 
 # %% data loader
-snr = 3
-reso = 4
+snr = 10
+reso = 0
 print('optimized fft')
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
@@ -74,7 +74,7 @@ class Recon(torch.nn.Module):
 
     def __init__(self):
         super().__init__()
-        self.weight =  torch.ones(N1-32*reso) * torch.ones(N2-32*reso)
+        self.weight =  0.01 * torch.ones(N1-32*reso, N2-32*reso)
 
     def forward(self,kspace):
         mask =  torch.zeros((N1,N2))
@@ -111,15 +111,18 @@ recon_model.to(device)
 # %% optimization parameters
 Loss = torch.nn.MSELoss()
 step1 = 10
-step2 = 0.1
+step2 = 1
 
 # %% training
-max_epochs = 10
+max_epochs = 100
 for epoch in range(max_epochs):
-    print("epoch:",epoch+1)
+    print("epoch:",epoch)
 
-    step1 = 0.9 * step1
-    step2 = 0.9 * step2
+    if (epoch // 5) % 2 == 0:
+        step1 = 0.99 * step1
+    else:
+        step2 = 0.99 * step2
+
     #trainloss = 0
     #trainloss_normalized = 0
     for kspace, maps in train_dataloader:
@@ -129,7 +132,6 @@ for epoch in range(max_epochs):
 
         kspace_noise = recon_model(sample_model(kspace)) # add noise and apply window
         recon = toIm(kspace_noise, maps)
-
         loss = Loss(recon.to(device),gt.to(device))
         #trainloss += loss.item()
         #trainloss_normalized += loss.item()/Loss(0*gt,gt)
@@ -139,23 +141,28 @@ for epoch in range(max_epochs):
         
         # optimize mask
         with torch.no_grad():
-            weight1 = recon_model.weight.clone() 
-            grad = recon_model.weight.grad
-            weight1 = weight1 - step1 * grad
-            weight1[weight1 > 1] = 1
-            weight1[weight1 < 0] = 0
-            recon_model.weight = weight1
+            
+            if (epoch // 5) % 2 == 0:
+                weight1 = recon_model.weight.clone() 
+                grad = recon_model.weight.grad
+                weight1 = weight1 - step1 * grad
+                weight1[weight1 > 1] = 1
+                weight1[weight1 < 0] = 0
+                recon_model.weight = weight1
+                print("window weight max:", weight1.max(), " min:", weight1.min(), flush = True)
+            
+            else:
+                weight2 = sample_model.weight.clone() 
+                grad = sample_model.weight.grad
+                grad = grad - grad.mean()
+                grad = grad/grad.norm()
+                weight2 = weight2 - step2 * grad
+                sample_model.weight = weight2
+                print("sampling weight max:", weight2.max(), " min:", weight2.min(), flush = True)
 
-            weight2 = sample_model.weight.clone() 
-            grad = sample_model.weight.grad
-            grad = grad - grad.mean()
-            grad = grad/grad.norm()
-            weight2 = weight2 - step2 * grad
-            sample_model.weight = weight2
-        
-        print("window weight max:", weight1.max(), " min:", weight1.min(), flush = True)
-        print("sampling weight max:", weight2.max(), " min:", weight2.min(), flush = True)
+        print("Loss:", loss.item() ,flush = True)
 
     torch.save(weight1, "/project/jhaldar_118/jiayangw/OptSamp/model/opt_window_snr"+str(snr)+"_reso"+str(reso))
     torch.save(weight2, "/project/jhaldar_118/jiayangw/OptSamp/model/opt_mask_window_snr"+str(snr)+"_reso"+str(reso))
+
 # %%
