@@ -15,8 +15,8 @@ import matplotlib.pyplot as plt
 from my_data import *
 
 # %% data loader
-snr = 10
-reso = 7
+snr = 5
+reso = 0
 print('optimized fft')
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
@@ -111,7 +111,7 @@ recon_model.to(device)
 # %% optimization parameters
 Loss = torch.nn.MSELoss()
 step1 = 10
-step2 = 1
+step2 = 0.1
 
 # %% training
 max_epochs = 100
