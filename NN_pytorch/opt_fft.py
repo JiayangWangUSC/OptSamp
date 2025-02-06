@@ -16,7 +16,7 @@ from my_data import *
 
 # %% data loader
 snr = 10
-reso = 2
+reso = 0
 print('optimized fft')
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
@@ -118,7 +118,7 @@ max_epochs = 100
 for epoch in range(max_epochs):
     print("epoch:",epoch)
 
-    if (epoch // 5) % 2 == 0:
+    if (epoch // 2) % 2 == 0:
         step1 = 0.99 * step1
     else:
         step2 = 0.99 * step2
@@ -142,7 +142,7 @@ for epoch in range(max_epochs):
         # optimize mask
         with torch.no_grad():
             
-            if (epoch // 5) % 2 == 0:
+            if (epoch // 2) % 2 == 0:
                 weight1 = recon_model.weight.clone() 
                 grad = recon_model.weight.grad
                 weight1 = weight1 - step1 * grad
@@ -162,7 +162,9 @@ for epoch in range(max_epochs):
 
         print("Loss:", loss.item() ,flush = True)
 
-    torch.save(weight1, "/project/jhaldar_118/jiayangw/OptSamp/model/opt_window_snr"+str(snr)+"_reso"+str(reso))
-    torch.save(weight2, "/project/jhaldar_118/jiayangw/OptSamp/model/opt_mask_window_snr"+str(snr)+"_reso"+str(reso))
+    if (epoch // 2) % 2 == 0:
+        torch.save(weight1, "/project/jhaldar_118/jiayangw/OptSamp/model/opt_window_snr"+str(snr)+"_reso"+str(reso))
+    else:
+        torch.save(weight2, "/project/jhaldar_118/jiayangw/OptSamp/model/opt_mask_window_snr"+str(snr)+"_reso"+str(reso))
 
 # %%
