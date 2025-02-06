@@ -16,7 +16,7 @@ from my_data import *
 
 # %% data loader
 snr = 5
-reso = 5
+reso = 6
 print('uni fft')
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
@@ -24,7 +24,7 @@ print('resolution:', reso, flush = True)
 N1 = 320
 N2 = 320
 Nc = 16
-
+ 
 def data_transform(kspace,maps):
     # Transform the kspace to tensor format
     kspace = transforms.to_tensor(kspace)
