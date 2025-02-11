@@ -156,7 +156,10 @@ for epoch in range(max_epochs):
                 grad = sample_model.weight.grad
                 grad = grad - grad.mean()
                 grad = grad/grad.norm()
+                total = weight2.sum()
                 weight2 = weight2 - step2 * grad
+                weight2[weight2 < 1] = 1
+                weight2 = weight2 / weight2.sum * total
                 sample_model.weight = weight2
                 print("sampling weight max:", weight2.max(), " min:", weight2.min(), flush = True)
 
