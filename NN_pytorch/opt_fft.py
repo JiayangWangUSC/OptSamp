@@ -74,7 +74,7 @@ class Recon(torch.nn.Module):
 
     def __init__(self):
         super().__init__()
-        self.weight =  0.01 * torch.ones(N1-32*reso, N2-32*reso)
+        self.weight =  0.5 * torch.ones(N1-32*reso, N2-32*reso)
 
     def forward(self,kspace):
         mask =  torch.zeros((N1,N2))
