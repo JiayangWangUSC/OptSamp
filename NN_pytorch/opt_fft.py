@@ -110,7 +110,7 @@ recon_model.to(device)
 
 # %% optimization parameters
 Loss = torch.nn.MSELoss()
-step1 = 100
+step1 = 3000
 step2 = 1
 
 # %% training
@@ -118,7 +118,7 @@ max_epochs = 200
 for epoch in range(max_epochs):
     print("epoch:",epoch)
 
-    if (epoch // 2) % 2 == 0:
+    if epoch % 2 == 0:
         step1 = 0.99 * step1
     else:
         step2 = 0.99 * step2
@@ -142,7 +142,7 @@ for epoch in range(max_epochs):
         # optimize mask
         with torch.no_grad():
             
-            if (epoch // 2) % 2 == 0:
+            if epoch % 2 == 0:
                 weight1 = recon_model.weight.clone() 
                 grad = recon_model.weight.grad
                 weight1 = weight1 - step1 * grad
@@ -165,7 +165,7 @@ for epoch in range(max_epochs):
 
         print("Loss:", loss.item() ,flush = True)
 
-    if (epoch // 2) % 2 == 0:
+    if epoch % 2 == 0:
         torch.save(weight1, "/project/jhaldar_118/jiayangw/OptSamp/model/opt_window_snr"+str(snr)+"_reso"+str(reso))
     else:
         torch.save(weight2, "/project/jhaldar_118/jiayangw/OptSamp/model/opt_mask_window_snr"+str(snr)+"_reso"+str(reso))

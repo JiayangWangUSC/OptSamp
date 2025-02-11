@@ -37,15 +37,15 @@ def data_transform(kspace,maps):
     return kspace, maps
 
 train_data = SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
+    #root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
     transform=data_transform,
     challenge='multicoil'
 )
 
 val_data = SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
+    #root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -109,7 +109,7 @@ recon_model.to(device)
 
 # %% optimization parameters
 Loss = torch.nn.MSELoss()
-step = 100
+step = 3000
 
 # %% training
 max_epochs = 100
@@ -147,6 +147,6 @@ for epoch in range(max_epochs):
         print("weight max:",weight.max(),"weight min:",weight.min(), flush = True)
         print("Loss:", loss.item() ,flush = True)
 
-    torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_window_snr"+str(snr)+"_reso"+str(reso))
+#    torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_window_snr"+str(snr)+"_reso"+str(reso))
 
 # %%
