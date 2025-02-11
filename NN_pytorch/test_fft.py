@@ -15,15 +15,13 @@ import matplotlib.pyplot as plt
 from my_data import *
 
 # %% data loader
-snr = 2
-reso = 0
-print('optimized fft')
-print("SNR:", snr, flush = True)
-print('resolution:', reso, flush = True)
+snr = 10
+reso = 5
 
 N1 = 320
 N2 = 320
 Nc = 16
+
 def data_transform(kspace,maps):
     # Transform the kspace to tensor format
     kspace = transforms.to_tensor(kspace)
@@ -35,22 +33,15 @@ def data_transform(kspace,maps):
 
     return kspace, maps
 
-train_data = SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
-    transform=data_transform,
-    challenge='multicoil'
-)
-
-val_data = SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
+test_data = SliceDataset(
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1/'),
+    #root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/'),
     transform=data_transform,
     challenge='multicoil'
 )
 
 # %% noise generator and transform to image
-batch_size = 8
+batch_size = 1
 
 class Sample(torch.nn.Module): 
 
@@ -71,7 +62,7 @@ class Sample(torch.nn.Module):
         return kspace_noise
     
 class Recon(torch.nn.Module): 
-
+    
     def __init__(self):
         super().__init__()
         self.weight =  0.01 * torch.ones(N1-32*reso, N2-32*reso)
@@ -96,75 +87,43 @@ def toIm(kspace,maps):
 factor = 8
 sigma =  0.12*math.sqrt(8)/snr
 
+weight1 = torch.load('/home/wjy/Project/optsamp_model/opt_mask_window_snr'+str(snr)+'_reso'+str(reso))
 sample_model = Sample(sigma,factor)
+sample_model.weight = weight1
+
+weight2 = torch.load('/home/wjy/Project/optsamp_model/opt_window_snr'+str(snr)+'_reso'+str(reso))
 recon_model = Recon()
+recon_model.weight = weight2
 
 # %% data loader
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
-val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
-
-sample_model.to(device)
-recon_model.to(device)
+test_dataloader = torch.utils.data.DataLoader(test_data,batch_size,shuffle=True)
 
 # %% optimization parameters
 Loss = torch.nn.MSELoss()
-step1 = 100
-step2 = 1
 
-# %% training
-max_epochs = 200
-for epoch in range(max_epochs):
-    print("epoch:",epoch)
+from pytorch_msssim import ssim, ms_ssim, SSIM, MS_SSIM
+ssim_module = SSIM(data_range=255, size_average=True, channel=1)
 
-    if (epoch // 2) % 2 == 0:
-        step1 = 0.99 * step1
-    else:
-        step2 = 0.99 * step2
+# %% test
+count = 0
+ssim_, nrmse_ = 0, 0
 
-    #trainloss = 0
-    #trainloss_normalized = 0
-    for kspace, maps in train_dataloader:
-        sample_model.weight.requires_grad = True
-        recon_model.weight.requires_grad = True
+with torch.no_grad():
+    for kspace, maps in test_dataloader:
+    
+        count += 1
+
         gt = toIm(kspace, maps) # ground truth
+        scale = gt.max()
+        l2scale = gt.norm(p=2)
 
         kspace_noise = recon_model(sample_model(kspace)) # add noise and apply window
         recon = toIm(kspace_noise, maps)
-        loss = Loss(recon.to(device),gt.to(device))
-        #trainloss += loss.item()
-        #trainloss_normalized += loss.item()/Loss(0*gt,gt)
+    
+        ssim_ += ssim_module(recon.unsqueeze(0).unsqueeze(1)/scale*256, gt.unsqueeze(0).unsqueeze(1)/scale*256)
+        nrmse_ += (recon-gt).norm(p=2)/l2scale
 
-        # backward
-        loss.backward()
-        
-        # optimize mask
-        with torch.no_grad():
-            
-            if (epoch // 2) % 2 == 0:
-                weight1 = recon_model.weight.clone() 
-                grad = recon_model.weight.grad
-                weight1 = weight1 - step1 * grad
-                weight1[weight1 > 1] = 1
-                weight1[weight1 < 0] = 0
-                recon_model.weight = weight1
-                print("window weight max:", weight1.max(), " min:", weight1.min(), flush = True)
-            
-            else:
-                weight2 = sample_model.weight.clone() 
-                grad = sample_model.weight.grad
-                grad = grad - grad.mean()
-                grad = grad/grad.norm()
-                weight2 = weight2 - step2 * grad
-                sample_model.weight = weight2
-                print("sampling weight max:", weight2.max(), " min:", weight2.min(), flush = True)
-
-        print("Loss:", loss.item() ,flush = True)
-
-    if (epoch // 2) % 2 == 0:
-        torch.save(weight1, "/project/jhaldar_118/jiayangw/OptSamp/model/opt_window_snr"+str(snr)+"_reso"+str(reso))
-    else:
-        torch.save(weight2, "/project/jhaldar_118/jiayangw/OptSamp/model/opt_mask_window_snr"+str(snr)+"_reso"+str(reso))
+print('ssim: ', ssim_/count, ' nrmse: ', nrmse_/count)
 
 # %%

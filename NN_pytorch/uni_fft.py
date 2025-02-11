@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from my_data import *
 
 # %% data loader
-snr = 3
+snr = 2
 reso = 0
 print('uni fft')
 print("SNR:", snr, flush = True)
@@ -38,7 +38,7 @@ def data_transform(kspace,maps):
 
 train_data = SliceDataset(
     #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_train/'),
+    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -73,7 +73,7 @@ class Recon(torch.nn.Module):
 
     def __init__(self):
         super().__init__()
-        self.weight = 0.01 * torch.ones(N1-32*reso, N2-32*reso)
+        self.weight = 0.5 * torch.ones(N1-32*reso, N2-32*reso)
 
     def forward(self,kspace):
 
@@ -109,10 +109,10 @@ recon_model.to(device)
 
 # %% optimization parameters
 Loss = torch.nn.MSELoss()
-step = 10
+step = 100
 
 # %% training
-max_epochs = 50
+max_epochs = 100
 for epoch in range(max_epochs):
     print("epoch:",epoch+1)
 
@@ -148,3 +148,5 @@ for epoch in range(max_epochs):
         print("Loss:", loss.item() ,flush = True)
 
     torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_window_snr"+str(snr)+"_reso"+str(reso))
+
+# %%
