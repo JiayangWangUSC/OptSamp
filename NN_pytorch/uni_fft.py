@@ -16,7 +16,7 @@ from my_data import *
 
 # %% data loader
 snr = 2
-reso = 6
+reso = 7
 print('uni fft')
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
