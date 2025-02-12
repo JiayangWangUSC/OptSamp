@@ -16,7 +16,7 @@ from my_data import *
 
 # %% data loader
 snr = 2
-reso = 3
+reso = 7
 
 N1 = 320
 N2 = 320
@@ -78,20 +78,20 @@ class Recon(torch.nn.Module):
 def toIm(kspace,maps): 
     # kspace-(batch,Nc,N1,N2,2) maps-(batch,Nc,N1,N2,2)
     # image-(batch,N1,N2)
-    kmask = torch.zeros_like(kspace)
-    kmask[:,:,(16*reso):(N1-16*reso),(16*reso):(N2-16*reso),:] = 1
-    image = fastmri.complex_abs(torch.sum(fastmri.complex_mul(fastmri.ifft2c(kmask*kspace),fastmri.complex_conj(maps)),dim=1))
+    #kmask = torch.zeros_like(kspace)
+    #kmask[:,:,(16*reso):(N1-16*reso),(16*reso):(N2-16*reso),:] = 1
+    image = fastmri.complex_abs(torch.sum(fastmri.complex_mul(fastmri.ifft2c(kspace),fastmri.complex_conj(maps)),dim=1))
     return image.squeeze()
 
 # %% sampling
 factor = 8
 sigma =  0.12 * math.sqrt(8) / snr
 
-#weight1 = torch.load('/home/wjy/Project/optsamp_model/opt_mask_window_snr'+str(snr)+'_reso'+str(reso))
+weight1 = torch.load('/home/wjy/Project/optsamp_model/opt_mask_window_snr'+str(snr)+'_reso'+str(reso))
 sample_model = Sample(sigma,factor)
-#sample_model.weight = weight1
+sample_model.weight = weight1
 
-weight2 = torch.load('/home/wjy/Project/optsamp_model/uni_window_snr'+str(snr)+'_reso'+str(reso))
+weight2 = torch.load('/home/wjy/Project/optsamp_model/opt_window_snr'+str(snr)+'_reso'+str(reso))
 recon_model = Recon()
 recon_model.weight = weight2
 
