@@ -16,7 +16,7 @@ from my_data import *
 
 # %% data loader
 snr = 2
-reso = 0
+reso = 3
 
 N1 = 320
 N2 = 320
@@ -85,7 +85,7 @@ def toIm(kspace,maps):
 
 # %% sampling
 factor = 8
-sigma =  0.12*math.sqrt(8)/snr
+sigma =  0.12 * math.sqrt(8) / snr
 
 #weight1 = torch.load('/home/wjy/Project/optsamp_model/opt_mask_window_snr'+str(snr)+'_reso'+str(reso))
 sample_model = Sample(sigma,factor)
@@ -127,3 +127,8 @@ with torch.no_grad():
 print('ssim: ', ssim_/count, ' nrmse: ', nrmse_/count)
 
 # %%
+
+
+
+
+
