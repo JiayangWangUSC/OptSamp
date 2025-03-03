@@ -16,7 +16,7 @@ from my_data import *
 
 # %% data loader
 snr = 10
-reso = 2
+reso = 3
 
 N1 = 320
 N2 = 320
