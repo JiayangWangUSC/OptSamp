@@ -16,4 +16,4 @@ module load cuda/11.2.0
 
 source ~/venvs/fastmri-env/bin/activate
 
-python /project/jhaldar_118/jiayangw/OptSamp/NN_pytorch/resolution_fft.py
+python /project/jhaldar_118/jiayangw/OptSamp/NN_pytorch/test_fft.py
