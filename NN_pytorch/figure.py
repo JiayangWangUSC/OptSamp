@@ -20,8 +20,8 @@ from my_data import *
 # %% parameters
 factor = 8
 snr = 2
-reso = 3
-sigma =  0.12*math.sqrt(8)/snr
+reso = 2
+sigma =  0.12 * math.sqrt(8) / snr
 
 # %% data loader
 N1 = 320
@@ -97,13 +97,13 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 test_dataloader = torch.utils.data.DataLoader(test_data,batch_size,shuffle=True)
 
 # %%
-sample_uni = Sample_uni(sigma,factor)
+sample_uni = Sample_uni(0.9*sigma,factor)
 recon_uni = torch.load('/home/wjy/Project/optsamp_model/uni_mse_snr'+str(snr)+'_reso'+str(reso),map_location=torch.device('cpu'))
 
-weight = torch.load('/home/wjy/Project/optsamp_model/opt_mse_mask_snr'+str(snr)+'_reso'+str(reso))
-sample_opt = Sample_opt(sigma,factor)
-sample_opt.weight = weight
-recon_opt = torch.load('/home/wjy/Project/optsamp_model/opt_mse_snr'+str(snr)+'_reso'+str(reso),map_location=torch.device('cpu'))
+#weight = torch.load('/home/wjy/Project/optsamp_model/opt_mse_mask_snr'+str(snr)+'_reso'+str(reso))
+#sample_opt = Sample_opt(sigma,factor)
+#sample_opt.weight = weight
+#recon_opt = torch.load('/home/wjy/Project/optsamp_model/opt_mse_snr'+str(snr)+'_reso'+str(reso),map_location=torch.device('cpu'))
 
 # %%
 with torch.no_grad():
@@ -144,5 +144,5 @@ with torch.no_grad():
 # %% save patch
 resize_transform = torchvision.transforms.Resize((256, 256), interpolation=torchvision.transforms.InterpolationMode.NEAREST)
 
-patch1 = resize_transform(gt[160:240,100:180].unsqueeze(0))/torch.max(gt)*1.5
-save_image(patch1,'/home/wjy/Project/optsamp_result/gt_p1_snr'+str(snr)+'.png')
+patch1 = resize_transform(gt[160:240,100:180].unsqueeze(0)) / torch.max(gt) * 1.5
+save_image(patch1,'/home/wjy/Project/optsamp_result/gt_p1_snr' + str(snr) + '.png')
