@@ -19,8 +19,8 @@ from my_data import *
 
 # %% parameters
 factor = 8
-snr = 2
-reso = 2
+snr = 3
+reso = 4
 sigma =  0.12 * math.sqrt(8) / snr
 
 # %% data loader
@@ -97,21 +97,21 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 test_dataloader = torch.utils.data.DataLoader(test_data,batch_size,shuffle=True)
 
 # %%
-sample_uni = Sample_uni(0.9*sigma,factor)
+sample_uni = Sample_uni(0.98*sigma,factor)
 recon_uni = torch.load('/home/wjy/Project/optsamp_model/uni_mse_snr'+str(snr)+'_reso'+str(reso),map_location=torch.device('cpu'))
 
-#weight = torch.load('/home/wjy/Project/optsamp_model/opt_mse_mask_snr'+str(snr)+'_reso'+str(reso))
-#sample_opt = Sample_opt(sigma,factor)
-#sample_opt.weight = weight
-#recon_opt = torch.load('/home/wjy/Project/optsamp_model/opt_mse_snr'+str(snr)+'_reso'+str(reso),map_location=torch.device('cpu'))
+weight = torch.load('/home/wjy/Project/optsamp_model/opt_mse_mask_snr'+str(snr)+'_reso'+str(reso))
+sample_opt = Sample_opt(sigma,factor)
+sample_opt.weight = weight
+recon_opt = torch.load('/home/wjy/Project/optsamp_model/opt_mse_snr'+str(snr)+'_reso'+str(reso),map_location=torch.device('cpu'))
 
 # %%
 with torch.no_grad():
-    kspace, maps =  test_data[0]
+    kspace, maps =  test_data[2]
     kspace = kspace.unsqueeze(0)
     maps = maps.unsqueeze(0)
     gt = fullIm(kspace, maps)
-    support = (gt > 0.03 * gt.max())
+#    support = (gt > 0.03 * gt.max())
 #    support = fastmri.complex_abs(torch.sum(fastmri.complex_mul(maps,fastmri.complex_conj(maps)),dim=1)).squeeze()
 
     # %% uni recon
@@ -138,8 +138,6 @@ with torch.no_grad():
     plt.imshow(error, cmap='hot',vmax=0.4,vmin=0)
     plt.axis('off')
     plt.savefig('/home/wjy/Project/optsamp_result/base_error_snr'+str(snr)+'.png', bbox_inches='tight', pad_inches=0) 
-
-
 
 # %% save patch
 resize_transform = torchvision.transforms.Resize((256, 256), interpolation=torchvision.transforms.InterpolationMode.NEAREST)

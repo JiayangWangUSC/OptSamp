@@ -15,8 +15,8 @@ import matplotlib.pyplot as plt
 from my_data import *
 
 # %% data loader
-snr = 2
-reso = 7
+snr = 3
+reso = 5
 
 N1 = 320
 N2 = 320
@@ -87,11 +87,11 @@ def toIm(kspace,maps):
 factor = 8
 sigma =  0.12 * math.sqrt(8) / snr
 
-#weight1 = torch.load('/home/wjy/Project/optsamp_model/opt_mask_window_snr'+str(snr)+'_reso'+str(reso))
+weight1 = torch.load('/home/wjy/Project/optsamp_model/opt_mask_window_snr'+str(snr)+'_reso'+str(reso))
 sample_model = Sample(sigma,factor)
-#sample_model.weight = weight1
+sample_model.weight = weight1
 
-weight2 = torch.load('/home/wjy/Project/optsamp_model/uni_window_snr'+str(snr)+'_reso'+str(reso))
+weight2 = torch.load('/home/wjy/Project/optsamp_model/opt_window_snr'+str(snr)+'_reso'+str(reso))
 recon_model = Recon()
 recon_model.weight = weight2
 
@@ -107,7 +107,7 @@ ssim_module = SSIM(data_range=255, size_average=True, channel=1)
 
 # %% test
 with torch.no_grad():
-    kspace, maps =  test_data[0]
+    kspace, maps =  test_data[2]
     kspace = kspace.unsqueeze(0)
     maps = maps.unsqueeze(0)
 
