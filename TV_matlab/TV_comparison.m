@@ -11,6 +11,10 @@ dirname = dir(datapath);
 
 %% single image recon
 N1 = 320; N2 = 320; Nc = 16; Ns =8;
+%kspace = h5read([datapath,dirname(3).name],'/kspace_central');
+%kspace = complex(kspace(:,:,1:Nc,1),kspace(:,:,Nc+1:2*Nc,1));
+%maps = h5read([datapath,dirname(3).name],'/sense_central');
+%maps = complex(maps(:,:,1:Nc,1),maps(:,:,Nc+1:2*Nc,1));
 
 %% difference matrix
 d1 = diag(ones(N1,1));
@@ -32,10 +36,20 @@ DhD = reshape(real(Dh(D(ones(N1,N2,Nc)))),N1,N2,Nc);
 %% define snr w. 8-averaging
 factor = 8;
 SNR = 10; % SNR after uniform averaging
-sigma = sqrt(8)*0.12/SNR;  
-reso = ;
+sigma = sqrt(8)*0.12/SNR; 
+reso = 0;
 
 %% reconstruction parameters initialization
+% if SNR == 2
+%     rho = 0.8; beta = 0.5;
+% elseif SNR == 3
+%     rho = 0.6; beta = 0.5;
+% elseif SNR == 5
+%     rho = 0.3; beta = 0.5;
+% elseif SNR == 10
+%     rho = 0.1; beta = 0.5;
+% end
+
 if SNR == 2
     rho = 0.8; beta = 0.5;
 elseif SNR == 3
@@ -59,30 +73,42 @@ opt_mask = zeros(N1,N2);
 opt_mask((16*reso+1):(N1-16*reso),(16*reso+1):(N2-16*reso)) = repmat(weight,[N1-32*reso,1]);
 opt_mask = repmat(opt_mask,[1,1,Nc]);
 
-%%
-disp([datapath,dirname(3).name]);
-kspace = h5read([datapath,dirname(3).name],'/kspace_central');
-Maps = h5read([datapath,dirname(3).name],'/sense_central');    
+%% 
+count = 0;
+ssim_ = 0;
+nrmse_ = 0;
 
-kData = complex(kspace(:,:,1:Nc,1),kspace(:,:,Nc+1:2*Nc,1));
-maps = complex(Maps(:,:,1:Nc,1),Maps(:,:,Nc+1:2*Nc,1));
-noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
-gt = abs(sum(ifft2c(kData).*conj(maps),3));
-support = sum(maps.*conj(maps),3);
+for sub_num = 3 :length(dirname)
+    disp([datapath,dirname(sub_num).name]);
+    kspace = h5read([datapath,dirname(sub_num).name],'/kspace_central');
+    Maps = h5read([datapath,dirname(sub_num).name],'/sense_central');    
 
-%%
-recon_uni = TV(sqrt(uni_mask).*kData + (uni_mask>0).*noise,sqrt(uni_mask),rho,beta,MaxIter,D,Dh,DhD);
-recon_uni = abs(sum(ifft2c(reshape(recon_uni,N1,N2,Nc)).*conj(maps),3));
-imwrite(recon_uni/max(gt(:))*1.5,['/home/wjy/Project/optsamp_result/base_tv_snr',num2str(SNR),'.png'])
-imwrite((abs(recon_uni-gt))/max(gt(:))*5,['/home/wjy/Project/optsamp_result/base_tv_error_snr',num2str(SNR),'.png'])
+    for slice_num = 1 :Ns
+    count = count + 1;
+    
+    kData = complex(kspace(:,:,1:Nc,slice_num),kspace(:,:,Nc+1:2*Nc,slice_num));
+    maps = complex(Maps(:,:,1:Nc,slice_num),Maps(:,:,Nc+1:2*Nc,slice_num));
+    noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
+    gt = abs(sum(ifft2c(kData).*conj(maps),3));
 
+    pixelscale = max(gt(:));
+    l2scale = norm(gt(:));
+    
+    % recon_uni = TV(sqrt(uni_mask).*kData + (uni_mask>0).*noise,sqrt(uni_mask),rho,beta,MaxIter,D,Dh,DhD);
+    % recon_uni = abs(sum(ifft2c(reshape(recon_uni,N1,N2,Nc)).*conj(maps),3));
+    % ssim_uni = ssim_uni + ssim(recon_uni/pixelscale,gt/pixelscale,'DynamicRange', 1);
+    % nrmse_uni = nrmse_uni + norm(recon_uni(:)-gt(:))/l2scale;
 
-%%
-%recon_opt = TV(sqrt(opt_mask).*kData + (opt_mask>0).*noise,sqrt(opt_mask),rho,beta,MaxIter,D,Dh,DhD);
-%recon_opt = abs(sum(ifft2c(0.95*reshape(recon_opt,N1,N2,Nc)+0.05*kData).*conj(maps),3));
+    recon_opt = TV(sqrt(opt_mask).*kData + noise,sqrt(opt_mask),rho,beta,MaxIter,D,Dh,DhD);
+    recon_opt = abs(sum(ifft2c(reshape(recon_opt,N1,N2,Nc)).*conj(maps),3));
+    ssim_ = ssim_ + ssim(recon_opt/pixelscale,gt/pixelscale,'DynamicRange', 1);
+    nrmse_ = nrmse_ + norm(recon_opt(:)-gt(:))/l2scale;
 
-%imwrite((recon_opt)/max(gt(:))*1.5,['/home/wjy/Project/optsamp_result/opt_tv_snr',num2str(SNR),'.png'])
-%imwrite((abs(recon_opt-gt))/max(gt(:))*5,['/home/wjy/Project/optsamp_result/opt_tv_error_snr',num2str(SNR),'.png'])
+    end
+
+    disp([ssim_/count,nrmse_/count]);
+
+end
 
 %%
 function recon = TV(usData,kMask,rho,beta,MaxIter,D,Dh,DhD)

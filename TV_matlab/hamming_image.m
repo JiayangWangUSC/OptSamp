@@ -36,23 +36,15 @@ mask((16*reso+1):(N1-16*reso),(16*reso+1):(N2-16*reso)) = window;
 mask = repmat(mask,[1,1,Nc]);
 
 %%
-
-        kspace = h5read([datapath,dirname(3).name],'/kspace_central');
-        Maps = h5read([datapath,dirname(3).name],'/sense_central');
-
+kspace = h5read([datapath,dirname(3).name],'/kspace_central');
+Maps = h5read([datapath,dirname(3).name],'/sense_central');
  
-        kData = complex(kspace(:,:,1:Nc,1),kspace(:,:,Nc+1:2*Nc,1));
-        maps = complex(Maps(:,:,1:Nc,1),Maps(:,:,Nc+1:2*Nc,1));
-        gt = abs(sum(ifft2c(kData).*conj(maps),3));
+kData = complex(kspace(:,:,1:Nc,1),kspace(:,:,Nc+1:2*Nc,1));
+maps = complex(Maps(:,:,1:Nc,1),Maps(:,:,Nc+1:2*Nc,1));
+gt = abs(sum(ifft2c(kData).*conj(maps),3));
 
-
-        noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
-        recon = abs(sum(ifft2c(mask.*(kData+sqrt(avg_mask_dagger).*noise)).*conj(maps),3));
-
-
-%%
-imwrite(recon/max(gt(:))*1.5,['/home/wjy/Project/optsamp_result/base_fft_snr',num2str(SNR),'.png'])
-imwrite((abs(recon-gt))/max(gt(:))*5,['/home/wjy/Project/optsamp_result/base_fft_error_snr',num2str(SNR),'.png'])
+noise = complex(sigma*randn(N1,N2,Nc),sigma*randn(N1,N2,Nc));
+recon = abs(sum(ifft2c(mask.*(kData+sqrt(avg_mask_dagger).*noise)).*conj(maps),3));
 
 %%
 % imwrite(recon/max(gt(:))*1.5,['/home/wjy/Project/optsamp_result/opt_fft_snr',num2str(SNR),'.png'])

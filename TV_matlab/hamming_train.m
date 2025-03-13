@@ -9,16 +9,6 @@ ifft2c = @(x) fftshift(ifft2(ifftshift(x)))*sqrt(size(x(:),1))/4;
 datapath = '/home/wjy/Project/fastmri_dataset/brain_T1/';
 dirname = dir(datapath);
 
-dict = [17
-11
-7
-5
-3
-2
-1
-0.3];
-
-
 %% parameters
 N1 = 320; N2 = 320; Nc = 16; Ns =8;
 factor = 8;
@@ -27,14 +17,8 @@ sigma = sqrt(8)*0.12/SNR;
 
 for reso = 0:7
 
-beta = dict(reso+1);  % Higher beta for stronger noise suppression 
-N1_wd = N1 - 32*reso;
-N2_wd = N2 - 32*reso;
-window = kaiser(N1_wd, beta) * kaiser(N2_wd, beta)';
-
-%%
 weight = factor*N1/(N1-32*reso)*N2/(N2-32*reso) * ones(1,N2-32*reso);
-load(['./fftweight_snr',num2str(int8(5)),'_reso',num2str(int8(reso))]);
+load(['weight_snr',num2str(int8(5)),'_reso',num2str(int8(reso))]);
 
 mask = zeros(N1,N2);
 mask((16*reso+1):(N1-16*reso),(16*reso+1):(N2-16*reso)) = window;
