@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from my_data import *
 
 # %% data loader
-snr = 3
+snr = 2
 reso = 5
 
 N1 = 320

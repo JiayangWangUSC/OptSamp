@@ -15,8 +15,8 @@ import matplotlib.pyplot as plt
 from my_data import *
 
 # %% data loader
-snr = 10
-reso = 7
+snr = 2
+reso = 5
 print('optimized fft')
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
@@ -114,7 +114,7 @@ step1 = 3000
 step2 = 1
 
 # %% training
-max_epochs = 200
+max_epochs = 10
 for epoch in range(max_epochs):
     print("epoch:",epoch)
 
@@ -146,7 +146,7 @@ for epoch in range(max_epochs):
                 weight1 = recon_model.weight.clone() 
                 grad = recon_model.weight.grad
                 weight1 = weight1 - step1 * grad
-                weight1[weight1 > 1] = 1
+                #weight1[weight1 > 1] = 1
                 weight1[weight1 < 0] = 0
                 recon_model.weight = weight1
                 print("window weight max:", weight1.max(), " min:", weight1.min(), flush = True)

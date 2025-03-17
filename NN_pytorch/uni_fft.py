@@ -15,12 +15,9 @@ import matplotlib.pyplot as plt
 from my_data import *
 
 # %% data loader
-snr = 10
-<<<<<<< HEAD
-reso = 1
-=======
-reso = 7
->>>>>>> daf64baa7c3c69ea1061dd8d306a8f2ee165b21a
+snr = 2
+reso = 5
+
 print('uni fft')
 print("SNR:", snr, flush = True)
 print('resolution:', reso, flush = True)
@@ -99,8 +96,10 @@ def toIm(kspace,maps):
 factor = 8
 sigma =  0.12*math.sqrt(8)/snr
 
+weight = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/uni_window_snr"+str(snr)+"_reso"+str(reso))
 sample_model = Sample(sigma,factor)
 recon_model = Recon()
+recon_model.weight = weight
 
 # %% data loader
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -113,7 +112,7 @@ recon_model.to(device)
 
 # %% optimization parameters
 Loss = torch.nn.MSELoss()
-step = 3000
+step = 300
 
 # %% training
 max_epochs = 100
@@ -143,7 +142,7 @@ for epoch in range(max_epochs):
             grad = recon_model.weight.grad
             
             weight = weight - step * grad
-            weight[weight > 1] = 1
+            #weight[weight > 1] = 1
             weight[weight < 0] = 0
 
             recon_model.weight = weight
