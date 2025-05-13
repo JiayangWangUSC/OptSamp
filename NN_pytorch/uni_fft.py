@@ -38,15 +38,15 @@ def data_transform(kspace,maps):
     return kspace, maps
 
 train_data = SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1/'),
+    #root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
     transform=data_transform,
     challenge='multicoil'
 )
 
 val_data = SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
+    #root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -96,7 +96,7 @@ def toIm(kspace,maps):
 factor = 8
 sigma =  0.12*math.sqrt(8)/snr
 
-weight = torch.load("/project/jhaldar_118/jiayangw/OptSamp/model/uni_window_snr"+str(snr)+"_reso"+str(reso))
+weight = torch.load('/home/wjy/Project/optsamp_model/opt_window_snr'+str(snr)+'_reso'+str(reso))
 sample_model = Sample(sigma,factor)
 recon_model = Recon()
 recon_model.weight = weight
@@ -150,6 +150,6 @@ for epoch in range(max_epochs):
         print("weight max:",weight.max(),"weight min:",weight.min(), flush = True)
         print("Loss:", loss.item() ,flush = True)
 
-    torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_window_snr"+str(snr)+"_reso"+str(reso))
+    #torch.save(weight,"/project/jhaldar_118/jiayangw/OptSamp/model/uni_window_snr"+str(snr)+"_reso"+str(reso))
 
 # %%

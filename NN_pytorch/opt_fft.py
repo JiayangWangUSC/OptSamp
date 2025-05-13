@@ -36,15 +36,15 @@ def data_transform(kspace,maps):
     return kspace, maps
 
 train_data = SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1/'),
+    #root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
     transform=data_transform,
     challenge='multicoil'
 )
 
 val_data = SliceDataset(
-    #root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
-    root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
+    root=pathlib.Path('/home/wjy/Project/fastmri_dataset/brain_T1_demo/'),
+    #root = pathlib.Path('/project/jhaldar_118/jiayangw/dataset/brain_T1/multicoil_val/'),
     transform=data_transform,
     challenge='multicoil'
 )
@@ -105,16 +105,21 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 train_dataloader = torch.utils.data.DataLoader(train_data,batch_size,shuffle=True)
 val_dataloader = torch.utils.data.DataLoader(val_data,batch_size,shuffle=True)
 
+weight1 = torch.load('/home/wjy/Project/optsamp_model/opt_mask_window_snr'+str(snr)+'_reso'+str(reso))
 sample_model.to(device)
+sample_model.weight = weight1
+
+weight2 = torch.load('/home/wjy/Project/optsamp_model/opt_window_snr'+str(snr)+'_reso'+str(reso))
 recon_model.to(device)
+recon_model.weight = weight2
 
 # %% optimization parameters
 Loss = torch.nn.MSELoss()
-step1 = 3000
-step2 = 1
+step1 = 300
+step2 = 0.1
 
 # %% training
-max_epochs = 10
+max_epochs = 100
 for epoch in range(max_epochs):
     print("epoch:",epoch)
 
@@ -165,9 +170,9 @@ for epoch in range(max_epochs):
 
         print("Loss:", loss.item() ,flush = True)
 
-    if epoch % 2 == 0:
-        torch.save(weight1, "/project/jhaldar_118/jiayangw/OptSamp/model/opt_window_snr"+str(snr)+"_reso"+str(reso))
-    else:
-        torch.save(weight2, "/project/jhaldar_118/jiayangw/OptSamp/model/opt_mask_window_snr"+str(snr)+"_reso"+str(reso))
+    #if epoch % 2 == 0:
+    #    torch.save(weight1, "/project/jhaldar_118/jiayangw/OptSamp/model/opt_window_snr"+str(snr)+"_reso"+str(reso))
+    #else:
+    #    torch.save(weight2, "/project/jhaldar_118/jiayangw/OptSamp/model/opt_mask_window_snr"+str(snr)+"_reso"+str(reso))
 
 # %%
